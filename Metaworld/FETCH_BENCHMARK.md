@@ -21,7 +21,7 @@ Built-in sequences:
 Custom task order:
 
 ```bash
-python continual_quasimetric_main2.py \
+python continual_quasimetric_fetch_main.py \
   --env fetch_sequence_custom \
   --task_order reach,push,pick-and-place,slide \
   --goal_conditioned 1 \

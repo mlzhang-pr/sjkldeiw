@@ -1,3 +1,3 @@
 #!/bin/bash
 
-exec python -m online_continual.main "${@}"
+exec python -m online_continual.conquest "${@}"

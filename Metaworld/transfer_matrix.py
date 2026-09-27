@@ -17,7 +17,7 @@ import seaborn as sns
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 EVALUATORS = {
-	"awr": SCRIPT_DIR / "final_eval_main3-2awr.py",
+	"awr": SCRIPT_DIR / "conquest_eval.py",
 	"fame": SCRIPT_DIR / "final_eval_fame.py",
 }
 CHECKPOINT_PATTERN = re.compile(r"^(?P<name>.+_(?P<stage>\d+)_meta)_actor\.pt$")

@@ -15,7 +15,7 @@ parser.add_argument('--t-steps', type=int, default=3500000, help="number of epis
 parser.add_argument('--switch', type=int, default=500000, help="switch env steps")
 parser.add_argument('--save', action="store_true")
 parser.add_argument("--gpu", type=int, default=0, help="Random seed and device selector")
-###### no need to save model
+
 parser.add_argument('--seq', type=int, default=0, help="selected sequence in the environment list")
 parser.add_argument('--reset', type=int, default=1, help="reset every environment")
 

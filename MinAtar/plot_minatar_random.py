@@ -28,23 +28,23 @@ print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
 np.seterr(invalid='ignore')
 plt.style.use('seaborn-v0_8-white')
 
-benchmark_DQN = [ # 60000 steps, each result is very stable; use the first one under seed 1 is fine
-    {'breakout': 12.7, 'space_invaders': 30.9, 'freeway': 3.04}, # seq:0
-    {'breakout': 0.0, 'space_invaders': 0.0, 'freeway': 0.0}, # seq:1
-    {'breakout': 0.0, 'space_invaders': 0.0, 'freeway': 0.0}, # seq:2
-    {'breakout': 12.5, 'space_invaders': 30.8, 'freeway': 2.125}, # seq:3
-    {'breakout': 0.0, 'space_invaders': 0.0, 'freeway': 0.0}, # seq:4
-    {'breakout': 0.0, 'space_invaders': 0.0, 'freeway': 0.0}, # seq:5
-    {'breakout': 0.0, 'space_invaders': 0.0, 'freeway': 0.0}, # seq:6
-    {'breakout': 0.0, 'space_invaders': 0.0, 'freeway': 0.0}, # seq:7
-    {'breakout': 0.0, 'space_invaders': 0.0, 'freeway': 0.0}, # seq:8
-    {'breakout': 0.0, 'space_invaders': 0.0, 'freeway': 0.0}, # seq:9
+benchmark_DQN = [
+    {'breakout': 12.7, 'space_invaders': 30.9, 'freeway': 3.04},
+    {'breakout': 0.0, 'space_invaders': 0.0, 'freeway': 0.0},
+    {'breakout': 0.0, 'space_invaders': 0.0, 'freeway': 0.0},
+    {'breakout': 12.5, 'space_invaders': 30.8, 'freeway': 2.125},
+    {'breakout': 0.0, 'space_invaders': 0.0, 'freeway': 0.0},
+    {'breakout': 0.0, 'space_invaders': 0.0, 'freeway': 0.0},
+    {'breakout': 0.0, 'space_invaders': 0.0, 'freeway': 0.0},
+    {'breakout': 0.0, 'space_invaders': 0.0, 'freeway': 0.0},
+    {'breakout': 0.0, 'space_invaders': 0.0, 'freeway': 0.0},
+    {'breakout': 0.0, 'space_invaders': 0.0, 'freeway': 0.0},
 ]
 env_name = "all"
 seeds = [1, 2, 3]
-seq_list = range(10) # [seq]
-# seq_list = [4] # [seq]
-# seq = 9
+seq_list = range(10)
+
+
 t_steps = 3500000
 plot_steps = 3500000
 gamma = 0.99
@@ -52,15 +52,15 @@ update = 50000
 switch = 500000
 t_seeds = len(seeds) * len(seq_list)
 
-AveragePerformance = False # , save the excel;
+AveragePerformance = False
 """
 1. load the model at the time t and evaluate on the three enviroments 
 2.together with CF_step_normalized to determined which time of the model to load, then save the excel to plot the overtime figure
 3.default: 7 for final ave performance (reported in the table)
 
 """
-CF_step_normalized = 7 # [1, 7]
-CF_Evaluation = True # to ,
+CF_step_normalized = 7
+CF_Evaluation = True
 """
 1.evaluate the forgetting by looping over all the past environments (NOT JUST THREE)
 2.can be costly, CF_step_normalized = 7
@@ -68,7 +68,7 @@ CF_Evaluation = True # to ,
 
 PLOT = False
 
-ForwardTransfer = False # evaluate on the return data
+ForwardTransfer = False
 """
 1. Only evaluate on the return data (results)
 2. self-normalization
@@ -94,8 +94,8 @@ def moving_average(a, n=3):
     return np.concatenate((a[0:n-1]/n, ma_vec))
 
 
-############## get the environments
-## Note: CF also depends on the frequency of the past environments
+
+
 Games = []
 
 for seq_i in range(10):
@@ -105,18 +105,18 @@ for seq_i in range(10):
         game_list.append(env)
     Games.append(game_list)
 
-# print('Benchmark Evaluation envs:', Games[seq][CF_step_normalized - 1].game_name)
 
-# normalization by the DQN with train from scratch
+
+
 
 def GenerateGames_normalized(seqid, seed):
     Games_normalized = []
-    # for seed_i in seeds:
-    #     game_list = []
+
+
     for gameid_i in range(3):
         env = CL_envs_func_replacement(seq=seqid, game_id=gameid_i, seed=seed, evaluation=True)
         Games_normalized.append(env)
-    # Games_normalized.append(game_list) # Games_normalized[seed][game_id]
+
     return Games_normalized
 
 def GenerateGames_past(seqid, seed):
@@ -124,21 +124,21 @@ def GenerateGames_past(seqid, seed):
     for gameid_i in range(7):
         env = CL_envs_func_replacement(seq=seqid, game_id=gameid_i, seed=seed)
         Games_list.append(env)
-    # Games_normalized.append(game_list) # Games_normalized[seed][game_id]
+
     return Games_list
 
 def AveragePerformance_Evaluation(filename, seqid, seed, modeltype='DQN'):
 
-    Games_normalized = GenerateGames_normalized(seqid, seed) # Games_normalized[seed][game_id]
-    #### evaluation for the i-th step
+    Games_normalized = GenerateGames_normalized(seqid, seed)
+
 
     """
         modeltype: DQN, DQN_Finetune, PT-DQN, Ours, Multitask, LargeBuffer
         """
-    # Episode_evaluation = 0 # need to be changed
+
     env_initial = Games_normalized[0]
-    # print(env_initial.game_name)
-    in_channels = env_initial.observation_space.shape[2]  # [10, 10, 7]
+
+    in_channels = env_initial.observation_space.shape[2]
     num_actions = env_initial.action_space.n
     if modeltype in ['PT-DQN']:
         model = CNN_half(in_channels, num_actions)
@@ -149,7 +149,7 @@ def AveragePerformance_Evaluation(filename, seqid, seed, modeltype='DQN'):
     CF_list = []
 
 
-    # load the model
+
 
 
     if modeltype == 'Ours':
@@ -158,13 +158,13 @@ def AveragePerformance_Evaluation(filename, seqid, seed, modeltype='DQN'):
     else:
         model.load_state_dict(torch.load(f"./models/RandomEnvs/seq{seq}/" + filename + "_Net" + str(CF_step_normalized - 1) + ".pt",
                                          map_location=torch.device('cpu')))
-    for j in range(3):  # loop the evaluation game
+    for j in range(3):
         env = Games_normalized[j]
         print('Evaluation env:', env.game_name)
         task_id = envs_to_id[env.game_name]
 
         cs = env.reset()
-        # evaluate the average return within 100 steps
+
         sumreward = []
         epi_return = 0
         epi_count = 0
@@ -199,18 +199,18 @@ def AveragePerformance_Evaluation(filename, seqid, seed, modeltype='DQN'):
 
 
 
-###### evaluate the castrophic forgetting across the past environments
+
 def CF_evaluation(filename, seq, seed, return_seq, modeltype='DQN'):
     """
     modeltype: DQN, DQN_Finetune, PT-DQN, Ours, Multitask, LargeBuffer
     """
-    # Episode_evaluation = 0 # need to be changed
 
-    Games_past = GenerateGames_past(seq, seed) # Games_past[game_id]
+
+    Games_past = GenerateGames_past(seq, seed)
 
     env_initial = Games_past[0]
     print(env_initial.game_name)
-    in_channels = env_initial.observation_space.shape[2]  # [10, 10, 7]
+    in_channels = env_initial.observation_space.shape[2]
     num_actions = env_initial.action_space.n
     if modeltype in ['PT-DQN']:
         model = CNN_half(in_channels, num_actions)
@@ -220,27 +220,27 @@ def CF_evaluation(filename, seq, seed, return_seq, modeltype='DQN'):
         model = CNN(in_channels, num_actions)
     CF_list = []
 
-    # print(f'Evaluate CF the time {i}')
-    # average_CF = [] # record the average return in the past environments
-    # load the model
+
+
+
 
     if modeltype == 'Ours':
         model.load_state_dict(torch.load(f"./models/RandomEnvs/seq{seq}/" + filename + "_Meta" + str(CF_step_normalized-1) + ".pt", map_location=torch.device('cpu')))
     else:
         model.load_state_dict(torch.load(f"./models/RandomEnvs/seq{seq}/" + filename + "_Net" + str(CF_step_normalized-1) + ".pt", map_location=torch.device('cpu')))
-    for j in range(CF_step_normalized): # loop the evaluation game
-        # print(j)
+    for j in range(CF_step_normalized):
+
         env = Games_past[j]
-        # print('Evaluation env:', env.game_name)
+
         task_id = envs_to_id[env.game_name]
 
-        # calculate pk(kdelta)
+
         envstep_size = int(len(return_seq) / len(Games_past))
         return_kdelta = return_seq[(j+1) * envstep_size - 1]
 
 
         cs = env.reset()
-        # evaluate the average return within 100 steps
+
         sumreward = []
         epi_return = 0
         epi_count = 0
@@ -269,8 +269,8 @@ def CF_evaluation(filename, seq, seed, return_seq, modeltype='DQN'):
         if len(sumreward) == 0:
             print("no episode")
         else:
-            # average_CF.append(np.mean(sumreward))
-            CF_list.append(return_kdelta - np.mean(sumreward)) # store the average performance by averaging average_CF among all past environments
+
+            CF_list.append(return_kdelta - np.mean(sumreward))
 
     temp_df = pd.DataFrame({'CF': CF_list, 'Env': [env.game_name for env in Games_past]})
     temp_df = temp_df.groupby('Env')['CF'].mean().reset_index()
@@ -295,10 +295,10 @@ ax.set_rasterized(True)
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(script_dir, ".."))
 
-## DQN ###
+
 best_lr_dqn = 1e-5
 seeds_returns = np.zeros((t_seeds, t_steps))
-reset = 1 # reset, 0: no reset, 1: reset with , 2: reset without setting target net
+reset = 1
 clearbuffer = 1
 
 
@@ -307,8 +307,8 @@ DQN_CF_Normalized = []
 
 for seq in seq_list:
     for s in tqdm(seeds):
-        # if len(seeds) == 1:
-        #     s = seq
+
+
         fname = "DQN"+"_env_name_"+env_name+"_gamma_"+str(gamma)+\
                 "_steps_"+str(t_steps)+"_switch_"+str(switch)+"_batch_"+\
     str(64)+"_lr1_"+str(best_lr_dqn)+ '_seq_' + str(seq) + "_reset_" +str(reset)+ "_clearbuffer_" + str(clearbuffer) +"_seed_"+str(s)
@@ -337,13 +337,13 @@ if ForwardTransfer:
 
 
 if AveragePerformance:
-    DQN_CF_Normalized_mean = np.array(DQN_CF_Normalized).mean(axis=0) # averaege over seed
-    DQN_CF_Normalized_std = np.array(DQN_CF_Normalized).std(axis=0) / np.sqrt(len(seq_list) * len(seeds)) # averaege over seed
+    DQN_CF_Normalized_mean = np.array(DQN_CF_Normalized).mean(axis=0)
+    DQN_CF_Normalized_std = np.array(DQN_CF_Normalized).std(axis=0) / np.sqrt(len(seq_list) * len(seeds))
     print('DQN Average Performance / Final CF:', DQN_CF_Normalized_mean)
     print('DQN Benchmark Performance:', DQN_CF_Normalized_mean)
 
 if CF_Evaluation:
-    DQN_CF = np.array(DQN_CF).mean(axis=0) # averaege over seed
+    DQN_CF = np.array(DQN_CF).mean(axis=0)
     print('DQN CF:', DQN_CF)
 
 
@@ -353,10 +353,10 @@ rew_std = np.std(seeds_returns, axis=0)
 ax.plot(rew_mean, label="DQN", lw=1.0, color="green", alpha=0.75)
 ax.fill_between(range(t_steps), rew_mean+z_star*(rew_std/t_seeds**0.5), rew_mean-z_star*(rew_std/t_seeds**0.5), alpha=0.2, color="green")
 
-## DQN_finetune ###
+
 best_lr_dqn = 1e-5
 seeds_returns = np.zeros((t_seeds, t_steps))
-reset = 0 # reset, 0: no reset, 1: reset with , 2: reset without setting target net
+reset = 0
 clearbuffer = 1
 
 
@@ -365,8 +365,8 @@ DQNFT_CF_Normalized = []
 
 for seq in seq_list:
     for s in tqdm(seeds):
-        # if len(seeds) == 1:
-        #     s = seq
+
+
         fname = "DQN"+"_env_name_"+env_name+"_gamma_"+str(gamma)+\
                 "_steps_"+str(t_steps)+"_switch_"+str(switch)+"_batch_"+\
     str(64)+"_lr1_"+str(best_lr_dqn)+ '_seq_' + str(seq) + "_reset_" +str(reset)+ "_clearbuffer_" + str(clearbuffer) +"_seed_"+str(s)
@@ -392,12 +392,12 @@ if ForwardTransfer:
     Returns.append(AverageSeeds(seeds_returns))
 
 if AveragePerformance:
-    DQNFT_CF_Normalized_mean = np.array(DQNFT_CF_Normalized).mean(axis=0) # averaege over seed
-    DQNFT_CF_Normalized_std = np.array(DQNFT_CF_Normalized).std(axis=0) / np.sqrt(len(seq_list) * len(seeds)) # averaege over seed
+    DQNFT_CF_Normalized_mean = np.array(DQNFT_CF_Normalized).mean(axis=0)
+    DQNFT_CF_Normalized_std = np.array(DQNFT_CF_Normalized).std(axis=0) / np.sqrt(len(seq_list) * len(seeds))
     print('DQN Finetune Average Performance / Final CF:', DQNFT_CF_Normalized_mean)
 
 if CF_Evaluation:
-    DQNFT_CF = np.array(DQNFT_CF).mean(axis=0) # averaege over seed
+    DQNFT_CF = np.array(DQNFT_CF).mean(axis=0)
     print('DQN Finetune CF:', DQNFT_CF)
 
 rew_mean = np.mean(seeds_returns, axis=0)
@@ -407,13 +407,13 @@ ax.fill_between(range(t_steps), rew_mean+z_star*(rew_std/t_seeds**0.5), rew_mean
 
 
 
-# ### Our Method ###
+
 best_dec = 0.75
 best_lr1 = 1e-3
 best_lr2 = 1e-5
-size_fast2meta = 12000 # 12000
+size_fast2meta = 12000
 detection_step = 5000
-finetunefast = 1 # 0: meta vs random, 1: meta vs fast
+finetunefast = 1
 CNNhalf = 0
 clearbuffer = 1
 epoch_meta = 100
@@ -460,13 +460,13 @@ if ForwardTransfer:
     Returns.append(AverageSeeds(seeds_returns))
 
 if AveragePerformance:
-    Our_CF_Normalized_mean = np.array(Our_CF_Normalized).mean(axis=0) # averaege over seed
-    Our_CF_Normalized_std = np.array(Our_CF_Normalized).std(axis=0) / np.sqrt(len(seq_list) * len(seeds)) # averaege over seed
+    Our_CF_Normalized_mean = np.array(Our_CF_Normalized).mean(axis=0)
+    Our_CF_Normalized_std = np.array(Our_CF_Normalized).std(axis=0) / np.sqrt(len(seq_list) * len(seeds))
     print('Ours Average Performance / Final CF:', Our_CF_Normalized_mean)
 
 if CF_Evaluation:
-    Our_CF_mean = np.array(Our_CF).mean(axis=0) # averaege over seed
-    Our_CF_se = np.array(Our_CF).std(axis=0) / np.sqrt(len(seq_list) * len(seeds)) # averaege over seed
+    Our_CF_mean = np.array(Our_CF).mean(axis=0)
+    Our_CF_se = np.array(Our_CF).std(axis=0) / np.sqrt(len(seq_list) * len(seeds))
     print('Ours CF:', Our_CF)
 
 rew_mean = np.mean(seeds_returns, axis=0)
@@ -474,7 +474,7 @@ rew_std = np.std(seeds_returns, axis=0)
 ax.plot(rew_mean, label="Our", lw=1.0, color="red", alpha=0.75)
 ax.fill_between(range(t_steps), rew_mean+z_star*(rew_std/t_seeds**0.5), rew_mean-z_star*(rew_std/t_seeds**0.5), alpha=0.2, color="red")
 
-# ### PT-DQN ###
+
 best_dec = 0.75
 best_lr1 = 1e-8
 best_lr2 = 1e-4
@@ -515,21 +515,21 @@ if ForwardTransfer:
     Returns.append(AverageSeeds(seeds_returns))
 
 if AveragePerformance:
-    PTDQN_CF_Normalized_mean = np.array(PTDQN_CF_Normalized).mean(axis=0) # averaege over seed
-    PTDQN_CF_Normalized_std = np.array(PTDQN_CF_Normalized).std(axis=0) / np.sqrt(len(seq_list) * len(seeds)) # averaege over seed
+    PTDQN_CF_Normalized_mean = np.array(PTDQN_CF_Normalized).mean(axis=0)
+    PTDQN_CF_Normalized_std = np.array(PTDQN_CF_Normalized).std(axis=0) / np.sqrt(len(seq_list) * len(seeds))
     print('PT-DQN Average Performance / Final CF:', PTDQN_CF_Normalized_mean)
 
 if CF_Evaluation:
-    PTDQN_CF = np.array(PTDQN_CF).mean(axis=0) # averaege over seed
+    PTDQN_CF = np.array(PTDQN_CF).mean(axis=0)
     print('PT-DQN CF:', PTDQN_CF)
 
 rew_mean = np.mean(seeds_returns, axis=0)
 rew_std = np.std(seeds_returns, axis=0)
 ax.plot(rew_mean, label="PT-DQN-half", lw=1.0, color="blue", alpha=0.75)
 ax.fill_between(range(t_steps), rew_mean+z_star*(rew_std/t_seeds**0.5), rew_mean-z_star*(rew_std/t_seeds**0.5), alpha=0.2, color="blue")
-#
-#
-### DQN multi task ###
+
+
+
 best_lr_dqn_mt = 1e-5
 seeds_returns = np.zeros((t_seeds, t_steps))
 clearbuffer = 1
@@ -565,12 +565,12 @@ if ForwardTransfer:
     Returns.append(AverageSeeds(seeds_returns))
 
 if AveragePerformance:
-    MultiTask_CF_Normalized_mean = np.array(MultiTask_CF_Normalized).mean(axis=0) # averaege over seed
-    MultiTask_CF_Normalized_std = np.array(MultiTask_CF_Normalized).std(axis=0) / np.sqrt(len(seq_list) * len(seeds)) # averaege over seed
+    MultiTask_CF_Normalized_mean = np.array(MultiTask_CF_Normalized).mean(axis=0)
+    MultiTask_CF_Normalized_std = np.array(MultiTask_CF_Normalized).std(axis=0) / np.sqrt(len(seq_list) * len(seeds))
     print('Multi-task Average Performance / Final CF:', MultiTask_CF_Normalized_mean)
 
 if CF_Evaluation:
-    MultiTask_CF = np.array(MultiTask_CF).mean(axis=0) # averaege over seed
+    MultiTask_CF = np.array(MultiTask_CF).mean(axis=0)
     print('Multi-task CF:', MultiTask_CF)
 
 rew_mean = np.mean(seeds_returns, axis=0)
@@ -578,7 +578,7 @@ rew_std = np.std(seeds_returns, axis=0)
 ax.plot(rew_mean, label="DQN (multi-task)", lw=1.0, color="brown", alpha=0.75)
 ax.fill_between(range(t_steps), rew_mean+z_star*(rew_std/t_seeds**0.5), rew_mean-z_star*(rew_std/t_seeds**0.5), alpha=0.2, color="brown")
 
-### DQN large buffer ###
+
 best_lrs_dqn_large = 1e-4
 seeds_returns = np.zeros((t_seeds, t_steps))
 clearbuffer = 1
@@ -614,12 +614,12 @@ if ForwardTransfer:
     Returns.append(AverageSeeds(seeds_returns))
 
 if AveragePerformance:
-    LargeBuffer_CF_Normalized_mean = np.array(LargeBuffer_CF_Normalized).mean(axis=0) # averaege over seed
-    LargeBuffer_CF_Normalized_std = np.array(LargeBuffer_CF_Normalized).std(axis=0) / np.sqrt(len(seq_list) * len(seeds)) # averaege over seed
+    LargeBuffer_CF_Normalized_mean = np.array(LargeBuffer_CF_Normalized).mean(axis=0)
+    LargeBuffer_CF_Normalized_std = np.array(LargeBuffer_CF_Normalized).std(axis=0) / np.sqrt(len(seq_list) * len(seeds))
     print('DQN large buffer Average Performance / Final CF:', LargeBuffer_CF_Normalized_mean)
 
 if CF_Evaluation:
-    LargeBuffer_CF = np.array(LargeBuffer_CF).mean(axis=0) # averaege over seed
+    LargeBuffer_CF = np.array(LargeBuffer_CF).mean(axis=0)
     print('DQN large buffer CF:', LargeBuffer_CF)
 
 
@@ -628,7 +628,7 @@ rew_std = np.std(seeds_returns, axis=0)
 ax.plot(rew_mean, label="DQN (large buffer)", lw=1.0, color="black", alpha=0.75)
 ax.fill_between(range(t_steps), rew_mean+z_star*(rew_std/t_seeds**0.5), rew_mean-z_star*(rew_std/t_seeds**0.5), alpha=0.2, color="black")
 
-### Random ###
+
 
 seeds_returns = np.zeros((t_seeds, t_steps))
 clearbuffer = 1
@@ -655,39 +655,39 @@ ax.plot(rew_mean[:plot_steps], label="Random", lw=1.0, color="orange", alpha=0.7
 ax.fill_between(range(plot_steps), rew_mean[:plot_steps]+z_star*(rew_std[:plot_steps]/t_seeds**0.5), rew_mean[:plot_steps]-z_star*(rew_std[:plot_steps]/t_seeds**0.5), alpha=0.2, color="orange")
 
 
-########### for evaluation of catastrophic forgetting
+
 
 if ForwardTransfer:
-    # result_benchmark = [] # [10, 7]
-    # for seq_i in range(len(seq_list)):
-    #     benchmark = [benchmark_DQN[0][env.game_name] for env in Games[seq_i]]
-    #     result_benchmark.append(benchmark)
-    # result_benchmark = np.array(result_benchmark)
 
-    # select the max return among all method in each enviroment
+
+
+
+
+
+
     result_benchmark = []
     for j in range(7):
         target_return = []
         for i, method_transfer in enumerate(Returns):
             target_return.append(method_transfer[:,j*switch:(j+1)*switch].max(axis=1))
-        target_return = np.array(target_return).T.max(axis=1) # [10, 6] -> [10,1]
+        target_return = np.array(target_return).T.max(axis=1)
         result_benchmark.append(target_return)
-    result_benchmark = np.array(result_benchmark).T # [10, 7]
+    result_benchmark = np.array(result_benchmark).T
 
-    # df_transfer = pd.DataFrame()
+
     row_names = ["DQN-Reset", 'DQN-Finetune', "Ours","PT-DQN-0.5x", "DQN-MultiHead", "DQN-LargeBuffer",  ]
-    # row_names = [ "Ours" ]
+
     transfer_list_mean = []
     transfer_list_se = []
     for i, method_transfer in enumerate(Returns):
-        diff = method_transfer - Returns[0] # Reset
+        diff = method_transfer - Returns[0]
         ave_temp = []
         for j in range(7):
             numerator = diff[:,j*switch:(j+1)*switch].mean(axis=1)/result_benchmark[:,j]
             denominator = Returns[0][:,j*switch:(j+1)*switch].mean(axis=1)/result_benchmark[:,j]
             ave_temp.append(numerator/ (1 - denominator))
-        transfer_list_mean.append(np.array(ave_temp).mean()) # across seqs and seeds [10, 7] -> 1
-        transfer_list_se.append(np.array(ave_temp).std() / np.sqrt(len(seq_list)*7)) # across seqs and seeds [10, 7] -> 1
+        transfer_list_mean.append(np.array(ave_temp).mean())
+        transfer_list_se.append(np.array(ave_temp).std() / np.sqrt(len(seq_list)*7))
     df_transfer_mean = pd.DataFrame(transfer_list_mean, index=row_names, columns=['Forward Transfer (mean)'])
     df_transfer_se = pd.DataFrame(transfer_list_se, index=row_names, columns=['Forward Transfer (se)' ])
     print(df_transfer_mean)
@@ -697,49 +697,49 @@ if ForwardTransfer:
 
 if AveragePerformance:
     print('mean: ', [round(i, 2) for i in Our_CF_Normalized_mean])
-    # print(np.mean(Our_CF_Normalized_mean))
+
     print('std: ', [round(i, 2) for i in Our_CF_Normalized_std])
 
 
-    # CF_list = np.vstack((DQN_CF_Normalized_mean, DQNFT_CF_Normalized_mean, MultiTask_CF_Normalized_mean, LargeBuffer_CF_Normalized_mean, PTDQN_CF_Normalized_mean, Our_CF_Normalized_mean))
-    # row_names = ["DQN-Reset", 'DQN-Finetune',   "DQN-MultiHead", "DQN-LargeBuffer", "PT-DQN-0.5x", "Ours"]
-    # col_names = Game_normalized_list
-    # col_names_normalized = [env+"_normalized" for env in col_names]
-    # df = pd.DataFrame(CF_list, index=row_names, columns=col_names)
-    # df['Average'] = df.mean(axis=1)
-    
-    # for i, col in enumerate(col_names):
-    #     df[col_names_normalized[i]] = df[col] / benchmark_DQN[0][col] # we fix the seq=0, which can be ajusted for each seed in the future
-    # df['Average_normalized (%)'] = df[col_names_normalized].mean(axis=1) * 100.0
-    # print(benchmark_DQN[0])
-    # print(df)
-    
-    # CF_list_std = np.vstack((DQN_CF_Normalized_std, DQNFT_CF_Normalized_std, MultiTask_CF_Normalized_std, LargeBuffer_CF_Normalized_std, PTDQN_CF_Normalized_std, Our_CF_Normalized_std))
-    # df_std = pd.DataFrame(CF_list_std, index=row_names, columns=col_names)
-    # print(df_std)
 
-    #################### to plot the average performance over time, need to save and run plot_averageperformance_overtime
 
-    # df.to_excel(f"MinAtar_Ave_T{CF_step_normalized}_mean.xlsx")
-    # df_std.to_excel(f"MinAtar_Ave_T{CF_step_normalized}_std.xlsx")
+
+
+
+
+    
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
 
 if CF_Evaluation:
     print('mean: ', [round(i, 2) for i in Our_CF_mean])
-    # print(np.mean(Our_CF_Normalized_mean))
+
     print('std: ', [round(i, 2) for i in Our_CF_se])
 
-    # CF_list = np.vstack((DQN_CF_mean, DQNFT_CF_mean, MultiTask_CF_mean, LargeBuffer_CF_mean, PTDQN_CF_mean, Our_CF_mean))
-    # row_names = ["DQN-Reset", 'DQN-Finetune',   "DQN-MultiHead", "DQN-LargeBuffer", "PT-DQN-0.5x", "Ours"]
-    # col_names = Game_normalized_list
-    # col_names_normalized = [env + "_normalized" for env in col_names]
-    # df = pd.DataFrame(CF_list, index=row_names, columns=col_names)
-    # df['Average'] = df.mean(axis=1)
+
+
+
+
+
+
     
-    # for i, col in enumerate(col_names):
-    #     df[col_names_normalized[i]] = df[col] / benchmark_DQN[0][col] # we fix the seq=0, which can be ajusted for each seed in the future
-    # df['Average_normalized (%)'] = df[col_names_normalized].mean(axis=1) * 100.0
+
+
+
     
-    # print(df)
+
 
 print([env.game_name for env in Games[seq]])
 print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
@@ -763,8 +763,8 @@ if PLOT:
                ["DQN-Reset", 'DQN-Finetune', "DQN-MultiHead", "DQN-LargeBuffer", "Random", "PT-DQN-0.5x", "Ours"],
                ncol=4,
                fontsize=14, loc='upper center', bbox_to_anchor=(0.52, 0.92, 0.0, 0.0), frameon=False)
-    # fig.legend(custom_lines, ["Ours","PT-DQN-0.5x", "DQN-multi-head", "DQN-large buffer", "Random"], ncol=3, fontsize=14,loc="lower center", bbox_to_anchor=(0.35, 0.21, 0.4, 0.0), frameon=False)
-    # fig.legend(custom_lines, ["DQN", f"Ours (finetunefast) {finetunefast}", "PT-DQN-0.5x (ours)"], ncol=3, fontsize=14,loc="lower center", bbox_to_anchor=(0.35, 0.21, 0.4, 0.0), frameon=False)
+
+
     ax.ticklabel_format(axis='x', style='sci', scilimits=(5, 1))
     ax.xaxis.major.formatter._useMathText = True
     ax.set_xlabel("Steps", fontsize=20)
@@ -772,6 +772,5 @@ if PLOT:
     ax.set_title(f"MinAtar (Sequence {seq})", fontsize=24)
     ax.tick_params(labelsize=18)
     fig.tight_layout()
-    # pdf.savefig(fig, bbox_inches = 'tight', dpi=300)
+
     plt.show()
-# pdf.close()

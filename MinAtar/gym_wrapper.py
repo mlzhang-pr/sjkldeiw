@@ -1,4 +1,4 @@
-# Adapted from https://github.com/qlan3/gym-games
+
 import gym
 from gym import spaces
 from gym.envs import register

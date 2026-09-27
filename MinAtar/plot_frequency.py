@@ -10,8 +10,8 @@ matplotlib.rcParams['font.sans-serif'] = 'NSimSun,Times New Roman'
 sns.set(context='notebook', style='darkgrid', palette='deep', font='sans-serif', font_scale=1, color_codes=False, rc=None)
 sns.set_style("whitegrid")
 
-new = {'Random':0, 'Meta':0, 'Fast':0} # evaluate the frequency of using meta intialization
-old = {'Random':0, 'Meta':0, 'Fast':0} # evaluate the frequency of using meta intialization
+new = {'Random':0, 'Meta':0, 'Fast':0}
+old = {'Random':0, 'Meta':0, 'Fast':0}
 
 for seq in range(10):
     for seed in range(3):
@@ -24,7 +24,7 @@ for seq in range(10):
                     games_line = line.strip().split("Games:")[1].strip()
                     games = ast.literal_eval(games_line[:games_line.find('2025')])
 
-        # evaluate the frequency!
+
         game_set = set([games[0]])
         for i in range(1, len(games)):
             if games[i] in game_set and (games[i-1] != games[i]):
@@ -34,9 +34,9 @@ for seq in range(10):
                 new[regularization[i-1]] += 1
                 game_set.add(games[i])
 
-        # print("Regularization:", regularization)
-        # print("Games:", games)
-        # print(1)
+
+
+
 print(new)
 print(old)
 
@@ -62,7 +62,7 @@ ax = sns.barplot(
     hue='Warm-Up',
     y='Percentage',
     x='Environment',
-    # palette='Set2'
+
     palette=custom_palette,
 )
 

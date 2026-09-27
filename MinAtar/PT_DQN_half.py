@@ -103,17 +103,17 @@ class WandbLogger:
 			self.run = None
 
 
-####### T update: decompsing Q value into P+T, and only update T_Net #######
-def train_T_Net(): # fast/transient network for the current task with the parameters w
-	states, actions, next_states, rewards, done = exp_replay.sample() # only on the current buffer
-	with torch.no_grad(): # no update for targets and P_Net
+
+def train_T_Net():
+	states, actions, next_states, rewards, done = exp_replay.sample()
+	with torch.no_grad():
 		T_next_pred = Target_net(next_states)
 		P_next_pred = P_Net(next_states)
 		P_pred = P_Net(states)
 		P_pred = P_pred.gather(1, actions)
 	T_pred = T_Net(states)
 	T_pred = T_pred.gather(1, actions)
-	##### the loss function is on TD erro of the whole PT, but we only update T_Net #####
+
 	"""
 	Essentially, it is a classical TD learning, but value function is decomposed into P+T. and here we only update T.
 	"""
@@ -124,7 +124,7 @@ def train_T_Net(): # fast/transient network for the current task with the parame
 	T_opt.step()
 	return loss.item()
 
-def train_P_Net(): # update the permanent network with samples from the PM buffer
+def train_P_Net():
 	loss_u = 0
 	u_steps = (exp_replay_PM.size()//args.batch_size) - 1
 	for p_update in range(u_steps):
@@ -143,7 +143,7 @@ def train_P_Net(): # update the permanent network with samples from the PM buffe
 		loss_u += loss.item()
 	return loss_u/u_steps
 
-def get_action(c_obs): # take action by using P+T network -> [P network Q value, action]
+def get_action(c_obs):
 	c_obs = np.moveaxis(c_obs, 2, 0)
 	c_obs = torch.tensor(c_obs, dtype=torch.float).to(device)
 	with torch.no_grad():
@@ -178,16 +178,16 @@ if args.log_interval <= 0:
 logger = WandbLogger(args, filename)
 
 
-######## initialization
+
 Games = []
 gameid = 0
 env = CL_envs_func_replacement(seq=args.seq, game_id=gameid, seed=args.seed)
 Games.append(env.game_name)
 
-in_channels = env.observation_space.shape[2] # [10, 10, 7]
+in_channels = env.observation_space.shape[2]
 num_actions = env.action_space.n
 
-# CNN_half: half CNN channels and last feature map dimension
+
 if args.CNNhalf == 1:
 	T_Net = CNN_half(in_channels, num_actions).to(device)
 else:
@@ -202,7 +202,7 @@ else:
 P_opt = optim.SGD(P_Net.parameters(), lr=args.lr1)
 P_criterion = torch.nn.MSELoss()
 
-# for the transient network, we use the same structure as the target network
+
 if args.CNNhalf == 1:
 	Target_net = CNN_half(in_channels, num_actions).to(device)
 else:
@@ -211,9 +211,9 @@ else:
 Target_net.load_state_dict(T_Net.state_dict())
 
 exp_replay = expReplay(batch_size=args.batch_size, device=device)
-if args.boundary == 1: # known boundary: update the P net every args.switch
+if args.boundary == 1:
 	exp_replay_PM = expReplay_PM(max_size=args.switch, batch_size=args.batch_size, device=device)
-else: # unknown boundary: every args.update, update the P net
+else:
 	exp_replay_PM = expReplay_PM(max_size=args.update, batch_size=args.batch_size, device=device)
 
 returns_array = np.zeros(args.t_steps)
@@ -277,7 +277,7 @@ for step in tqdm(range(args.t_steps)):
 	exp_replay_PM.store(cs, c_action, val_p)
 
 
-	if step % 1000 == 0 and step > 0: # before updaing the leaner, guarantee the target net is correct not from the last environment
+	if step % 1000 == 0 and step > 0:
 		Target_net.load_state_dict(T_Net.state_dict())
 
 	if exp_replay.size() >= args.batch_size:
@@ -296,13 +296,13 @@ for step in tqdm(range(args.t_steps)):
 				"permanent/task_id": gameid,
 				"permanent/update": 1,
 			})
-			# reset T_Net and buffer
+
 			T_Net.__init__(in_channels, num_actions)
 			T_Net = T_Net.to(device)
 			exp_replay_PM.delete()
 
 	else:
-		if (step+1)%args.update == 0: # update the parmanent network 50000
+		if (step+1)%args.update == 0:
 			last_p_loss = train_P_Net()
 			logger.log({
 				"global_step": step + 1,

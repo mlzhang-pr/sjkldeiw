@@ -1,24 +1,24 @@
-################################################################################################################
-# Original Authors:                                                                                                     #
-# Kenny Young (kjyoung@ualberta.ca)                                                                            #
-# Tian Tian (ttian@ualberta.ca)                                                                                #
 
-# Modified by:
-# Nishanth Anand (nishanth.anand@mail.mcgill.ca)                                                                             #
-################################################################################################################
+
+
+
+
+
+
+
 import numpy as np
 
 
-#####################################################################################################################
-# Env
-#
-# The player controls a paddle on the bottom of the screen and must bounce a ball tobreak 3 rows of bricks along the 
-# top of the screen. A reward of +1 is given for each brick broken by the ball.  When all bricks are cleared another 3 
-# rows are added. The ball travels only along diagonals, when it hits the paddle it is bounced either to the left or 
-# right depending on the side of the paddle hit, when it hits a wall or brick it is reflected. Termination occurs when
-# the ball hits the bottom of the screen. The balls direction is indicated by a trail channel.
-#
-#####################################################################################################################
+
+
+
+
+
+
+
+
+
+
 class Env:
     def __init__(self, ramping = None, random_state = None, use_minimal_observation=True):
         if use_minimal_observation:
@@ -45,7 +45,7 @@ class Env:
             self.random = random_state
         self.reset()
 
-    # Update environment according to agent action
+
     def act(self, a):
         r = 0
         if(self.terminal):
@@ -53,13 +53,13 @@ class Env:
             
         a = self.action_map[a]
 
-        # Resolve player action
+
         if(a=='l'):
             self.pos = max(0, self.pos-1)
         elif(a=='r'):
             self.pos = min(9,self.pos+1)
 
-        # Update ball position
+
         self.last_x = self.ball_x
         self.last_y = self.ball_y
         if(self.ball_dir == 0):
@@ -112,11 +112,11 @@ class Env:
         self.ball_y = new_y
         return r, self.terminal
 
-    # Query the current level of the difficulty ramp, difficulty does not ramp in this game, so return None
+
     def difficulty_ramp(self):
         return None  
 
-    # Process the game-state into the 10x10xn state provided to the agent and return
+
     def state(self):
         state = np.zeros((10,10,len(self.channels)),dtype=bool)
         state[self.ball_y,self.ball_x,self.channels['ball']] = 1
@@ -125,7 +125,7 @@ class Env:
         state[:,:,self.channels['brick']] = self.brick_map
         return state
 
-    # Reset to start state for new episode
+
     def reset(self):
         self.ball_y = 3
         ball_start = self.random.choice(2)
@@ -138,11 +138,11 @@ class Env:
         self.last_y = self.ball_y
         self.terminal = False
 
-    # Dimensionality of the game-state (10x10xn)
+
     def state_shape(self):
         return [10,10,len(self.channels)]
 
-    # Subset of actions that actually have a unique impact in this environment
+
     def minimal_action_set(self):
         minimal_actions = ['n','l','r']
         return [self.action_map.index(x) for x in minimal_actions]

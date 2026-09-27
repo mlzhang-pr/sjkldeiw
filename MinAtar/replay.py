@@ -43,7 +43,7 @@ class expReplay_Meta():
 		self.batch_size = batch_size
 		self.device = device
 
-	# [state, acton]
+
 	def store(self, obs, action):
 		state = np.moveaxis(obs, 2, 0)
 		state = torch.tensor(state, dtype=torch.float)
@@ -68,7 +68,7 @@ class expReplay_Meta():
 		"""
 		Copy all elements from current buffer to target_buffer.
 		"""
-		for item in self.memory: # (state, action)
+		for item in self.memory:
 			target_buffer.memory.append(item)
 		return target_buffer
 
@@ -78,7 +78,7 @@ class expReplay_PM():
 		self.batch_size = batch_size
 		self.device = device
 
-	# [state, acton, val_p]
+
 	def store(self, obs, action, val_p):
 		state = np.moveaxis(obs, 2, 0)
 		state = torch.tensor(state, dtype=torch.float)

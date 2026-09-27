@@ -24,7 +24,7 @@ from agent.quasimetric.structure import MultistepQuasimetricLearner
 
 CHECKPOINT_PATTERN = re.compile(r"^(?P<name>.+)_(?P<stage>\d+)_meta_quasimetric\.pt$")
 SCRIPT_DIR = Path(__file__).resolve().parent
-AWR_EVALUATOR_PATH = SCRIPT_DIR / "final_eval_main3-2awr.py"
+AWR_EVALUATOR_PATH = SCRIPT_DIR / "conquest_eval.py"
 
 
 def positive_int(value):
@@ -193,7 +193,7 @@ def load_replay_snapshot(path):
 
 def load_awr_evaluator():
     spec = importlib.util.spec_from_file_location(
-        "final_eval_main3_2awr", AWR_EVALUATOR_PATH
+        "conquest_eval", AWR_EVALUATOR_PATH
     )
     if spec is None or spec.loader is None:
         raise ImportError(f"Cannot load AWR evaluator: {AWR_EVALUATOR_PATH}")

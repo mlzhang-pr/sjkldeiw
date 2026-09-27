@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-seq=0 # seq number: 0-9
+seq=0
 seeds=(1 2 3)
 for s in ${seeds[*]};
 do

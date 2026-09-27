@@ -128,7 +128,7 @@ for step in tqdm(range(args.t_steps)):
 	epi_return += rew
 	exp_replay.store(cs, c_action, ns, rew, done)
 
-	if step % 1000 == 0 and step > 0: # before updaing the leaner, guarantee the target net is correct not from the last environment
+	if step % 1000 == 0 and step > 0:
 		Target_net.load_state_dict(Net.state_dict())
 
 	if exp_replay.size() >= args.batch_size:

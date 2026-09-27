@@ -109,7 +109,7 @@ for step in tqdm(range(args.t_steps)):
 		cs = env.reset()
 		epi_return = 0
 
-		if args.reset == 1:  # reset instead of finetuning
+		if args.reset == 1:
 			avg_return = 0
 			Net = CNN(in_channels, num_actions).to(device)
 			opt = optim.Adam(Net.parameters(), lr=args.lr1)
@@ -122,7 +122,7 @@ for step in tqdm(range(args.t_steps)):
 	exp_replay.store(cs, c_action, ns, rew, done)
 
 
-	if step % 1000 == 0 and step > 0: # before updaing the leaner, guarantee the target net is correct not from the last environment
+	if step % 1000 == 0 and step > 0:
 		Target_net.load_state_dict(Net.state_dict())
 
 	if exp_replay.size() >= args.batch_size:

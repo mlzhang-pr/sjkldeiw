@@ -50,8 +50,8 @@ args = parser.parse_args()
 config = ConfigParser()
 config.read('misc_params.cfg')
 misc_param = config[str(args.env_name)]
-gamma = float(misc_param['gamma']) # 0.99
-epsilon = float(misc_param['epsilon']) # 0.1
+gamma = float(misc_param['gamma'])
+epsilon = float(misc_param['epsilon'])
 
 
 class WandbLogger:
@@ -104,11 +104,11 @@ print("CUDA_VISIBLE_DEVICES:", os.getenv("CUDA_VISIBLE_DEVICES"))
 print("device_count:", torch.cuda.device_count())
 
 
-def train_Net(): # train the DQN via Q-learning with the target network
+def train_Net():
 	states, actions, next_states, rewards, done = exp_replay.sample()
 	with torch.no_grad():
 		next_pred = Target_net(next_states)
-		next_pred = next_pred.max(1)[0] # greedy action
+		next_pred = next_pred.max(1)[0]
 	pred = Net(states)
 	pred = pred.gather(1, actions)
 	targets = rewards + (1 - done) * gamma * next_pred.reshape(-1, 1)
@@ -118,7 +118,7 @@ def train_Net(): # train the DQN via Q-learning with the target network
 	opt.step()
 	return loss.item()
 
-def get_action(c_obs): # epsilon greedy action ->[Q(s,a), a] with a epsilon greedy action a
+def get_action(c_obs):
 	c_obs = np.moveaxis(c_obs, 2, 0)
 	c_obs = torch.tensor(c_obs, dtype=torch.float).to(device)
 	with torch.no_grad():
@@ -135,7 +135,7 @@ if torch.cuda.is_available():
 	torch.cuda.set_device(device)
 else:
 	device = torch.device("cpu")
- #torch.device("mps")#
+
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
@@ -173,7 +173,7 @@ criterion = torch.nn.MSELoss()
 Target_net = CNN(in_channels, num_actions).to(device)
 Target_net.load_state_dict(Net.state_dict())
 
-exp_replay = expReplay(batch_size=args.batch_size, device=device) # deque
+exp_replay = expReplay(batch_size=args.batch_size, device=device)
 
 returns_array = np.zeros(args.t_steps)
 
@@ -197,7 +197,7 @@ logger.log({
 for step in tqdm(range(args.t_steps)):
 
 
-	######### Finetuing without reinitialized Net #########
+
 	if step % args.switch == 0 and step > 0:
 		logger.log({
 			"global_step": step,
@@ -214,7 +214,7 @@ for step in tqdm(range(args.t_steps)):
 
 		avg_return = 0
 
-		if args.reset == 1: # reset instead of finetuning
+		if args.reset == 1:
 
 			Net = CNN(in_channels, num_actions).to(device)
 			opt = optim.Adam(Net.parameters(), lr=args.lr1)
@@ -230,17 +230,17 @@ for step in tqdm(range(args.t_steps)):
 			"train/replay_size": exp_replay.size(),
 		})
 	
-	_, c_action = get_action(cs) # initial state
+	_, c_action = get_action(cs)
 	ns, rew, done, _ = env.step(c_action)
 	epi_return += rew
 	exp_replay.store(cs, c_action, ns, rew, done)
 
 
-	if step % 1000 == 0 and step > 0: # before updaing the leaner, guarantee the target net is correct not from the last environment
+	if step % 1000 == 0 and step > 0:
 		Target_net.load_state_dict(Net.state_dict())
 
 	if exp_replay.size() >= args.batch_size:
-		last_loss = train_Net() # update the parameter and then return the loss
+		last_loss = train_Net()
 	
 	cs = ns
 
@@ -277,7 +277,7 @@ for step in tqdm(range(args.t_steps)):
 
 
 
-	##### the current game ends
+
 	if (step + 1) % args.switch == 0:
 
 		exp_replay.delete()
