@@ -8,25 +8,25 @@ tasks.
 
 ## Training cycle
 
-CONQUEST alternates between fast task learning and slower cross-task
+CONQUEST alternates between student-policy learning and slower cross-task
 consolidation:
 
-1. The fast policy interacts with the current task and learns from a local
+1. The student policy interacts with the current task and learns from a local
 	 replay buffer.
 2. At a task boundary, recent task experience is added to task-aware memory and
 	 used to update the quasimetric structure.
 3. A transferable policy is trained from the quasimetric values with
 	 advantage-weighted regression and behavior cloning.
-4. On the next task, the transferred policy initializes or regularizes the fast
-	 learner during an initial warm-up period. Online learning then continues on
-	 the new task.
+4. On the next task, the transferred policy initializes or regularizes the
+	 student policy during an initial warm-up period. Online learning then
+	 continues on the new task.
 
 The implementation is adapted to each action space:
 
-| Benchmark | Fast learner | Cross-task policy | Transfer mechanism |
+| Benchmark | Student policy | Cross-task policy | Transfer mechanism |
 | --- | --- | --- | --- |
 | Meta-World | Task-specific SAC | Observation-conditioned quasimetric AWR actor | actor distillation at each task boundary |
-| Fetch | Shared or task-specific online QRL student | Quasimetric meta actor | Automatic fast/meta/random selection followed by KL |
+| Fetch | Shared or task-specific online QRL student | Quasimetric meta actor | Automatic student/meta/random selection followed by KL |
 | MinAtar | DQN trained on the current replay buffer | Discrete goal-conditioned quasimetric policy | Teacher distillation during the first steps of each new task |
 
 Use a separate Python environment for each benchmark because their dependency
@@ -89,13 +89,13 @@ The Fetch figure compares the following three-task streams:
 - `pick-and-place -> slide -> push`
 
 Each task receives 1,000,000 environment steps, so each run contains 3,000,000
-steps. The default fast learner is a shared online QRL student. Training starts
+steps. The default student policy is a shared online QRL student. Training starts
 with 10,000 random steps per task, uses a batch size of 256, and evaluates every
 25,000 steps over 10 episodes. At each boundary, 20 recent trajectories are
 merged into the quasimetric memory and the meta learner receives 10,000 updates.
-The automatic selector compares the fast, meta, and random candidates over 10
-episodes. When the meta policy is selected, it regularizes the fast policy with
-KL loss for the first 50,000 steps (`lambda_reg=1.0`).
+The automatic selector compares the student, meta, and random candidates over
+10 episodes. When the meta policy is selected, it regularizes the student policy
+with KL loss for the first 50,000 steps (`lambda_reg=1.0`).
 
 Run the two task orders and four training seeds from the repository root:
 
@@ -123,8 +123,9 @@ for seed in 0 1 2 3; do
 done
 ```
 
-Runs, CSV metrics, replay snapshots, and fast/meta checkpoints are written under
-`Fetch/quasimetric-rl/online_continual/results/cqrl/`. See
+Runs, CSV metrics, replay snapshots, and student/meta checkpoints are written
+under `Fetch/quasimetric-rl/online_continual/results/cqrl/`. Student checkpoints
+retain the internal `*_fast` filename suffix for compatibility. See
 [`Fetch/README.md`](Fetch/README.md) for checkpoint evaluation and zero-shot
 evaluation commands.
 
@@ -134,7 +135,7 @@ The MinAtar experiment evaluates sequence indices 0 through 7. Every sequence
 contains seven tasks drawn from Breakout, Space Invaders, and Freeway. A run
 lasts 3,500,000 steps and changes task every 500,000 steps.
 
-The fast learner uses DQN with batch size 64, replay capacity 100,000, learning
+The student policy uses DQN with batch size 64, replay capacity 100,000, learning
 rate `1e-5`, discount 0.99, epsilon 0.1, and a target-network update every 1,000
 steps. After every task, CONQUEST performs 2,000 quasimetric structure updates
 and 2,000 shared-policy extraction updates. The launcher uses extraction batch
@@ -181,9 +182,9 @@ mean over four training seeds and shaded bands show the standard deviation.*
 
 ### Fetch
 
-[![Fetch fast-policy current-task success during training](./fetch_training_curve.png)](./fetch_training_curve.pdf)
+[![Fetch student-policy current-task success during training](./fetch_training_curve.png)](./fetch_training_curve.pdf)
 
-*Fetch fast-policy current-task success during training under the two task
+*Fetch student-policy current-task success during training under the two task
 orders. Lines show the mean over four training seeds and shaded bands show the
 standard deviation.*
 
