@@ -160,8 +160,8 @@ def evaluate_students(args, device):
                 if target_task_idx == source_task_idx:
                     continue
 
-                # Rebuilding the task with the same seed gives every student the
-                # same sequence of target-task instances.
+
+
                 evaluator.set_seed_everywhere(args.eval_seed + target_task_idx)
                 env.set_task(target_task)
                 if args.sample_action:

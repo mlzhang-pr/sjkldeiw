@@ -503,25 +503,3 @@ def main():
 
 if __name__ == "__main__":
 	main()
-'''
-cd Metaworld
-
-python final_eval_fame.py \
-  --run_dir results/fame/fame_models_seq12_seed0_traj20 \
-  --eval_seeds 0 1 2 3 4 \
-  --num_eval_runs 25 \
-  --gpu 0
-
-python final_eval_fame.py \
-  --run_dir results/fame/fame_models_seq12_seed1 \
-  --eval_seeds 0 1 2 3 4 \
-  --num_eval_runs 12 \
-  --gpu 0
-
-python final_eval_fame.py \
-  --run_dir results/fame/fame_models_seq12_seed1 \
-  --eval_seeds 0 1 2 3 4 \
-  --num_eval_runs 12 \
-  --gpu 0
-
-'''

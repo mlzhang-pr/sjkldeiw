@@ -17,12 +17,12 @@ from . import CriticLossBase, CriticBatchInfo
 class LocalConstraintLoss(CriticLossBase):
     @attrs.define(kw_only=True)
     class Conf:
-        # config / argparse uses this to specify behavior
+
 
         epsilon: float = attrs.field(default=0.25, validator=attrs.validators.gt(0))
 
-        # Cost per step. If environment has variable costs, this can be changed
-        # to load from data, and QRL will still have guarantees.
+
+
         step_cost: float = attrs.field(default=1, validator=attrs.validators.gt(0))
 
         init_lagrange_multiplier: float = attrs.field(default=0.01, validator=attrs.validators.gt(0))
@@ -38,7 +38,7 @@ class LocalConstraintLoss(CriticLossBase):
     step_cost: float
     init_lagrange_multiplier: float
 
-    raw_lagrange_multiplier: nn.Parameter  # for the QRL constrained optimization
+    raw_lagrange_multiplier: nn.Parameter
 
     def __init__(self, *, epsilon: float, step_cost: float, init_lagrange_multiplier: float):
         super().__init__()
@@ -52,8 +52,8 @@ class LocalConstraintLoss(CriticLossBase):
 
         dist = critic_batch_info.critic.quasimetric_model(critic_batch_info.zx, critic_batch_info.zy)
 
-        lagrange_mult = F.softplus(self.raw_lagrange_multiplier)  # make positive
-        # lagrange multiplier is minimax training, so grad_mul -1
+        lagrange_mult = F.softplus(self.raw_lagrange_multiplier)
+
         lagrange_mult = grad_mul(lagrange_mult, -1)
 
         sq_deviation = (dist - self.step_cost).relu().square().mean()

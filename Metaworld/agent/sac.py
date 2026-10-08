@@ -36,7 +36,7 @@ class SACAgent(Agent):
         super().__init__()
 
         self.action_range = action_range
-        # print('action_range:',self.action_range)
+
         self.device = device
         self.discount = discount
         self.critic_tau = critic_tau
@@ -63,15 +63,15 @@ class SACAgent(Agent):
         self.log_alpha = torch.tensor(np.log(init_temperature)).to(self.device)
         self.log_alpha.requires_grad = True
 
-        # set target entropy to -|A|
+
         self.target_entropy = -action_dim
 
-        # optimizers
+
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=actor_lr, betas=actor_betas)
         self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=critic_lr, betas=critic_betas)
         self.log_alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=alpha_lr, betas=alpha_betas)
 
-        # change mode
+
         self.train()
         self.critic_target.train()
 
@@ -87,7 +87,7 @@ class SACAgent(Agent):
     def alpha(self):
         return self.log_alpha.exp()
 
-    def act(self, obs, sample=False):  # TODO: condition on z
+    def act(self, obs, sample=False):
         obs = torch.FloatTensor(obs).to(self.device)
         obs = obs.unsqueeze(0)
         dist = self.actor(obs)
@@ -97,24 +97,24 @@ class SACAgent(Agent):
         return utils.to_np(action[0])
 
     def update_critic(self, obs, action, reward, next_obs, not_done):
-        # print('obs:',obs.shape,'action:',action.shape,'reward:',reward.shape,'next_obs:',next_obs.shape,'not_done:',not_done.shape)
+
         dist = self.actor(next_obs)
         next_action = dist.rsample()
         log_prob = dist.log_prob(next_action).sum(-1, keepdim=True)
-        # print('next_log_prob',log_prob[0],next_action[0])
+
         target_Q1, target_Q2 = self.critic_target(next_obs, next_action)
         target_V = torch.min(target_Q1, target_Q2) - self.alpha.detach() * log_prob
         target_Q = reward + (not_done * self.discount * target_V)
-        # print('target_Q:',target_Q.shape)
-        target_Q = target_Q.detach()
-        # print('target_Q 1:',target_Q.shape)
 
-        # get current Q estimates
+        target_Q = target_Q.detach()
+
+
+
         current_Q1, current_Q2 = self.critic(obs, action)
-        # print('current_Q1:',current_Q1.shape,current_Q2.shape)
+
         critic_loss = (F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q)) * 0.5
 
-        # Optimize the critic
+
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
         self.critic_optimizer.step()
@@ -137,10 +137,10 @@ class SACAgent(Agent):
         critic_loss.backward()
         self.critic_optimizer.step()
 
-        if step % self.actor_update_frequency == 0:  # actor_update_frequency = 1
+        if step % self.actor_update_frequency == 0:
             loss_pi, loss_alpha = self.update_actor_and_alpha(obs)
 
-        if step % self.critic_target_update_frequency == 0:  # critic_target_update_frequency = 2
+        if step % self.critic_target_update_frequency == 0:
             utils.soft_update_params(self.critic, self.critic_target, self.critic_tau)
 
         return {"alpha": loss_alpha.item(),
@@ -161,23 +161,23 @@ class SACAgent(Agent):
         self.critic_target.load_state_dict(torch.load('%s/%s_critic_target.pt' % (model_dir, model_name)))
 
     def update_actor_and_alpha(self, obs, auxiliary_actor_loss=None):
-        # SAC
+
         dist = self.actor(obs)
         action = dist.rsample()
-        # print('---')
-        # print('action',action.shape)
+
+
         log_prob = dist.log_prob(action).sum(-1, keepdim=True)
-        # print('log_prob:',log_prob.shape)
+
         actor_Q1, actor_Q2 = self.critic(obs, action)
 
         actor_Q = torch.min(actor_Q1, actor_Q2)
-        # print('actor_Q',actor_Q.shape,log_prob.shape)
+
         actor_loss = (self.alpha.detach() * log_prob - actor_Q).mean()
         if auxiliary_actor_loss is not None:
             actor_loss = actor_loss + auxiliary_actor_loss
-        # print('actor_loss:',actor_loss)
 
-        # optimize the actor
+
+
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
         self.actor_optimizer.step()
@@ -192,7 +192,7 @@ class SACAgent(Agent):
 
     def sac_update(self, replay_buffer, step, auxiliary_actor_loss_fn=None):
         obs, action, reward, success, next_obs, not_done_no_max = replay_buffer.sample(self.batch_size)
-        # print('shape:',obs.shape,action.shape,reward.shape,next_obs.shape,not_done_no_max.shape)
+
         obs, action, reward, success, next_obs, not_done_no_max = replay_buffer.as_torch(obs, action, reward, success, next_obs, not_done_no_max)
 
         loss_q = self.update_critic(obs, action, reward, next_obs, not_done_no_max)
@@ -200,13 +200,13 @@ class SACAgent(Agent):
         loss_pi = None
         loss_alpha = None
         auxiliary_metrics = {}
-        if step % self.actor_update_frequency == 0:  # actor_update_frequency = 1
+        if step % self.actor_update_frequency == 0:
             auxiliary_actor_loss = None
             if auxiliary_actor_loss_fn is not None:
                 auxiliary_actor_loss, auxiliary_metrics = auxiliary_actor_loss_fn(obs)
             loss_pi, loss_alpha = self.update_actor_and_alpha(obs, auxiliary_actor_loss)
 
-        if step % self.critic_target_update_frequency == 0:  # critic_target_update_frequency = 2
+        if step % self.critic_target_update_frequency == 0:
             utils.soft_update_params(self.critic, self.critic_target, self.critic_tau)
 
         metrics = {"alpha": loss_alpha.item() if loss_alpha is not None else 0.0,
@@ -221,7 +221,7 @@ class SACAgent(Agent):
 
         for i in range(update_num):
             obs, action, reward, success, next_obs, not_done_no_max = replay_buffer.sample(self.batch_size)
-            # print('action:',action[1])
+
             obs, action, reward, success, next_obs, not_done_no_max = replay_buffer.as_torch(obs, action, reward, success, next_obs, not_done_no_max)
             eps = 1e-6
             action = torch.clamp(action, min=-1.0 + eps, max=1.0 - eps)
@@ -250,11 +250,11 @@ class SACAgent(Agent):
                 with torch.no_grad():
                     pre_meta_agent_dist = pre_meta_agent.actor(meta_obs)
                     meta_mu, meta_std = pre_meta_agent_dist.loc, pre_meta_agent_dist.scale
-                    # print('meta shape:',meta_mu.shape,meta_std.shape)
+
 
                 dist1 = self.actor(meta_obs)
                 mu1, std1 = dist1.loc, dist1.scale
-                # print('shape1:',mu1.shape,std1.shape)
+
                 meta_loss = torch.mean(torch.square(mu1 - meta_mu).sum(-1) + torch.square(std1 - meta_std).sum(-1))
             else:
                 meta_loss = 0
@@ -264,11 +264,11 @@ class SACAgent(Agent):
             with torch.no_grad():
                 current_agent_dist = current_agent.actor(current_obs)
                 current_mu, current_std = current_agent_dist.loc, current_agent_dist.scale
-                # print('current shape:',current_mu.shape,current_std.shape)
+
 
             dist2 = self.actor(current_obs)
             mu2, std2 = dist2.loc, dist2.scale
-            # print('shape2:',mu2.shape,std2.shape)
+
             current_loss = torch.mean(torch.square(mu2 - current_mu).sum(-1) + torch.square(std2 - current_std).sum(-1))
 
             actor_loss = meta_loss + current_loss

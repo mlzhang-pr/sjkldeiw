@@ -15,7 +15,7 @@ from ...data.env_spec.act_distn import ActionOutputConverter
 class Actor(nn.Module):
     @attrs.define(kw_only=True)
     class Conf:
-        # config / argparse uses this to specify behavior
+
 
         arch: Tuple[int, ...] = (512, 512)
 
@@ -36,7 +36,7 @@ class Actor(nn.Module):
         self.observation_encoding = env_spec.make_observation_input()
 
         self.action_output = env_spec.make_action_output_distn()
-        backbone_input_size = self.observation_encoding.output_size * 2  # add goal
+        backbone_input_size = self.observation_encoding.output_size * 2
         self.backbone = MLP(backbone_input_size, self.action_output.input_size, hidden_sizes=arch,
                             zero_init_last_fc=True)
 
@@ -44,7 +44,7 @@ class Actor(nn.Module):
         og = torch.stack([o, g], dim=-len(self.observation_shape) - 1)
         return self.action_output(self.backbone(self.observation_encoding(og).flatten(-2, -1)))
 
-    # for type hint
+
     def __call__(self, o: torch.Tensor, g: torch.Tensor) -> torch.distributions.Distribution:
         return super().__call__(o, g)
 

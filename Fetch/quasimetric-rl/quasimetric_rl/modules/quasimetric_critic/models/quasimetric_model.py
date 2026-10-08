@@ -31,9 +31,9 @@ class L2(torchqmet.QuasimetricBase):
 
 
 def create_quasimetric_head_from_spec(spec: str) -> torchqmet.QuasimetricBase:
-    # Only two are supported
-    #   1. iqe(dim=xxx,components=xxx), Interval Quasimetric Embedding
-    #   2. l2(dim=xxx), L2 distance
+
+
+
 
     def iqe(*, dim: int, components: int) -> torchqmet.IQE:
         assert dim % components == 0, "IQE: dim must be divisible by components"
@@ -64,7 +64,7 @@ class QuasimetricModel(nn.Module):
 
     @attrs.define(kw_only=True)
     class Conf:
-        # config / argparse uses this to specify behavior
+
 
         projector_arch: Tuple[int, ...] = (512,)
         quasimetric_head_spec: str = 'iqe(dim=2048,components=64)'
@@ -87,16 +87,16 @@ class QuasimetricModel(nn.Module):
         self.projector = MLP(input_size, self.quasimetric_head.input_size, hidden_sizes=projector_arch)
 
     def forward(self, zx: LatentTensor, zy: LatentTensor, *, bidirectional: bool = False) -> torch.Tensor:
-        px = self.projector(zx)  # [B x D]
-        py = self.projector(zy)  # [B x D]
+        px = self.projector(zx)
+        py = self.projector(zy)
 
         if bidirectional:
             px, py = torch.broadcast_tensors(px, py)
-            px, py = torch.stack([px, py], dim=-2), torch.stack([py, px], dim=-2)  # [B x 2 x D]
+            px, py = torch.stack([px, py], dim=-2), torch.stack([py, px], dim=-2)
 
         return self.quasimetric_head(px, py)
 
-    # for type hint
+
     def __call__(self, zx: LatentTensor, zy: LatentTensor, *, bidirectional: bool = False) -> torch.Tensor:
         return super().__call__(zx, zy, bidirectional=bidirectional)
 

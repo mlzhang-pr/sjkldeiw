@@ -52,13 +52,13 @@ class MultistepQuasimetricLearner(nn.Module):
             hidden_dim=self.config.hidden_dim,
             hidden_depth=self.config.hidden_depth,
         )
-        # self.transition_encoder = transition_encoder or TransitionEncoder(
-        #     obs_dim=obs_dim,
-        #     action_dim=action_dim,
-        #     latent_dim=self.config.latent_dim,
-        #     hidden_dim=self.config.hidden_dim,
-        #     hidden_depth=self.config.hidden_depth,
-        # )
+
+
+
+
+
+
+
         transition_state_dim = (
             obs_dim
             if self.config.transition_input == "state"
@@ -78,9 +78,9 @@ class MultistepQuasimetricLearner(nn.Module):
         for parameter in self.target_state_encoder.parameters():
             parameter.requires_grad_(False)
 
-        # self._trainable_parameters = list(self.state_encoder.parameters()) + list(
-        #     self.transition_encoder.parameters()
-        # )
+
+
+
         self._trainable_parameters = list(self.state_encoder.parameters()) + list(
             self.latent_transition_encoder.parameters()
         )
@@ -254,7 +254,7 @@ class MultistepQuasimetricLearner(nn.Module):
             else torch.as_tensor(current_batch[key], device=self.device).float()
             for key in required_keys
         }
-        # Normalize scalar-per-transition fields to match replay-memory batches.
+
         for key in (
             "dones",
             "value_goals_offsets",
@@ -275,8 +275,8 @@ class MultistepQuasimetricLearner(nn.Module):
         obs = torch.as_tensor(obs, device=self.device).float()
         action = torch.as_tensor(action, device=self.device).float()
         next_obs = torch.as_tensor(next_obs, device=self.device).float()
-        # transition_rep = self.transition_encoder(obs, action, next_obs)   ### whether to use action-invriance
-        # transition_rep = self.transition_encoder(obs, action)
+
+
         transition_rep = self.transition_representation(obs, action)
         next_rep = self.target_state_encoder(next_obs)
         return alignment_score(
@@ -285,7 +285,7 @@ class MultistepQuasimetricLearner(nn.Module):
             components=self.config.components,
         )
 
-    def compute_loss(self, batch: Dict[str, torch.Tensor]):    #### TODO choose mqe or qrl     from(s,a in task1) to g in task2
+    def compute_loss(self, batch: Dict[str, torch.Tensor]):
         obses = batch["obses"]
         actions = batch["actions"]
         next_obses = batch["next_obses"]
@@ -293,10 +293,10 @@ class MultistepQuasimetricLearner(nn.Module):
         dones = batch["dones"].reshape(-1)
         offsets = batch["intermediate_value_goals_offsets"].reshape(-1)
 
-        # transition_rep = self.transition_encoder(obses, actions, next_obses)  ####
-        # transition_rep = self.transition_encoder(obses, actions)
+
+
         state_rep = self.state_encoder(obses)
-        # state_rep = self.state_encoder(obses)
+
         goal_rep = self.state_encoder(goals)
         transition_rep = self.transition_representation(obses, actions, state_rep)
 
@@ -313,13 +313,13 @@ class MultistepQuasimetricLearner(nn.Module):
             dones,
             offsets,
         )
-        # transition_consistency_loss = self.distance(
-        #     transition_rep,
-        #     next_rep_target,
-        # ).mean()
+
+
+
+
 
         action_dist = self.distance(transition_rep, state_rep)
-        action_invariance_loss = ((torch.exp(-action_dist) - 1.0) ** 2).mean()  #######
+        action_invariance_loss = ((torch.exp(-action_dist) - 1.0) ** 2).mean()
 
         contrastive_loss = torch.zeros((), device=self.device)
         logits = None
@@ -349,7 +349,7 @@ class MultistepQuasimetricLearner(nn.Module):
         total_loss = (
             self.config.backup_coef * backup_loss
             + self.config.action_invariance_coef * action_invariance_loss
-            # + self.config.transition_consistency_coef * transition_consistency_loss
+
             + self.config.contrastive_coef * contrastive_loss
             + self.config.ranking_coef * ranking_loss
         )
@@ -359,7 +359,7 @@ class MultistepQuasimetricLearner(nn.Module):
             "backup_loss": backup_loss,
             "weighted_backup_loss": self.config.backup_coef * backup_loss,
             "action_invariance_loss": action_invariance_loss,
-            # "transition_consistency_loss": transition_consistency_loss,
+
             "contrastive_loss": contrastive_loss,
             "ranking_loss": ranking_loss,
             "ranking_accuracy": ranking_accuracy,
@@ -382,7 +382,7 @@ class MultistepQuasimetricLearner(nn.Module):
             )
         return total_loss, metrics
 
-    def compute_loss_qrl(self, batch: Dict[str, torch.Tensor]):    #### TODO choose mqe or qrl     from(s,a in task1) to g in task2
+    def compute_loss_qrl(self, batch: Dict[str, torch.Tensor]):
         obses = batch["obses"]
         actions = batch["actions"]
         next_obses = batch["next_obses"]
@@ -390,10 +390,10 @@ class MultistepQuasimetricLearner(nn.Module):
         dones = batch["dones"].reshape(-1)
         offsets = batch["intermediate_value_goals_offsets"].reshape(-1)
 
-        # transition_rep = self.transition_encoder(obses, actions, next_obses)  ####
-        # transition_rep = self.transition_encoder(obses, actions)
+
+
         state_rep = self.state_encoder(obses)
-        # state_rep = self.state_encoder(obses)
+
         goal_rep = self.state_encoder(goals)
         transition_rep = self.transition_representation(obses, actions, state_rep)
 
@@ -410,13 +410,13 @@ class MultistepQuasimetricLearner(nn.Module):
             dones,
             offsets,
         )
-        # transition_consistency_loss = self.distance(
-        #     transition_rep,
-        #     next_rep_target,
-        # ).mean()
+
+
+
+
 
         action_dist = self.distance(transition_rep, state_rep)
-        action_invariance_loss = ((torch.exp(-action_dist) - 1.0) ** 2).mean()  #######
+        action_invariance_loss = ((torch.exp(-action_dist) - 1.0) ** 2).mean()
 
         contrastive_loss = torch.zeros((), device=self.device)
         logits = None
@@ -430,7 +430,7 @@ class MultistepQuasimetricLearner(nn.Module):
         total_loss = (
             self.config.backup_coef * backup_loss
             + self.config.action_invariance_coef * action_invariance_loss
-            # + self.config.transition_consistency_coef * transition_consistency_loss
+
             + self.config.contrastive_coef * contrastive_loss
         )
 
@@ -439,7 +439,7 @@ class MultistepQuasimetricLearner(nn.Module):
             "backup_loss": backup_loss,
             "weighted_backup_loss": self.config.backup_coef * backup_loss,
             "action_invariance_loss": action_invariance_loss,
-            # "transition_consistency_loss": 
+
             "contrastive_loss": contrastive_loss,
             "dist": dist.mean(),
             "dist_next": dist_next.mean(),
@@ -463,7 +463,7 @@ class MultistepQuasimetricLearner(nn.Module):
 
     def update(self, batch: Dict[str, torch.Tensor]):
         self.optimizer.zero_grad()
-        loss, metrics = self.compute_loss(batch)  ####
+        loss, metrics = self.compute_loss(batch)
         loss.backward()
         if self.config.max_grad_norm is not None:
             torch.nn.utils.clip_grad_norm_(
@@ -543,7 +543,7 @@ class MultistepQuasimetricLearner(nn.Module):
                 dtype=torch.long,
             )
             batches.append(
-                memory.sample_quasimetric_batch(  #### sample_quasimetric_batch
+                memory.sample_quasimetric_batch(
                     memory_batch_size,
                     self.config.discount,
                     self.config.lambda_,

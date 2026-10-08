@@ -17,7 +17,7 @@ class ActorLossBase(LossBase):
     def forward(self, actor: Actor, critic_batch_infos: Collection[CriticBatchInfo], data: BatchData) -> LossResult:
         pass
 
-    # for type hints
+
     def __call__(self, actor: Actor, critic_batch_infos: Collection[CriticBatchInfo], data: BatchData) -> LossResult:
         return super().__call__(actor, critic_batch_infos, data)
 
@@ -29,7 +29,7 @@ from .behavior_cloning import BCLoss
 class ActorLosses(ActorLossBase):
     @attrs.define(kw_only=True)
     class Conf:
-        # config / argparse uses this to specify behavior
+
 
         min_dist: MinDistLoss.Conf = MinDistLoss.Conf()
         behavior_cloning: BCLoss.Conf = BCLoss.Conf()
@@ -90,7 +90,7 @@ class ActorLosses(ActorLossBase):
             self.entropy_weight_sched.step()
         return result
 
-    # for type hints
+
     def __call__(self, actor: Actor, critic_batch_infos: Collection[CriticBatchInfo], data: BatchData, *,
                  optimize: bool = True, auxiliary_loss: Optional[torch.Tensor] = None) -> LossResult:
         return torch.nn.Module.__call__(

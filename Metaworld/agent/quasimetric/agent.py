@@ -5,7 +5,7 @@ from typing import Optional
 import torch
 import torch.nn.functional as F
 
-from agent.sac_metric import SACAgent  # metric agent
+from agent.sac_metric import SACAgent
 
 from .config import ContinualQuasimetricAgentConfig, QuasimetricConfig
 from .memory import TaskAwareReplayMemory
@@ -72,7 +72,7 @@ class ContinualQuasimetricSACAgent(SACAgent):
             return reward
 
         with torch.no_grad():
-            bonus = self.quasimetric.structure_bonus(obs, action, next_obs).unsqueeze(-1)  # one step bonus calculated by qusimetric critic
+            bonus = self.quasimetric.structure_bonus(obs, action, next_obs).unsqueeze(-1)
         metrics["structure_bonus"] = float(bonus.mean().item())
         return reward + coef * bonus
 
@@ -210,7 +210,7 @@ class ContinualQuasimetricSACAgent(SACAgent):
         return structure_metrics, actor_metrics
 
     def update_structure(self, replay_buffer, current_batch=None):
-        return self.quasimetric.update_from_replay_buffer(   #### 
+        return self.quasimetric.update_from_replay_buffer(
             replay_buffer,
             memory=self.structure_memory,
             current_batch=current_batch,
@@ -222,7 +222,7 @@ class ContinualQuasimetricSACAgent(SACAgent):
             max_transitions=max_transitions,
         )
 
-    def update(self, replay_buffer, step):  #####
+    def update(self, replay_buffer, step):
         shared_batch = None
         if self.continual_cfg.share_sac_batch:
             shared_batch = self._sample_shared_batch(replay_buffer)

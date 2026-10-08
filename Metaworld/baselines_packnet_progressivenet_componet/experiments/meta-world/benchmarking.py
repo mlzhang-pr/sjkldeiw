@@ -11,7 +11,7 @@ import argparse
 
 
 def parse_args():
-    # fmt: off
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--obs-dim", type=int, default=64)
     parser.add_argument("--act-dim", type=int, default=8)
@@ -30,7 +30,7 @@ def parse_args():
         action=argparse.BooleanOptionalAction,
         help="whether to plot the ")
 
-    # fmt: on
+
 
     return parser.parse_args()
 
@@ -107,7 +107,7 @@ def plot(df):
 
     fig = plt.figure(figsize=(6, 5))
 
-    # fmt: off
+
     g = sns.lineplot(
         data=df, x="num prevs", y="time",
         hue="method", style="method",
@@ -115,9 +115,9 @@ def plot(df):
         errorbar="sd", legend=False, hue_order=methods,
         linewidth=3, markersize=10,
     )
-    # fmt: on
 
-    # legend
+
+
     plt_style.style(fig, legend=False)
     lines = [Line2D([0], [0], color=c) for c in ["tab:blue", "tab:orange"]]
     fig.legend(
@@ -129,19 +129,19 @@ def plot(df):
         ncols=2,
     )
     ax = plt.gca()
-    p = 0.15  # %
+    p = 0.15
     box = ax.get_position()
     ax.set_position([box.x0, box.y0 + box.height * p, box.width, box.height * (1 - p)])
-    # labels
+
     plt.xlabel("Number of tasks")
     plt.ylabel("Inference time in seconds")
 
     plt.savefig("benchmarking_inference_time.pdf")
-    # plt.show()
+
 
     plt.gca()
     fig = plt.figure(figsize=(6, 5))
-    # fmt: off
+
     g = sns.lineplot(
         data=df, x="num prevs", y="total parameters",
         hue="method", style="method",
@@ -157,7 +157,7 @@ def plot(df):
         linewidth=1, markersize=7,
         linestyle="dashed",
     )
-    # fmt: on
+
 
     plt_style.style(fig, legend=False, force_sci_y=True)
 
@@ -175,10 +175,10 @@ def plot(df):
         lines, lbls, fancybox=False, frameon=False, loc="outside lower center", ncols=2
     )
     ax = plt.gca()
-    p = 0.21  # %
+    p = 0.21
     box = ax.get_position()
     ax.set_position([box.x0, box.y0 + box.height * p, box.width, box.height * (1 - p)])
-    # labels
+
     plt.xlabel("Number of tasks")
     plt.ylabel("Number of parameters")
     plt.savefig("benchmarking_num_parameters.pdf")
@@ -207,11 +207,11 @@ def plot_times(df, ax, fig, methods):
         ax=ax,
     )
     ax.set_xticks(list(df["num prevs"].unique()))
-    # fmt: on
+
 
     plt_style.style(fig, ax=ax, legend=False)
 
-    # labels
+
     ax.set_xlabel("Number of tasks")
     ax.set_ylabel("Inference time in seconds")
 
@@ -222,7 +222,7 @@ def plot_memory(df, ax, fig, methods):
     import seaborn as sns
     from utils import plt_style
 
-    # fmt: off
+
     g = sns.lineplot(
         data=df, x="num prevs", y="trainable parameters",
         hue="method", style="method",
@@ -239,7 +239,7 @@ def plot_memory(df, ax, fig, methods):
         linewidth=3, markersize=10, ax=ax,
     )
     ax.set_xticks(list(df["num prevs"].unique()))
-    # fmt: on
+
 
     plt_style.style(fig, ax=ax, legend=False, force_sci_y=True)
     ax.set_yscale("log")
@@ -263,7 +263,7 @@ def plot_memory(df, ax, fig, methods):
     lbls = ["Trainable", "Total"]
     ax.legend(lines, lbls, fancybox=False, frameon=False)
 
-    # labels
+
     ax.set_xlabel("Number of tasks")
     ax.set_ylabel("Number of parameters (log)")
     ax.set_ylim(1e5, 1e10)
@@ -277,7 +277,7 @@ def plot_joined(df):
 
     plt.rcParams.update({"font.size": 14})
 
-    # fmt: off
+
     fig, axs = plt.subplots(
         ncols=2, nrows=1, figsize=(7, 5),
         layout='constrained', gridspec_kw={'wspace': 0.4, 'hspace': 0.2}
@@ -295,7 +295,7 @@ def plot_joined(df):
     box = ax.get_position()
     ax.set_position([box.x0, box.y0 + box.height * p, box.width, box.height * (1 - p)])
 
-    # main legend (in the bottom of the figure)
+
     lines = [Line2D([0], [0], color=c, marker=m, linewidth=3,
                     markersize=10, markeredgecolor="white")
              for c, m in zip(["tab:blue", "tab:orange"], ["X", "o"])]
@@ -315,12 +315,12 @@ def plot_separate(df):
     plt.rcParams.update({"font.size": 14})
 
     def make_legend(fig, ax, p=0.2):
-        # shrink
+
         box = ax.get_position()
         ax.set_position(
             [box.x0, box.y0 + box.height * p, box.width, box.height * (1 - p)]
         )
-        # draw legend
+
         lines = [
             Line2D(
                 [0],
@@ -342,7 +342,7 @@ def plot_separate(df):
             ncols=2,
         )
 
-    # Inference time
+
     fig = plt.figure(figsize=(7, 5))
     ax = plt.gca()
 
@@ -352,7 +352,7 @@ def plot_separate(df):
     plt.savefig("benchmarking_inference_time.pdf", pad_inches=0.02, bbox_inches="tight")
     plt.show()
 
-    # Memory cost
+
     fig = plt.figure(figsize=(7, 7))
     ax = plt.gca()
 

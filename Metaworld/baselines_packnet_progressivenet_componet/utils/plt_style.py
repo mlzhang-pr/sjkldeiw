@@ -7,7 +7,7 @@ def style(fig, ax=None, grid=True, legend=True, legend_title=None, legend_ncols=
     if colormap is not None:
         plt.set_cmap(colormap)
 
-    # remove lateral spines
+
     ax = ax if ax is not None else plt.gca()
 
     ax.spines['right'].set_visible(False)
@@ -16,14 +16,14 @@ def style(fig, ax=None, grid=True, legend=True, legend_title=None, legend_ncols=
     if ax_math_ticklabels:
         ax.ticklabel_format(useMathText=True)
 
-    # axis sci notation
+
     if force_sci_x or force_sci_y:
         ax.ticklabel_format(useOffset=False)
         ax.ticklabel_format(style='sci',
                             axis='x' if force_sci_x else 'y',
                             scilimits=(0,0))
 
-    # set spine and tick width and color
+
     axis_color = "lightgrey"
     ax.spines["bottom"].set(linewidth=1.3, color=axis_color)
     ax.spines["left"].set(linewidth=1.3, color=axis_color)
@@ -33,8 +33,8 @@ def style(fig, ax=None, grid=True, legend=True, legend_title=None, legend_ncols=
 
     if legend:
         l = fig.legend(title=legend_title, fancybox=False, frameon=False, loc="outside lower center", ncols=legend_ncols)
-        # Shrink current axis's height by 10% on the bottom
-        p = legend_shrink # %
+
+        p = legend_shrink
         box = ax.get_position()
         ax.set_position([box.x0, box.y0 + box.height * p,
                          box.width, box.height * (1-p)])

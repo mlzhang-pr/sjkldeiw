@@ -15,8 +15,7 @@ consolidation:
 	 replay buffer.
 2. At a task boundary, recent task experience is added to task-aware memory and
 	 used to update the quasimetric structure.
-3. A transferable policy is trained from the quasimetric values with
-	 advantage-weighted regression and behavior cloning.
+3. A transferable policy is trained from the quasimetric values using advantage-weighted regression and behavior cloning in Meta-World and MinAtar, whereas in Fetch, we directly train a goal-conditioned policy using the learned quasimetric value function.
 4. On the next task, the transferred policy initializes or regularizes the
 	 student policy during an initial warm-up period. Online learning then
 	 continues on the new task.
@@ -40,12 +39,22 @@ python -m pip install -r MinAtar/requirements.txt
 
 ## Meta-World training
 
-The Meta-World curve uses `metaworld_sequence_set12`, a ten-task stream:
+We use Meta-World v3 from the official Farama Foundation implementation https://github.com/Farama-Foundation/Metaworld.
+
+The Meta-World curves use two ten-task streams. `metaworld_sequence_set12` is:
 
 ```text
 plate-slide-back-side-v2 -> soccer-v2 -> sweep-into-v2 ->
 handle-pull-side-v2 -> plate-slide-side-v2 -> peg-unplug-side-v2 ->
 door-lock-v2 -> reach-v2 -> plate-slide-back-v2 -> coffee-button-v2
+```
+
+`metaworld_sequence_set6` is:
+
+```text
+button-press-v2 -> plate-slide-back-side-v2 -> window-close-v2 ->
+plate-slide-side-v2 -> peg-unplug-side-v2 -> plate-slide-back-v2 ->
+coffee-button-v2 -> window-open-v2 -> handle-pull-side-v2 -> door-close-v2
 ```
 
 The plotted configuration trains for 1,000,000 environment steps per task
@@ -55,24 +64,26 @@ discount 0.99. At each boundary it retains 20 recent trajectories, updates the
 quasimetric/meta actor with 100 updates per stored trajectory and completed
 task, and distills the meta actor into the next task actor.
 
-Run four training seeds from the repository root:
+Run both task streams with four training seeds from the repository root:
 
 ```bash
 cd Metaworld
-for seed in 0 1 2 3; do
-	python conquest.py \
-		--env metaworld_sequence_set12 \
-		--method buffer \
-		--seed "$seed" \
-		--gpu 0 \
-		--change_freq 1000000 \
-		--random_steps 10000 \
-		--store_traj_num 20 \
-		--meta_updates_per_traj 100 \
-		--new_task_init warmup \
-		--save_freq 25000 \
-		--log_backends tensorboard \
-		--save_path "results/conquest/set12_seed${seed}"
+for sequence in set6 set12; do
+	for seed in 0 1 2 3; do
+		python conquest.py \
+			--env "metaworld_sequence_${sequence}" \
+			--method buffer \
+			--seed "$seed" \
+			--gpu 0 \
+			--change_freq 1000000 \
+			--random_steps 10000 \
+			--store_traj_num 20 \
+			--meta_updates_per_traj 100 \
+			--new_task_init warmup \
+			--save_freq 25000 \
+			--log_backends tensorboard \
+			--save_path "results/conquest/${sequence}_seed${seed}"
+	done
 done
 ```
 

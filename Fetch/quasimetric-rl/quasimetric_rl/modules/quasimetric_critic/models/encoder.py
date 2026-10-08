@@ -26,7 +26,7 @@ class Encoder(nn.Module):
 
     @attrs.define(kw_only=True)
     class Conf:
-        # config / argparse uses this to specify behavior
+
 
         arch: Tuple[int, ...] = (512, 512)
         latent_size: int = 128
@@ -55,7 +55,7 @@ class Encoder(nn.Module):
     def forward(self, x: torch.Tensor) -> LatentTensor:
         return self.encoder(self.input_encoding(x))
 
-    # for type hint
+
     def __call__(self, x: torch.Tensor) -> LatentTensor:
         return super().__call__(x)
 

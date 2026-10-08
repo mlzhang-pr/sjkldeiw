@@ -15,9 +15,9 @@ from .... import FLAGS
 
 
 
-#-----------------------------------------------------------------------------#
-#-------------------------------- output API ---------------------------------#
-#-----------------------------------------------------------------------------#
+
+
+
 
 
 class TensorDistributionProtocol(Protocol):
@@ -54,9 +54,9 @@ class ActionOutputConverter(nn.Module, metaclass=abc.ABCMeta):
         return super().__call__(feature)
 
 
-#-----------------------------------------------------------------------------#
-#----------------------------------- impls -----------------------------------#
-#-----------------------------------------------------------------------------#
+
+
+
 
 
 class DiscreteOutputOneHot(ActionOutputConverter):
@@ -102,7 +102,7 @@ class BoxOutputLinearNormalization(ActionOutputConverter):
             validate_args=FLAGS.DEBUG,
         )
 
-        # Acme (CRL) Tanh Normal
+
         from .utils import AcmeTanhTransformedDistribution, SampleDist
         distn = AcmeTanhTransformedDistribution(
             distn,

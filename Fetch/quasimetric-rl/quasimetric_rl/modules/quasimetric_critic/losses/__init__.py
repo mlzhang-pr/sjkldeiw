@@ -26,7 +26,7 @@ class CriticLossBase(LossBase):
     def forward(self, data: BatchData, critic_batch_info: CriticBatchInfo) -> LossResult:
         pass
 
-    # for type hints
+
     def __call__(self, data: BatchData, critic_batch_info: CriticBatchInfo) -> LossResult:
         return super().__call__(data, critic_batch_info)
 
@@ -98,7 +98,7 @@ class QuasimetricCriticLosses(CriticLossBase):
             self.lagrange_mult_sched.step()
         return result
 
-    # for type hints
+
     def __call__(self, data: BatchData, critic_batch_info: CriticBatchInfo, *,
                  optimize: bool = True) -> LossResult:
         return torch.nn.Module.__call__(self, data, critic_batch_info, optimize=optimize)

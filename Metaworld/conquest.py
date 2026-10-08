@@ -99,14 +99,14 @@ class ConfigDictConverter:
         agent_dict:
         env_dict:
         '''
-        # Improvement: possible to split agent and env parameters here. That is this class contains
-        # two dicts for agent_parameters and env_parameters.
-        # This would help with passing only the required arguments for envs that are already created (e.g gym)
-        # Also, it could help with dealing with parameters that have the same name but are different for agent and env
+
+
+
+
 
         self.config_dict = config_dict.copy()
 
-        # training shouldn't need these variables
+
         if 'num_repeats' in self.config_dict.keys():
             del self.config_dict['num_repeats']
         if 'num_runs_per_group' in self.config_dict.keys():
@@ -115,11 +115,11 @@ class ConfigDictConverter:
         self.agent_dict = self.config_dict.copy()
         self.env_dict = self.config_dict.copy()
 
-        # TODO remove maybe?
+
         self.repeat_idx = config_dict['repeat_idx']
 
-        # environment
-        # reinforcement learning
+
+
         import envs.metaworld_env
         self.env_class = envs.metaworld_env.MetaWorldSingleEnvSequence
 
@@ -130,9 +130,9 @@ class ConfigDictConverter:
                        'goal_conditioned', 'gc_reward_type', 'gc_success_threshold', 'gc_achieved_goal']
         env = config_dict['env'].lower()
 
-        if env[0:19] == 'metaworld_sequence_':  # e.g. 'metaworld_sequence_reach'
-            if env[19:22] == 'set':  # e.g. "metaworld_sequence_set1"
-                self.env_dict['env_sequence'] = env[19:]  # e.g. "set1"
+        if env[0:19] == 'metaworld_sequence_':
+            if env[19:22] == 'set':
+                self.env_dict['env_sequence'] = env[19:]
             else:
                 self.env_dict['base_task_name'] = f'{env[19:]}-v2'
 
@@ -142,10 +142,10 @@ class ConfigDictConverter:
         print('env_dict keys', self.env_dict.keys())
         print('env_dict', self.env_dict)
 
-        # Other params
+
         self.agent_dict['device'] = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-        # Adjust the seed based on repeat
+
         self.env_dict['seed'] += self.repeat_idx * 1
 
 
@@ -431,20 +431,20 @@ def initialize_new_task_agent(
 
 def main():
     parser = argparse.ArgumentParser(description='Run RL experiments')
-    # General experiment arguments
-    # parser.add_argument('--repeat_idx', type=int, default=0, help='Index of the repeat (for multiple runs)')
-    # parser.add_argument('--env', type=str, default='metaworld_sequence_set6', help='Environment to run')
 
-    # parser.add_argument("--normalize_obs", type=str2none, default=None, help="Normalize observations (pass 'none' to keep None)")
-    # parser.add_argument('--goal_conditioned', type=int, default=0, help='Whether MetaWorld returns goal-conditioned dict observations')
-    # parser.add_argument('--gc_reward_type', type=str_choice, default='sparse', choices=['sparse', 'dense', 'success'], help='Goal-conditioned reward type')
-    # parser.add_argument('--gc_success_threshold', type=float, default=0.05, help='Goal-conditioned success distance threshold')
-    # parser.add_argument('--gc_achieved_goal', type=str_choice, default='auto', choices=['auto', 'object', 'tcp'], help='Goal-conditioned achieved goal source')
-    # parser.add_argument('--seed', type=int, default=0, help='Num steps to run')
-    # parser.add_argument('--save_path', type=str, default='results/', help='Path to the folder to be saved in')
-    # parser.add_argument('--save_freq', type=int, default=25000, help='Number steps between recording metrics')
-    # parser.add_argument('--save_model_freq', type=int, default=-1,help='Number of steps between saving the model. Set to -1 for never. ')
-    parser.add_argument('--method', type=str, default='independent', help='Method to use for multitask learning') # 'independent', 'average', 'continue', 'buffer', 'buffer_wd'
+
+
+
+
+
+
+
+
+
+
+
+
+    parser.add_argument('--method', type=str, default='independent', help='Method to use for multitask learning')
     parser.add_argument('--store_traj_num', type=int, default=10, help='Number of trajectories to store in the buffer for each task, only for buffer method')
     parser.add_argument('--meta_updates_per_traj', type=int, default=100, help='Number of joint meta updates per stored trajectory')
     parser.add_argument('--meta_update_steps', type=int, default=None, help='Fixed number of joint meta updates at each task boundary; overrides --meta_updates_per_traj')
@@ -490,7 +490,7 @@ def main():
         choices=[0, 1],
         help="Whether to reset every evaluation episode with the current environment seed",
     )
-    # ------------- goal-conditioned setting
+
     parser.add_argument(
         "--goal_conditioned",
         type=int,
@@ -664,7 +664,7 @@ def main():
         default = 1,
         help = "How often to update the slow quasimetric structure",
     )
-    # TODO: kl between z?
+
     parser.add_argument(
         "--structure_updates_per_step",
         type=int,
@@ -674,7 +674,7 @@ def main():
     parser.add_argument(
         "--structure_bonus_coef",
         type=float,
-        default=0.0,   #### try 0.5   without bonus
+        default=0.0,
         help="Reward shaping coefficient from quasimetric structure bonus",
     )
     parser.add_argument("--bc_alpha", type=float, default=0.1, help="Behavior-cloning loss coefficient")
@@ -729,7 +729,7 @@ def main():
         help="Metric replay buffer mode: HER reward relabeling or future-goal conditioning without HER rewards",
     )
 
-    # args = parser.parse_args(args=[])
+
     args = parser.parse_args()
     try:
         args.log_backends = normalize_log_backends(args.log_backends)
@@ -761,10 +761,10 @@ def main():
     env = config_obj.env_class(**env_parameters)
     eval_env = copy.deepcopy(env)
     print('env_list:',env.env_list)
-    # print(env_parameters)
+
 
     num_steps_per_run = len(env.env_list) * args.change_freq
-    # print('num_steps_per_run:',num_steps_per_run, env.normalize_obs)
+
 
     num_eval_runs = 10
     set_seed_everywhere(args.seed)
@@ -784,18 +784,18 @@ def main():
     if log_info['wandb_url'] is not None:
         print('wandb_url:', log_info['wandb_url'])
 
-    # sys.stdout = Logger(log_path + log_name + ".txt")
-    # sys.stderr = sys.stdout
+
+
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     start_time = time.perf_counter()
 
-    # print(env.env.action_space)
-    # print(env.env.observation_space)
-    # env.env.env.env.env.env.env.env.base_task_name
-    # print('---')
-    # print(env.env.env.env.env.env.env.action_space)
+
+
+
+
+
 
     random_steps = args.random_steps
     replay_buffer_capacity = args.change_freq
@@ -816,12 +816,12 @@ def main():
             agent_list.append(SACAgent(obs_dim=obs_space.shape[0],
                          action_dim=env.env.action_space.shape[0],
                          action_range=[-1., 1.],
-                         device=device, ))  # normal sac   but update with reward shaping
+                         device=device, ))
         else:
-            # agent_list.append(SACAgentIR(obs_dim=obs_space.shape[0],
-            #              action_dim=env.env.action_space.shape[0],
-            #              action_range=[-1., 1.],
-            #              device=device, ))
+
+
+
+
             agent_list.append(SACAgent(obs_dim=obs_space.shape[0],
                          action_dim=env.env.action_space.shape[0],
                          action_range=[-1., 1.],
@@ -835,11 +835,11 @@ def main():
             args=args,
         )
         
-        # meta_buffer = ReplayBuffer(
-        #     obs_space.shape,
-        #     env.env.action_space.shape,
-        #     int(replay_buffer_capacity) + random_steps,
-        #     device) 
+
+
+
+
+
         quasimetric_buffer = ReplayBufferMetric(
             obs_space.shape,
             env.env.action_space.shape,
@@ -850,10 +850,10 @@ def main():
 
     collector = Collector(env, replay_buffer)
 
-    obs, _ = env.reset()  # match the gymnasium interface
+    obs, _ = env.reset()
 
     task_counter = env.task_counter
-    agent = agent_list[task_counter-1] # task_counter starts from 1, agent_list from 0
+    agent = agent_list[task_counter-1]
     collector.initial_collect(random_steps)
 
     intermediate_stats = defaultdict(list)
@@ -864,7 +864,7 @@ def main():
     task_start_step = 0
 
     while i_step <= num_steps_per_run:
-        if task_counter != env.task_counter:  # when task change
+        if task_counter != env.task_counter:
             task_counter = env.task_counter
             task_start_step = i_step
             log_scalar(writer, 'task/task_idx', task_counter, i_step)
@@ -935,7 +935,7 @@ def main():
             if i_step == num_steps_per_run:
                 break
 
-            replay_buffer.reset() #####
+            replay_buffer.reset()
 
             if method == 'continue':
                 agent_list[(task_counter-1)%len(env.env_list)].critic.load_state_dict(agent.critic.state_dict())
@@ -947,7 +947,7 @@ def main():
                 agent_list[(task_counter-1)%len(env.env_list)].log_alpha_optimizer.load_state_dict(agent.log_alpha_optimizer.state_dict())
 
             if method == 'buffer' or method == 'buffer_wd':
-                agent = agent_list[(task_counter - 1) % len(env.env_list)]   #### task specific agent
+                agent = agent_list[(task_counter - 1) % len(env.env_list)]
                 if hasattr(agent, 'set_task_start_step'):
                     agent.set_task_start_step(task_start_step)
                 if args.new_task_init == 'copy':
@@ -974,28 +974,28 @@ def main():
                 agent.save(distilled_model_dir, log_name + '_' + str(task_counter-1-1))
                 print("---------new-task initialization done")
 
-                # if args.use_ttest:
-                #     from scipy import stats
-                #     t_stat, p_value = stats.ttest_ind(return_dict[1], return_dict[0], alternative='greater')
-                #     print(f'T-test: t_stat={t_stat:.3f}, p_value={p_value:.3f}')
-                #     log_scalar(writer, 'meta/ttest_t_stat', t_stat, i_step)
-                #     log_scalar(writer, 'meta/ttest_p_value', p_value, i_step)
-                #     if p_value < 0.05:
-                #         agent.actor.load_state_dict(meta_agent.actor.state_dict())  #####
-                #         from_meta = True
-                #     else:
-                #         from_meta = False
-                # else:
-                #     if np.mean(return_dict[1]) > np.mean(return_dict[0]):   ######
-                #         agent.actor.load_state_dict(meta_agent.actor.state_dict())
-                #         from_meta = True
-                #     else:
-                #         from_meta = False
-                # print('return_dict: {:.3f} {:.3f}, success_dict: {:.3f} {:.3f}, from_meta: {}'.format(np.mean(return_dict[0]),np.mean(return_dict[1]),np.mean(success_dict[0]),np.mean(success_dict[1]), from_meta))
-                # log_scalar(writer, 'meta/current_agent_return', np.mean(return_dict[0]), i_step)
-                # log_scalar(writer, 'meta/meta_agent_return', np.mean(return_dict[1]), i_step)
-                # log_scalar(writer, 'meta/current_agent_success', np.mean(success_dict[0]), i_step)
-                # log_scalar(writer, 'meta/meta_agent_success', np.mean(success_dict[1]), i_step)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
                 log_scalar(writer, 'meta/from_meta', int(from_meta), i_step)
             else:
@@ -1074,7 +1074,7 @@ def main():
     intermediate_stats['count_success'].extend([count_success] * (len(intermediate_stats['mean_return']) - len(intermediate_stats['count_success'])))
     intermediate_stats = pd.DataFrame(intermediate_stats)
     intermediate_stats.to_csv(log_path + "/" + csv_log_name + ".csv", index=False)
-    # evaluate all agents on all previous tasks
+
     print('---')
     if method == 'buffer' or method == 'buffer_wd':
         eval_agent_specs = [(-1, meta_agent, range(len(env.env_list)))]
@@ -1094,7 +1094,7 @@ def main():
             )
             eval_metrics = summarize_eval_results(eval_results)
 
-            # print(f"Final task {env.env_list[i]} success {round(np.mean(eval_successes), 3)} +/- {round(np.std(eval_successes), 3)}")
+
             print(f"Final task {env.env_list[i]} success {round(eval_metrics['metaworld_success_mean'], 3)} "
                   f"gc_success {round(eval_metrics['gc_success_mean'], 3)} "
                   f"return {round(eval_metrics['return_mean'], 3)}")
@@ -1110,24 +1110,24 @@ def main():
             final_step += 1
             log_eval_metrics(writer, f'final/{task_tag}/{agent_tag}', eval_metrics, final_step)
 
-    # evaluate the meta agent on all tasks
-    # if method == 'buffer':
-    #     agent = meta_agent
-    #     for i in range(len(env.env_list)):
-    #         env.set_task(env.env_list[i])
-    #         eval_results = env.evaluate_agent(agent, num_eval_runs)
-    #         eval_episode_returns = eval_results['episodic_returns']
-    #         eval_successes = eval_results['successes']
-    #
-    #         print(f"Final task {env.env_list[i]} success {round(np.mean(eval_successes), 3)} +/- {round(np.std(eval_successes), 3)}")
-    #
-    #         final_stats['mean_return'].append(np.mean(eval_episode_returns))
-    #         final_stats['mean_success'].append(np.mean(eval_successes))
-    #         final_stats['task'].append(env.base_task_name)
-    #         final_stats['task_idx'].append(i+1)
-    #         final_stats['seed'].append(args.seed)
-    #         final_stats['method'].append(method)
-    #         final_stats['agent_idx'].append(-1) # meta agent
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     final_stats = pd.DataFrame(final_stats)
     final_stats.to_csv(log_path + "/" + csv_log_name + "_final.csv", index=False)

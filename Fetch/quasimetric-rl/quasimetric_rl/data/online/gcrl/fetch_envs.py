@@ -1,18 +1,18 @@
-# coding=utf-8
-# Copyright 2022 The Google Research Authors.
-# Copyright 2023 Tongzhou Wang.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 """Utility for loading the Gymnasium-Robotics Fetch v4 environments."""
 
@@ -24,10 +24,10 @@ import numpy as np
 
 
 def get_reward(norm_dist, reward_mode):
-    # is_success === norm_dist < 1
+
     is_success = float(norm_dist < 1)
     if reward_mode == 'dense':
-        return np.exp(-norm_dist * np.log(2))  # 0.5 at boundary, 1 at exact
+        return np.exp(-norm_dist * np.log(2))
     elif reward_mode == 'positive':
         return is_success
     else:
@@ -87,7 +87,7 @@ class FetchReachEnv(reach.MujocoFetchReachEnv):
     """Wrapper for the FetchReach environment."""
 
     def __init__(self,
-                 reward_mode='positive',  # positive: 0 or 1; negative: -1 or 0
+                 reward_mode='positive',
                  ):
         self.reward_mode = reward_mode
         super(FetchReachEnv, self).__init__(reward_type='sparse')
@@ -132,7 +132,7 @@ class FetchPushEnv(push.MujocoFetchPushEnv):
     """Wrapper for the FetchPush environment."""
 
     def __init__(self,
-                 reward_mode='positive',  # positive: 0 or 1; negative: -1 or 0
+                 reward_mode='positive',
                  ):
         self.reward_mode = reward_mode
         super(FetchPushEnv, self).__init__(reward_type='sparse')
@@ -178,7 +178,7 @@ class FetchSlideEnv(slide.MujocoFetchSlideEnv):
     """Wrapper for the FetchSlide environment."""
 
     def __init__(self,
-                 reward_mode='positive',  # positive: 0 or 1; negative: -1 or 0
+                 reward_mode='positive',
                  ):
         self.reward_mode = reward_mode
         super(FetchSlideEnv, self).__init__(reward_type='sparse')
@@ -224,7 +224,7 @@ class FetchReachImageEnv(reach.MujocoFetchReachEnv):
     """Wrapper for the FetchReach environment with image observations."""
 
     def __init__(self,
-                 reward_mode='positive',  # positive: 0 or 1; negative: -1 or 0
+                 reward_mode='positive',
                  ):
         self.reward_mode = reward_mode
         self._dist = []
@@ -249,11 +249,11 @@ class FetchReachImageEnv(reach.MujocoFetchReachEnv):
         self._dist = []
 
     def reset(self, *, seed=None, options=None):
-        if self._dist:  # if len(self._dist) > 0, ...
+        if self._dist:
             self._dist_vec.append(self._dist)
         self._dist = []
 
-        # generate the new goal image
+
         self.observation_space = self._old_observation_space
         s, info = super(FetchReachImageEnv, self).reset(seed=seed, options=options)
         self.observation_space = self._new_observation_space
@@ -295,7 +295,7 @@ class FetchReachImageEnv(reach.MujocoFetchReachEnv):
         return img.flatten()
 
     def compute_reward(self, achieved_goal, goal, info):
-        # just image comparison
+
         assert achieved_goal.shape == goal.shape, (achieved_goal.shape, goal.shape)
         is_success = (achieved_goal == goal).all(axis=-1)
         if self.reward_mode == 'positive':
@@ -310,7 +310,7 @@ class FetchPushImageEnv(push.MujocoFetchPushEnv):
     """Wrapper for the FetchPush environment with image observations."""
 
     def __init__(self, camera='camera2', start_at_obj=True, rand_y=False,
-                 reward_mode='positive',  # positive: 0 or 1; negative: -1 or 0
+                 reward_mode='positive',
                  ):
         self.reward_mode = reward_mode
         self._start_at_obj = start_at_obj
@@ -351,15 +351,15 @@ class FetchPushImageEnv(push.MujocoFetchPushEnv):
             s = _step_obs(super(FetchPushImageEnv, self).step(a))
 
     def reset(self, *, seed=None, options=None):
-        if self._dist:  # if len(self._dist) > 0 ...
+        if self._dist:
             self._dist_vec.append(self._dist)
         self._dist = []
 
-        # generate the new goal image
+
         self.observation_space = self._old_observation_space
         s, info = super(FetchPushImageEnv, self).reset(seed=seed, options=options)
         self.observation_space = self._new_observation_space
-        # Randomize object position
+
         for _ in range(8):
             super(FetchPushImageEnv, self).step(np.array([-1.0, 0.0, 0.0, 0.0]))
         object_qpos = _get_joint_qpos(self, 'object0:joint')
@@ -369,7 +369,7 @@ class FetchPushImageEnv(push.MujocoFetchPushEnv):
         self._move_hand_to_obj()
         self._goal_img = self.observation(s)
         block_xyz = _get_joint_qpos(self, 'object0:joint')[:3]
-        if block_xyz[2] < 0.4:  # If block has fallen off the table, recurse.
+        if block_xyz[2] < 0.4:
             print('Bad reset, recursing.')
             return self.reset(options=options)
         self._goal = block_xyz[:2].copy()
@@ -392,7 +392,7 @@ class FetchPushImageEnv(push.MujocoFetchPushEnv):
         img = self.observation(s)
         dist = np.linalg.norm(block_xyz[:2] - self._goal)
         self._dist.append(dist)
-        if block_xyz[2] < 0.4:  # If block has fallen off the table, recurse.
+        if block_xyz[2] < 0.4:
             print('Bad reset, recursing.')
             return self.reset(options=options)
         return np.concatenate([img, self._goal_img]), info
@@ -404,7 +404,7 @@ class FetchPushImageEnv(push.MujocoFetchPushEnv):
         self._dist.append(dist)
         terminated = False
         truncated = False
-        is_success = float(dist < 0.05)  # Taken from the original task code.
+        is_success = float(dist < 0.05)
         img = self.observation(s)
         info = dict(
             is_success=is_success,
@@ -417,7 +417,7 @@ class FetchPushImageEnv(push.MujocoFetchPushEnv):
         return img.flatten()
 
     def compute_reward(self, achieved_goal, goal, info):
-        # just image comparison
+
         assert achieved_goal.shape == goal.shape, (achieved_goal.shape, goal.shape)
         is_success = (achieved_goal == goal).all(axis=-1)
         if self.reward_mode == 'positive':

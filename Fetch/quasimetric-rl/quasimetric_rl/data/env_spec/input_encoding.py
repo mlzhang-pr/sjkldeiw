@@ -25,7 +25,7 @@ class InputEncoding(nn.Module, metaclass=abc.ABCMeta):
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         pass
 
-    # for type hints
+
     def __call__(self, input: torch.Tensor) -> torch.Tensor:
         return super().__call__(input)
 

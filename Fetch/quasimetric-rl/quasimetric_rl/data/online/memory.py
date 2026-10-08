@@ -19,35 +19,35 @@ from ..base import (
 from .utils import get_empty_episode, get_empty_episodes
 
 
-#-----------------------------------------------------------------------------#
-#------------------------------ replay buffer --------------------------------#
-#-----------------------------------------------------------------------------#
 
-# `ReplayBuffer` is an extended `Dataset``, that
-#
-#   1. supports sampling a batch of valid transitions
-#
-#   2. *does not* support dataloader access (which may be multiprocessing)
-#
-#   3. supports adding new rollouts (episodes)
-#
-#   4. to avoid constantly expanding the tensors after each new episode, we
-#      expand `increment_num_episodes` episodes in the `Dataset` at each time,
-#      and keep track of which episodes in `Dataset` contains valid data.
-#      (similar to how vectors grows in chunks in c++ to have amortized constant
-#      time complexity, although we grow by a constant number of episodes rather
-#      than exponentially)
-#
-#   5. as a result of 4, each episode must contain a fixed number of transitions,
-#      which we access by requiring all online env to
-#        i.  use an observation dict with keys ['observation', 'achived_goal', 'desired_goal'],
-#            all of the same dtype and shape
-#        ii  exposes 'is_success' as a bool in `info`
-#        ii. be wrapped with `FixedLengthEnvWrapper`.
-#
-#      (i) and (ii) are checked in collecting rollouts and creating `ReplayBuffer`.
-#      (iii) is done by the `register_online_env` function below.
-#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 class FixedLengthEnvWrapper(gym.Wrapper):
@@ -96,15 +96,15 @@ class ReplayBuffer(Dataset):
         be changed. See below for details.
         """
 
-        # Whether to load the offline data by calling registered `load_episode_fn`
-        # In general, for online settings, this should not be used and `load_episode_fn`
-        # will through an error.  But useful for debugging and analysis, where you
-        # can fix the training data across methods.
+
+
+
+
         load_offline_data: bool = False
 
-        # Below are options for growing the tensors. Only tune they if you think
-        # that speed / memory is affected by the current settings. They *DO NOT*
-        # affect behavior. See above note.
+
+
+
         init_num_transitions: int = attrs.field(default=int(1e6), validator=attrs.validators.gt(0))
         increment_num_transitions: int = attrs.field(default=int(0.5e6), validator=attrs.validators.gt(0))
 
@@ -122,9 +122,9 @@ class ReplayBuffer(Dataset):
     increment_num_transitions: int
 
     env: FixedLengthEnvWrapper
-    num_episodes_realized: int  # track valid episodes
-    num_successful_episodes: int  # stats
-    num_successful_transitions: int  # stats
+    num_episodes_realized: int
+    num_successful_episodes: int
+    num_successful_transitions: int
 
     @property
     def episode_length(self) -> int:
@@ -138,7 +138,7 @@ class ReplayBuffer(Dataset):
     def episodes_capacity(self) -> int:
         return self.raw_data.num_episodes
 
-    def create_env(self) -> FixedLengthEnvWrapper:  # type hint
+    def create_env(self) -> FixedLengthEnvWrapper:
         env = super().create_env()
         assert isinstance(env, FixedLengthEnvWrapper), "not online env"
         return env
@@ -153,7 +153,7 @@ class ReplayBuffer(Dataset):
 
     def __init__(self, kind: str, name: str, *, future_observation_discount: float,
                  load_offline_data: bool, init_num_transitions: int, increment_num_transitions: int,
-                 dummy: bool = False,  # when you don't want to load data, e.g., in analysis
+                 dummy: bool = False,
                  ):
         self.kind = kind
         self.name = name
@@ -165,7 +165,7 @@ class ReplayBuffer(Dataset):
             kind, name, future_observation_discount=future_observation_discount,
             dummy=dummy)
         self.num_episodes_realized = 0
-        if load_offline_data and not dummy:  # load data if required.
+        if load_offline_data and not dummy:
             for episode in super().load_episodes():
                 self.add_rollout(episode)
                 self.num_episodes_realized += 1
@@ -179,19 +179,19 @@ class ReplayBuffer(Dataset):
     def _expand(self):
         original_capacity: int = self.episodes_capacity
 
-        # Update
-        #   # Data
-        #   raw_data: MultiEpisodeData  # only episodes in split
-        #   # Auxiliary structures that helps fetching transitions of specific kinds
+
+
+
+
         self.raw_data = MultiEpisodeData.cat(
             [self.raw_data, get_empty_episodes(self.env_spec, self.episode_length, self.increment_num_episodes)],
             dim=0,
         )
         new_capacity = self.episodes_capacity
 
-        #   # Stats
-        #   indices_to_episode_indices: torch.Tensor  # episode indices refers to indices in this split
-        #   indices_to_episode_timesteps: torch.Tensor
+
+
+
         self.indices_to_episode_indices = torch.cat([
             self.indices_to_episode_indices,
             torch.repeat_interleave(torch.arange(original_capacity, new_capacity), self.episode_length),
@@ -210,7 +210,7 @@ class ReplayBuffer(Dataset):
 
         epi = get_empty_episode(self.env_spec, self.episode_length)
 
-        # check observation space
+
         obs_dict_keys = {'observation', 'achieved_goal', 'desired_goal'}
         WRONG_OBS_ERR_MESSAGE = (
             f"{self.__class__.__name__} collect_rollout only supports Dict "
@@ -247,7 +247,7 @@ class ReplayBuffer(Dataset):
                 observation_dict, reward, terminal, info = step_result
                 timeout = info.get('TimeLimit.truncated', False)
 
-            observation = torch.tensor(observation_dict['observation'])  # copy just in case
+            observation = torch.tensor(observation_dict['observation'])
 
             goal: torch.Tensor = torch.as_tensor(observation_dict['desired_goal'])
             agoal: torch.Tensor = torch.as_tensor(observation_dict['achieved_goal'])
@@ -323,4 +323,4 @@ class ReplayBuffer(Dataset):
         return '\n'.join(lines)
 
 
-from . import gcrl  # register
+from . import gcrl

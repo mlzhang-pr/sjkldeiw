@@ -620,9 +620,3 @@ def main():
 
 if __name__ == "__main__":
 	main()
-'''
-cd MinAtar
-conda run -n RLL3 python conquest_eval.py \
-	--checkpoint results/conquest/CONQUEST_steps_3500000_switch_500000_seq_0_seed_0_checkpoint.pt \
-  --device cpu
-'''

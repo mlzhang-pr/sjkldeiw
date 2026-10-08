@@ -321,10 +321,10 @@ episode_count = 0
 last_loss = None
 
 while step < args.t_steps:
-    """
-    avg_return: changes after each episode by rewards then smooth
-    returns_array: be constant within each episode and change by ave_return 
-    """
+
+
+
+
     if step % args.switch == 0 and step > 0:
 
         logger.log({
@@ -602,24 +602,3 @@ logger.log({
     "task/end": 1,
 })
 logger.finish(Games, Flag_Reg)
-
-
-'''
-cd MinAtar
-
-python FAME.py \
-  --lr1 1e-3 \
-  --lr2 1e-5 \
-  --size_fast2meta 12000 \
-  --detection_step 600 \
-  --seed 0 \
-  --save \
-  --save-model \
-  --seq 0 \
-  --warmstep 50000 \
-  --lambda_reg 1.0 \
-    --gpu 0 \
-    --wandb-project minatar-fame \
-    --wandb-name fame-seq0-seed0
-
-'''

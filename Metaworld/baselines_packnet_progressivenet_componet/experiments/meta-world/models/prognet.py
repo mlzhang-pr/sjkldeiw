@@ -22,7 +22,7 @@ class ProgressiveNetAgent(nn.Module):
             previous_models=prevs,
         )
 
-        # will be created when calling `reset_heads`
+
         self.fc_mean = None
         self.fc_logstd = None
         self.reset_heads()
@@ -77,7 +77,7 @@ class ProgressiveNet(nn.Module):
 
         self.a = nn.ReLU()
 
-        # freeze previous models (columns)
+
         for m in previous_models:
             if hasattr(m, "previous_models"):
                 del m.previous_models
@@ -107,7 +107,7 @@ class ProgressiveNet(nn.Module):
         if len(self.previous_models) == 0:
             return self.forward_first(x)[0]
 
-        # forward first module
+
         _, fc1 = self.forward_first(x)
 
         fc1s = [fc1]

@@ -37,15 +37,15 @@ d4rl = None
 OfflineEnv = None
 
 def lazy_init_d4rl():
-    # d4rl requires mujoco_py, which has a range of installation issues.
-    # do not load until needed.
+
+
 
     global d4rl, OfflineEnv
 
     if d4rl is None:
         import importlib
         with suppress_output():
-            ## d4rl prints out a variety of warnings
+
             d4rl = __import__('d4rl')
         OfflineEnv = d4rl.offline_env.OfflineEnv
 
@@ -55,19 +55,19 @@ if TYPE_CHECKING:
     import d4rl.offline_env
     import d4rl.pointmaze
 
-    class OfflineEnv(d4rl.offline_env.OfflineEnv):  # give it better type annotation
+    class OfflineEnv(d4rl.offline_env.OfflineEnv):
         name: str
         max_episode_steps: int
 
 
-#-----------------------------------------------------------------------------#
-#-------------------------------- general api --------------------------------#
-#-----------------------------------------------------------------------------#
+
+
+
 
 def load_environment(name: Union[str, gym.Env]) -> 'OfflineEnv':
     lazy_init_d4rl()
     if type(name) != str:
-        ## name is already an environment
+
         return name
     with suppress_output():
         wrapped_env: gym.Wrapper = gym.make(name)
@@ -75,7 +75,7 @@ def load_environment(name: Union[str, gym.Env]) -> 'OfflineEnv':
     env.max_episode_steps = wrapped_env._max_episode_steps
     env.name = name
     env.reset()
-    env.step(env.action_space.sample())  # sometimes stepping is needed to initialize internal
+    env.step(env.action_space.sample())
     env.reset()
     return env
 
@@ -106,8 +106,8 @@ def sequence_dataset(env: 'OfflineEnv', dataset: Mapping[str, np.ndarray]) -> Ge
     N = dataset['rewards'].shape[0]
     data_ = collections.defaultdict(list)
 
-    # The newer version of the dataset adds an explicit
-    # timeouts field. Keep old method for backwards compatibility.
+
+
     use_timeouts = 'timeouts' in dataset
 
     episode_step = 0
@@ -162,6 +162,6 @@ def convert_dict_to_EpisodeData_iter(sequence_dataset_episodes: Iterator[Mapping
         yield EpisodeData(**episode_dict)
 
 
-from . import maze2d  # register
+from . import maze2d
 
 __all__ = ['D4RLDataset']

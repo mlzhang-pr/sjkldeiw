@@ -906,15 +906,3 @@ def main():
 
 if __name__ == "__main__":
 	main()
-
-'''
-cd MinAtar
-
-conda run -n RLL3 python fame_eval.py \
-  --checkpoint models/FAME_steps_3500000_switch_500000_update_50000_lr1_0.001_lr2_1e-05_size_fast2meta_12000_detection_step_600_seq_0_epoch_meta_200_warmstep_50000_lambda_reg_1.0_seed_0_Meta6.pt \
-  --aggregate \
-  --device cpu \
-  --evaluation-steps 6000 \
-  --max-steps 300 \
-  --output-json results/fame_metrics.json
-'''

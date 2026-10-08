@@ -7,26 +7,26 @@ import torch.distributions
 import torch.distributions.constraints
 
 
-#-----------------------------------------------------------------------------#
-#------------------------------ distributions --------------------------------#
-#-----------------------------------------------------------------------------#
 
 
-# https://github.com/deepmind/acme/blob/5fac34092330fbe7d758adc487c4b97c9f58f777/acme/jax/networks/distributional.py#L179
+
+
+
+
 class AcmeTanhTransformedDistribution(torch.distributions.TransformedDistribution):
     def __init__(self, dist: torch.distributions.Distribution, threshold=.999, validate_args: bool = True):
         super().__init__(dist, torch.distributions.TanhTransform(), validate_args=validate_args)
 
-        # Computes the log of the average probability distribution outside the
-        # clipping range, i.e. on the interval [-inf, -atanh(threshold)] for
-        # log_prob_left and [atanh(threshold), inf] for log_prob_right.
+
+
+
         self._threshold = threshold
         inverse_threshold = torch.atanh(torch.as_tensor(threshold))
-        # average(pdf) = p/epsilon
-        # So log(average(pdf)) = log(p) - log(epsilon)
+
+
         log_epsilon = np.log(1. - threshold)
-        # Those 2 values are differentiable w.r.t. model parameters, such that the
-        # gradient is defined everywhere.
+
+
 
         from .log_ndtr import log_ndtr_general
         assert isinstance(self.base_dist, torch.distributions.Normal)
@@ -34,11 +34,11 @@ class AcmeTanhTransformedDistribution(torch.distributions.TransformedDistributio
         self._log_prob_right = log_ndtr_general(2 * self.base_dist.mean - inverse_threshold, self.base_dist.mean, self.base_dist.scale) - log_epsilon
 
     def log_prob(self, event):
-        # Without this clip there would be NaNs in the inner tf.where and that
-        # causes issues for some reasons.
+
+
         event = torch.clamp(event, -self._threshold, self._threshold)
-        # The inverse image of {threshold} is the interval [atanh(threshold), inf]
-        # which has a probability of "log_prob_right" under the given distribution.
+
+
         return torch.where(
             event <= -self._threshold,
             self._log_prob_left,
@@ -47,7 +47,7 @@ class AcmeTanhTransformedDistribution(torch.distributions.TransformedDistributio
                         super().log_prob(event)))
 
 
-# https://github.com/juliusfrost/dreamer-pytorch
+
 class SampleDist(torch.distributions.Distribution):
     def __init__(self, dist: torch.distributions.Distribution, samples: int = 100):
         self._dist = dist

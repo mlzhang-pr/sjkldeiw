@@ -9,9 +9,9 @@ class DoubleQCritic(nn.Module):
         super().__init__()
 
         self.Q1 = utils.mlp(obs_dim + action_dim, hidden_dim, 1, hidden_depth)
-        # self.Q1 = utils.mlp_tanh(obs_dim + action_dim, hidden_dim, 1, hidden_depth)
+
         self.Q2 = utils.mlp(obs_dim + action_dim, hidden_dim, 1, hidden_depth)
-        # self.Q2 = utils.mlp_tanh(obs_dim + action_dim, hidden_dim, 1, hidden_depth)
+
 
         self.outputs = dict()
         self.apply(utils.weight_init)
@@ -35,9 +35,9 @@ class DoubleQCritic_metrtic(nn.Module):
         super().__init__()
 
         self.Q1 = utils.mlp(obs_dim + action_dim + rep_dim, hidden_dim, 1, hidden_depth)
-        # self.Q1 = utils.mlp_tanh(obs_dim + action_dim, hidden_dim, 1, hidden_depth)
+
         self.Q2 = utils.mlp(obs_dim + action_dim + rep_dim, hidden_dim, 1, hidden_depth)
-        # self.Q2 = utils.mlp_tanh(obs_dim + action_dim, hidden_dim, 1, hidden_depth)
+
 
         self.outputs = dict()
         self.apply(utils.weight_init)

@@ -10,7 +10,7 @@ import numpy as np
 
 
 class _AlertTracker(object):
-    # One time alert storage
+
 
     def __init__(self, keys):
         self._keys = set(keys)
@@ -36,8 +36,8 @@ class _AlertTracker(object):
 
 class StepsCounter(object):
     def __init__(self, *, alert_intervals: Dict[str, int]):
-        # alert_intervals is a dict of
-        #     alert type => Optional[fractional interval]  (None means never, i.e., inf interval)
+
+
         self.alert_intervals = dict(alert_intervals)
         self.reset()
 
@@ -48,8 +48,8 @@ class StepsCounter(object):
         self._record_alerts()
 
     def _record_alerts(self):
-        # This method records alerts that can later be retrieved via
-        # `self.alerts.X` for *just one time*.
+
+
         self.alerts._clear()
         for k, interval in self.alert_intervals.items():
             if interval is None:

@@ -1,8 +1,8 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# All rights reserved.
-#
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
+
+
+
+
+
 
 import sys
 import os
@@ -14,7 +14,7 @@ import contextlib
 __all__ = ['logger', 'configure', 'disable']
 
 
-# logger = logging.getLogger(__name__)
+
 logger = logging.getLogger()
 
 
@@ -29,7 +29,7 @@ class TqdmLoggingHandler(logging.Handler):
             self.flush()
         except (KeyboardInterrupt, SystemExit):
             raise
-        except:  # noqa E722
+        except:
             self.handleError(record)
 
 
@@ -60,8 +60,8 @@ class MultiLineFormatter(logging.Formatter):
             output = self._fmt % record.__dict__
 
         if record.exc_info:
-            # Cache the traceback text to avoid converting it multiple times
-            # (it's constant anyway)
+
+
             if not record.exc_text:
                 record.exc_text = self.formatException(record.exc_info)
         if record.exc_text:
@@ -80,8 +80,8 @@ class MultiLineFormatter(logging.Formatter):
         return output
 
 
-# this should replace `sys.excepthook`
-# Shamelessly taken from https://stackoverflow.com/a/16993115
+
+
 def handle_exception(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
@@ -92,16 +92,16 @@ def handle_exception(exc_type, exc_value, exc_traceback):
 
 
 def configure(logging_file, log_level=logging.INFO, level_prefix='', prefix='', write_to_stdout=True):
-    logger.setLevel(logging.INFO)  # set to info first to allow outputing in this function
+    logger.setLevel(logging.INFO)
 
-    sys.excepthook = handle_exception  # automatically log uncaught errors
+    sys.excepthook = handle_exception
 
     handlers = []
 
     if write_to_stdout:
         handlers.append(TqdmLoggingHandler())
 
-    delayed_logging = []  # log after we set the handlers with the nice formatter
+    delayed_logging = []
 
     if logging_file is not None:
         delayed_logging.append((logging.info, 'Logging to {}'.format(logging_file)))
@@ -118,7 +118,7 @@ def configure(logging_file, log_level=logging.INFO, level_prefix='', prefix='', 
 
     logger.setLevel(log_level)
 
-    # flush cached message
+
     for fn, msg in delayed_logging:
         fn(msg)
 
@@ -127,7 +127,7 @@ def configure(logging_file, log_level=logging.INFO, level_prefix='', prefix='', 
 
 @contextlib.contextmanager
 def disable(level):
-    # disables any level leq to :attr:`level`
+
     prev_level = logger.getEffectiveLevel()
     logger.setLevel(level)
     yield

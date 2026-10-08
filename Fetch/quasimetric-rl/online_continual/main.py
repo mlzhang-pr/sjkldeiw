@@ -1126,8 +1126,8 @@ def train_average_agent(env, replay_buffer, agent, agent_list, task_counter, ste
 def main():
     args = parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
-    # if "MUJOCO_GL" not in os.environ:
-    #     os.environ["MUJOCO_GL"] = "egl"
+
+
     os.makedirs(args.save_path, exist_ok=True)
     set_seed_everywhere(args.seed)
 
@@ -1192,7 +1192,7 @@ def main():
     meta_agent = None
     from_meta = False
     if use_meta:
-        meta_agent_list = [   # qasimetric agent
+        meta_agent_list = [
             build_meta_agent(obs_dim=obs_dim, action_dim=action_dim, device=device, args=args)
             for _ in range(len(env.env_list))
         ]
@@ -1206,13 +1206,13 @@ def main():
     agent = agent_list[task_counter - 1]
     if use_meta:
         meta_agent = meta_agent_list[task_counter - 1]
-        if hasattr(agent, "set_quasimetric_agent"): # for reward shaping
+        if hasattr(agent, "set_quasimetric_agent"):
             agent.set_quasimetric_agent(meta_agent)
 
     collector.initial_collect(args.random_steps)
 
     intermediate_stats = defaultdict(list)
-    step = 0 # total steps
+    step = 0
     count_success = -1
     task_start_step = 0
 
@@ -1224,7 +1224,7 @@ def main():
             log_scalar(writer, "task/task_idx", task_counter, step)
 
             if use_meta:
-                count_success = handle_task_switch( # offline update
+                count_success = handle_task_switch(
                     args,
                     env,
                     eval_env,
@@ -1253,7 +1253,7 @@ def main():
                 collector.initial_collect(args.random_steps)
             elif use_meta:
                 agent = agent_list[(task_counter - 1) % len(env.env_list)]
-                # use reward shaping
+
                 if hasattr(agent, "set_quasimetric_agent"):
                     agent.set_quasimetric_agent(meta_agent)
                 if hasattr(agent, "set_task_start_step"):
@@ -1369,67 +1369,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-
-
-'''./online_continual/run_fetch_continual.sh \
-  --env fetch_sequence_custom \
-  --task_order push,pick-and-place,slide
-
-  ./online_continual/run_fetch_continual.sh \
-  --env fetch_sequence_custom \
-  --task_order pick-and-place,push,slide
-
-  python online_continual/main.py \
-  --env fetch_slide \
-  --goal_conditioned 1
-
-
-./online_continual/run_fetch_continual.sh \
-  --env fetch_sequence_custom \
-  --task_order push,pick-and-place,slide \
-  --qm_contrastive_coef 0.1 \
-  --gpu 0
-
-./online_continual/run_fetch_continual.sh \
-  --env fetch_sequence_custom \
-  --task_order push,pick-and-place \
-  --gpu 0 \
-  --store_traj_num 2000 \
-  --num_eval_runs 20 \
-  
-  --meta_updates_per_traj 1000
-
-
-
-
-  ./online_continual/run_fetch_continual.sh \
-  --env fetch_sequence_custom \
-  --task_order push,pick-and-place \
-  --gpu 0 \
-  --store_traj_num 2000 \
-  --num_eval_runs 15 \
-  --meta_updates_per_traj 1000
-
-
-
-
-fetch slide test
-./online_continual/run_fetch_continual.sh \
-  --env fetch_sequence_custom \
-  --task_order push,slide,pick-and-place \
-  --slide_goal_scale 0.795 \
-  --gc_success_threshold 0.05 \
-  --max_episode_steps 50 \
-  --store_traj_num 2000 \
-  --gpu 1 \
-  --transfer_traj_num 20 \
-  --qm_contrastive_coef 1.0
-
-slide_goal_scale: 0.7 -> 0.75 -> 0.8 harder
-
-
-  --qm_ranking_coef 0.1 \
-  --qm_ranking_margin 0.05 \
-  --qm_current_batch_ratio 0.5
-
-  '''

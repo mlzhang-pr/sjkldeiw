@@ -31,12 +31,12 @@ class ActorObsGoalCriticInfo:
 class MinDistLoss(ActorLossBase):
     @attrs.define(kw_only=True)
     class Conf:
-        # config / argparse uses this to specify behavior
+
 
         adaptive_entropy_regularizer: bool = True
 
-        # If set, in addition to use random goals, also use future state in the same trajectory as goals.
-        # We enable this for online settings, following Contrastive RL.
+
+
         add_goal_as_future_state: bool = True
 
         def make(self, env_spec: EnvSpec) -> 'MinDistLoss':
@@ -47,8 +47,8 @@ class MinDistLoss(ActorLossBase):
             )
 
     add_goal_as_future_state: bool
-    raw_entropy_weight: Optional[nn.Parameter]  # set if using adaptive entropy regularization
-    target_entropy: Optional[float] = None  # set if using adaptive entropy regularization
+    raw_entropy_weight: Optional[nn.Parameter]
+    target_entropy: Optional[float] = None
 
     def __init__(self, *, env_spec: EnvSpec,
                  adaptive_entropy_regularizer: bool,
@@ -79,9 +79,9 @@ class MinDistLoss(ActorLossBase):
         """
 
         obs = data.observations
-        goal = torch.roll(data.next_observations, 1, dims=0)  # randomize :)
+        goal = torch.roll(data.next_observations, 1, dims=0)
         if self.add_goal_as_future_state:
-            # add future_observations
+
             goal = torch.stack([goal, data.future_observations], 0)
             obs = obs.expand_as(goal)
 
@@ -89,10 +89,10 @@ class MinDistLoss(ActorLossBase):
 
         for critic_batch_info in critic_batch_infos:
             zo = critic_batch_info.zx
-            zg = torch.roll(critic_batch_info.zy, 1, dims=0)  # randomize in the same way:)
+            zg = torch.roll(critic_batch_info.zy, 1, dims=0)
 
             if self.add_goal_as_future_state:
-                # add future_observations
+
                 zg = torch.stack([
                     zg,
                     critic_batch_info.critic.encoder(data.future_observations),
@@ -127,15 +127,15 @@ class MinDistLoss(ActorLossBase):
             dists.append(dist)
 
         max_dist = info['dist_max'] = torch.stack(dists, -1).max(-1).values.mean()
-        loss = max_dist  # pick the most pessimistic
+        loss = max_dist
 
         if self.target_entropy is not None:
-            # add entropy regularization
+
 
             info['target_entropy'] = self.target_entropy
             entropy = info['entropy'] = actor_distn.entropy().mean()
 
-            alpha = info['entropy_alpha'] = grad_mul(self.raw_entropy_weight.exp(), -1)  # minimax :)
+            alpha = info['entropy_alpha'] = grad_mul(self.raw_entropy_weight.exp(), -1)
             loss += alpha * (self.target_entropy - entropy)
 
         return LossResult(loss=loss, info=info)

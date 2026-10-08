@@ -12,14 +12,14 @@ import random
 def parse_args():
     parser = argparse.ArgumentParser()
 
-    # fmt: off
+
     parser.add_argument("--load", type=str, required=True)
     parser.add_argument("--task-id", type=int, required=False, default=None)
     parser.add_argument("--seed", type=int, required=False, default=None)
     parser.add_argument("--num-episodes", type=int, default=10)
     parser.add_argument('--render', default=False, action='store_true')
     parser.add_argument('--csv', default=None, type=str)
-    # fmt: on
+
 
     return parser.parse_args()
 
@@ -63,7 +63,7 @@ def eval_agent(agent, test_env, num_evals, device):
                 successes.append(info["success"])
                 ep_rets.append(ep_ret)
                 print(ep_ret, successes[-1])
-                # resets
+
                 obs, _ = test_env.reset()
                 ep_ret = 0
                 break
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     envs = gym.vector.SyncVectorEnv([make_env(task_id, render_human=args.render)])
     env = envs.envs[0]
 
-    # set the seed
+
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)

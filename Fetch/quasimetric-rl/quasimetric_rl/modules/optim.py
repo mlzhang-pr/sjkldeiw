@@ -66,7 +66,7 @@ class AdamWSpec:
         cosine_lr_decay_final_mul: float = attrs.field(default=1, validator=attrs.validators.and_(
             attrs.validators.ge(0),
             attrs.validators.le(1),
-        ))  # 1 means no decay
+        ))
 
         def make(self) -> 'AdamWSpec':
             return AdamWSpec(**attrs.asdict(self))
@@ -84,7 +84,7 @@ class AdamWSpec:
     def create_optim(self, params) -> OptimWrapper:
         params = list(params)
         if len(params) == 0:
-            params = [dict(params=[])]  # dummy param group so pytorch doesn't complain
+            params = [dict(params=[])]
         return OptimWrapper(
             torch.optim.AdamW(params, lr=self.lr, betas=self.betas, weight_decay=self.weight_decay),
             grad_clip_norm=self.grad_clip_norm,

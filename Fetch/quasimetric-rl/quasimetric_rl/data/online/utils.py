@@ -49,7 +49,7 @@ def get_empty_episode(env_spec: EnvSpec, episode_length: int) -> EpisodeData:
         timeouts=timeouts,
         observation_infos=observation_infos,
         transition_infos=dict(
-            is_success=torch.empty(episode_length, dtype=torch.bool),  # not used by QRL, but fill in if you want to know in loaded batch
+            is_success=torch.empty(episode_length, dtype=torch.bool),
         ),
     )
 
@@ -74,6 +74,6 @@ def get_empty_episodes(env_spec: EnvSpec, episode_length: int, num_episodes: int
         timeouts=timeouts.flatten(),
         observation_infos=observation_infos,
         transition_infos=dict(
-            is_success=torch.empty(episode_length * num_episodes, dtype=torch.bool),  # not used by QRL, but fill in if you want to know in loaded batch
+            is_success=torch.empty(episode_length * num_episodes, dtype=torch.bool),
         ),
     )

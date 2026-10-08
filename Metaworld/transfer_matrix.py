@@ -319,7 +319,7 @@ def load_curve_files(paths, metric, role):
 			elif "source_stage" in frame.columns:
 				frame["_source_task_idx"] = frame["source_stage"] + 1
 			else:
-				# A sequential log observes only cumulative history -> next task.
+
 				frame["_source_task_idx"] = frame["_target_task_idx"] - 1
 
 		frame["_curve_file"] = str(path)
@@ -791,22 +791,3 @@ def main():
 
 if __name__ == "__main__":
 	raise SystemExit(main())
-
-'''
-python Metaworld/transfer_matrix.py \
-  --run-dir Metaworld/results/main3-2-awr/set12_warmup_seed1 \
-  --evaluate \
-  --eval-seeds 0 \
-  --num-eval-runs 15 \
-  --gpu 0 \
-  --matrix performance
-
-python Metaworld/transfer_matrix.py \
-	--run-dir Metaworld/results/main3-2-awr/set12_warmup_seed1 \
-	--matrix hybrid \
-	--student-curves log-awr/metaworld_sequence_set12/sac_metaworld_sequence_set12_1_buffer.csv \
-	--reset-curves Metaworld/log/metaworld_sequence_set12/sac_metaworld_sequence_set12_0_independent.csv \
-	--allow-unpaired-seeds \
-	--allow-incomplete-forward
-
-'''

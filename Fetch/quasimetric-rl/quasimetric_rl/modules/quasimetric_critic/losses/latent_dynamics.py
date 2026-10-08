@@ -20,7 +20,7 @@ class LatentDynamicsLoss(CriticLossBase):
 
     @attrs.define(kw_only=True)
     class Conf:
-        # config / argparse uses this to specify behavior
+
 
         weight: float = attrs.field(default=0.1, validator=attrs.validators.gt(0))
 

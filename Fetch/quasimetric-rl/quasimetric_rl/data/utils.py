@@ -23,11 +23,11 @@ FieldT = TypeVar(
 
 
 class TensorCollectionAttrsMixin(abc.ABC):
-    # All fields must be one of
-    #    torch.Tensor
-    #    NestedMapping[torch.Tensor]
-    #    TensorCollectionAttrsMixin
-    #    NestedMapping[TensorCollectionAttrsMixin]
+
+
+
+
+
 
     @classmethod
     def types_dict(cls):
@@ -65,7 +65,7 @@ class TensorCollectionAttrsMixin(abc.ABC):
     def cat(cls, collections: List[Self], *, dim=0) -> Self:
         assert all(isinstance(c, cls) for c in collections)
 
-        if len(collections) == 1:  # differ from torch.cat: no copy
+        if len(collections) == 1:
             return collections[0]
 
         types = cls.types_dict()
@@ -74,10 +74,10 @@ class TensorCollectionAttrsMixin(abc.ABC):
             ty = types[k]
             field_values = [getattr(c, k) for c in collections]
             if cls.is_tensor_type(ty):
-                # torch.Tensor
-                return torch.cat(field_values, dim=dim)  # differ from torch.cat: no copy if len == 1
+
+                return torch.cat(field_values, dim=dim)
             elif cls.is_nested_tensor_mapping_type(ty):
-                # NestedMapping[torch.Tensor]
+
 
                 def cat_map(maps: List[NestedMapping[torch.Tensor]]) -> NestedMapping[torch.Tensor]:
                     if len(maps) == 0:
@@ -96,10 +96,10 @@ class TensorCollectionAttrsMixin(abc.ABC):
 
                 return cat_map(field_values)
             elif cls.is_tensor_collection_attrs_type(ty):
-                # TensorCollectionAttrsMixin
+
                 return cast(Type[TensorCollectionAttrsMixin], ty).cat(field_values, dim=dim)
             else:
-                # NestedMapping[TensorCollectionAttrsMixin]
+
 
                 coll_ty: Type[TensorCollectionAttrsMixin] = get_args(ty)[0]
 

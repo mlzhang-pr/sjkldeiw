@@ -114,9 +114,9 @@ def train_T_Net():
 	T_pred = T_Net(states)
 	T_pred = T_pred.gather(1, actions)
 
-	"""
-	Essentially, it is a classical TD learning, but value function is decomposed into P+T. and here we only update T.
-	"""
+
+
+
 	targets = rewards + (1 - done) * gamma * ((P_next_pred + T_next_pred).max(1)[0]).reshape(-1, 1)
 	loss = T_criterion(T_pred+P_pred, targets)
 	T_opt.zero_grad()
@@ -383,23 +383,3 @@ logger.log({
 	"task/end": 1,
 })
 logger.finish(Games, float(avg_return), episode_count)
-
-
-'''
-cd MinAtar
-python PT_DQN_half.py \
-  --seed 0 \
-  --seq 0 \
-  --gpu 1 \
-  --save \
-  --save-model \
-  --wandb-project minatar-pt-dqn-half \
-  --wandb-name pt-dqn-half-seq0-seed0 \
-  --wandb-mode online
-
-./run_pt_dqn_half.sh \
-  --seqs "0 1 2 3 4 5 6 7" \
-  --seeds "0 1" \
-  --gpu 0 \
-  --wandb-project minatar-pt-dqn-half
-'''

@@ -1,10 +1,10 @@
-# author: vlad niculae <vlad@vene.ro>
-# license: simplified BSD
-# adapted from jax.scipy.special
-# <https://github.com/google/jax/blob/master/jax/_src/scipy/special.py>,
-# in turn based on cephes
 
-# https://github.com/probabll/mixed-rv-vae/blob/fe809beb42f3c4d0d388ccd534cdba800d4d0a72/torch_log_ndtr.py
+
+
+
+
+
+
 
 import numpy as np
 import torch
@@ -20,19 +20,19 @@ _LOGNDTR_FLOAT64_UPPER = torch.tensor(8, dtype=torch.float64)
 _LOGNDTR_FLOAT32_UPPER = torch.tensor(5, dtype=torch.float32)
 
 
-# make this longer
+
 DBL_FAC = [1, 1, 2, 3, 8, 15, 48, 105, 384, 945]
 HALF_SQRT2 = np.sqrt(2) / 2
 LOG2PI = np.log(2 * np.pi)
 
 
-def _nrm_logpdf(x):  # is this stable?
+def _nrm_logpdf(x):
     return -(LOG2PI + (x ** 2)) / 2
 
 
 def _ndtr(x):
-    # just using erf is very bad
-    # ndtr = (1 + torch.erf(x / SQRT2)) / 2
+
+
 
     w = x * HALF_SQRT2
     z = torch.abs(w)
@@ -64,7 +64,7 @@ def _log_ndtr_asymptotic_series(x, series_order):
     even_sum = torch.zeros_like(x)
     odd_sum = torch.zeros_like(x)
 
-    x_2n = x_2  # Start with x^{2*1} = x^{2*n} with n = 1.
+    x_2n = x_2
 
     for n in range(1, series_order + 1):
         y = DBL_FAC[2 * n - 1] / x_2n
@@ -87,23 +87,23 @@ def _log_ndtr(x, series_order=3):
         lower_segment = _LOGNDTR_FLOAT32_LOWER
         upper_segment = _LOGNDTR_FLOAT32_UPPER
 
-    # The basic idea here was ported from:
-    #   https://root.cern.ch/doc/v608/SpecFuncCephesInv_8cxx_source.html
-    # We copy the main idea, with a few changes
-    # * For x >> 1, and X ~ Normal(0, 1),
-    #     Log[P[X < x]] = Log[1 - P[X < -x]] approx -P[X < -x],
-    #     which extends the range of validity of this function.
-    # * We use one fixed series_order for all of 'x', rather than adaptive.
-    # * Our docstring properly reflects that this is an asymptotic series, not a
-    #   Taylor series. We also provided a correct bound on the remainder.
-    # * We need to use the max/min in the _log_ndtr_lower arg to avoid nan when
-    #   x=0. This happens even though the branch is unchosen because when x=0
-    #   the gradient of a select involves the calculation 1*dy+0*(-inf)=nan
-    #   regardless of whether dy is finite. Note that the minimum is a NOP if
-    #   the branch is chosen.
-    # (vlad's note: does the last bullet point matter if using custom backward?)
 
-    # return torch.log(_ndtr(x))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     return torch.where(
         torch.gt(x, upper_segment),
@@ -147,18 +147,18 @@ def test_gradcheck():
 
 def main():
 
-    # x = torch.tensor([-9.8099, -1.0396e+01, -1.1412e+01, -6.1407e+02, -131])
+
     x = torch.tensor([-100, -21, -19, -11, -9], dtype=torch.float64, requires_grad=True)
 
     x1 = x.to(dtype=torch.float32)
     print(log_ndtr(x1))
-    # print(log_ndtr(x1).numpy())
+
     print(reference_log_ndtr(x1.detach().numpy()))
     print()
 
     x2 = x.to(dtype=torch.float64)
     print(log_ndtr(x2))
-    # print(log_ndtr(x2).numpy())
+
     print(reference_log_ndtr(x2.detach().numpy()))
 
     test_gradcheck()

@@ -15,15 +15,15 @@ from .env_spec import EnvSpec
 
 
 
-#-----------------------------------------------------------------------------#
-#-------------------------------- Batch data ---------------------------------#
-#-----------------------------------------------------------------------------#
 
-# What should be in a batch
+
+
+
+
 
 
 @attrs.define(kw_only=True)
-class BatchData(TensorCollectionAttrsMixin):  # TensorCollectionAttrsMixin has some util methods
+class BatchData(TensorCollectionAttrsMixin):
     observations: torch.Tensor
     actions: torch.Tensor
     next_observations: torch.Tensor
@@ -31,7 +31,7 @@ class BatchData(TensorCollectionAttrsMixin):  # TensorCollectionAttrsMixin has s
     terminals: torch.Tensor
     timeouts: torch.Tensor
 
-    future_observations: torch.Tensor  # sampled!
+    future_observations: torch.Tensor
 
     @property
     def device(self) -> torch.device:
@@ -47,9 +47,9 @@ class BatchData(TensorCollectionAttrsMixin):  # TensorCollectionAttrsMixin has s
 
 
 
-#-----------------------------------------------------------------------------#
-#------------------------------- Episode data --------------------------------#
-#-----------------------------------------------------------------------------#
+
+
+
 
 
 @attrs.define(kw_only=True)
@@ -59,21 +59,21 @@ class MultiEpisodeData(TensorCollectionAttrsMixin):
     """
 
 
-    # For each episode, L: number of (s, a, s', r, d, to) pairs, so number of transitions (not observations)
+
     episode_lengths: torch.Tensor
-    # cat all states from all episodes, where the last s' is added. I.e., each episode has L+1 states
+
     all_observations: torch.Tensor
-    # cat all actions from all episodes. Each episode has L actions.
+
     actions: torch.Tensor
-    # cat all rewards from all episodes. Each episode has L rewards.
+
     rewards: torch.Tensor
-    # cat all terminals from all episodes. Each episode has L terminals.
+
     terminals: torch.Tensor
-    # cat all timeouts from all episodes. Each episode has L timeouts.
+
     timeouts: torch.Tensor
-    # cat all observation infos from all episodes. Each episode has L + 1 elements.
+
     observation_infos: Mapping[str, torch.Tensor] = attrs.Factory(dict)
-    # cat all transition infos from all episodes. Each episode has L elements.
+
     transition_infos: Mapping[str, torch.Tensor] = attrs.Factory(dict)
 
     @property
@@ -131,14 +131,14 @@ class EpisodeData(MultiEpisodeData):
         )
 
 
-#-----------------------------------------------------------------------------#
-#--------------------------------- dataset -----------------------------------#
-#-----------------------------------------------------------------------------#
 
 
-# Each env is specified with two strings:
-#   + kind  # d4rl, gcrl, etc.
-#   + spec  # maze2d-umaze-v1, FetchPushImage, etc.
+
+
+
+
+
+
 
 
 LOAD_EPISODES_REGISTRY: Mapping[Tuple[str, str], Callable[[], Iterator[EpisodeData]]] = {}
@@ -168,12 +168,12 @@ def register_offline_env(kind: str, spec: str, *, load_episodes_fn, create_env_f
 class Dataset:
     @attrs.define(kw_only=True)
     class Conf:
-        # config / argparse uses this to specify behavior
 
-        kind: str = MISSING  # d4rl, gcrl, etc.
-        name: str = MISSING  # maze2d-umaze-v1, etc.
 
-        # Defines how to fetch the future observation. smaller -> more recent
+        kind: str = MISSING
+        name: str = MISSING
+
+
         future_observation_discount: float = attrs.field(default=0.99, validator=attrs.validators.and_(
             attrs.validators.ge(0.0),
             attrs.validators.le(1.0),
@@ -188,24 +188,24 @@ class Dataset:
     name: str
     future_observation_discount: float
 
-    # Computed Attributes::
 
-    # Data
-    raw_data: MultiEpisodeData  # will contain all episodes
 
-    # Env info
+
+    raw_data: MultiEpisodeData
+
+
     env_spec: EnvSpec
 
-    # Defines how to fetch the future observation. smaller -> more recent
+
     future_observation_discount: float
 
-    # Auxiliary structures that helps fetching transitions of specific kinds
-    # -----
+
+
     obs_indices_to_obs_index_in_episode: torch.Tensor
-    indices_to_episode_indices: torch.Tensor  # episode indices refers to indices in this split
+    indices_to_episode_indices: torch.Tensor
     indices_to_episode_timesteps: torch.Tensor
     max_episode_length: int
-    # -----
+
 
     def create_env(self) -> gym.Env:
         return CREATE_ENV_REGISTRY[self.kind, self.name]()
@@ -215,7 +215,7 @@ class Dataset:
 
     def __init__(self, kind: str, name: str, *,
                  future_observation_discount: float,
-                 dummy: bool = False,  # when you don't want to load data, e.g., in analysis
+                 dummy: bool = False,
                  ) -> None:
         self.kind = kind
         self.name = name
@@ -255,17 +255,17 @@ class Dataset:
     def __getitem__(self, indices: torch.Tensor) -> BatchData:
         indices = torch.as_tensor(indices)
         eindices = self.indices_to_episode_indices[indices]
-        obs_indices = indices + eindices  # index for `observation`: skip the s_last from previous episodes
+        obs_indices = indices + eindices
         obs = self.get_observations(obs_indices)
         nobs = self.get_observations(obs_indices + 1)
 
         terminals = self.raw_data.terminals[indices]
 
         tindices = self.indices_to_episode_timesteps[indices]
-        epilengths = self.raw_data.episode_lengths[eindices]  # max idx is this
+        epilengths = self.raw_data.episode_lengths[eindices]
         deltas = torch.arange(self.max_episode_length)
         pdeltas = torch.where(
-            # test tidx + 1 + delta <= max_idx = epi_length
+
             (tindices[:, None] + deltas) < epilengths[:, None],
             self.future_observation_discount ** deltas,
             0,
@@ -325,4 +325,4 @@ def seed_worker(_):
     np.random.seed(worker_seed)
 
 
-from . import d4rl  # register
+from . import d4rl

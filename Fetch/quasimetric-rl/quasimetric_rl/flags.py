@@ -28,21 +28,21 @@ def pdb_if_DEBUG(fn: Callable):
         try:
             fn(*args, **kwargs)
         except:
-            # follow ABSL:
-            # https://github.com/abseil/abseil-py/blob/a0ae31683e6cf3667886c500327f292c893a1740/absl/app.py#L311-L327
+
+
 
             exc = sys.exc_info()[1]
             if isinstance(exc, KeyboardInterrupt):
                 raise
 
-            # Don't try to post-mortem debug successful SystemExits, since those
-            # mean there wasn't actually an error. In particular, the test framework
-            # raises SystemExit(False) even if all tests passed.
+
+
+
             if isinstance(exc, SystemExit) and not exc.code:
                 raise
 
-            # Check the tty so that we don't hang waiting for input in an
-            # non-interactive scenario.
+
+
             if FLAGS.DEBUG:
                 traceback.print_exc()
                 print()

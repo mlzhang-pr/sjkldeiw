@@ -30,10 +30,10 @@ def parse_args():
 
 args = parse_args()
 
-# modes = list(range(20)) if args.algorithm != "simple" else list(range(10))
+
 modes = list(range(10))
 
-# NOTE: If the algoritm is not `simple`, it always should start from the second task
+
 if args.algorithm not in ["simple", "packnet", "prognet"] and args.start_mode == 0:
     start_mode = 1
 else:
@@ -49,17 +49,17 @@ for i, task_id in enumerate(modes[first_idx:]):
     params += f" --save-dir=agents"
 
     if first_idx > 0 or i > 0:
-        # multiple previous modules
+
         if args.algorithm in ["componet", "prognet"]:
             params += " --prev-units"
             for i in modes[: modes.index(task_id)]:
                 params += f" agents/{run_name(i)}"
-                # print('params:',params)
-        # single previous module
+
+
         elif args.algorithm in ["finetune", "packnet"]:
             params += f" --prev-units agents/{run_name(task_id-1)}"
 
-    # Launch experiment
+
     cmd = f"python3 run_sac.py {params}"
     print(cmd)
 

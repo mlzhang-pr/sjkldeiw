@@ -10,7 +10,7 @@ from ...data import EnvSpec
 
 @attrs.define(kw_only=True)
 class ActorConf:
-    # config / argparse uses this to specify behavior
+
 
     model: Actor.Conf = Actor.Conf()
     losses: ActorLosses.Conf = ActorLosses.Conf()

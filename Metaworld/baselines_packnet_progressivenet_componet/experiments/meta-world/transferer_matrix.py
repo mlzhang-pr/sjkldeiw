@@ -17,7 +17,7 @@ from process_results import (
 
 
 def parse_args():
-    # fmt: off
+
     parser = ArgumentParser()
     parser.add_argument("--runs-dir", type=str, default="runs",
         help="directory where the TensorBoard logs are stored")
@@ -26,7 +26,7 @@ def parse_args():
     parser.add_argument("--smoothing-window", type=int, default=100,
         help="smoothing window for the success rate curves. \
         Defaults to the value used in processing meta-world runs.")
-    # fmt: on
+
     return parser.parse_args()
 
 
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     if not os.path.exists(args.save_csv):
         dfs = []
         for path in tqdm(list(pathlib.Path(args.runs_dir).rglob("*events.out*"))):
-            # print(path)
+
 
             res = parse_tensorboard(str(path), [scalar])
             if res is not None:
@@ -80,9 +80,9 @@ if __name__ == "__main__":
         print(f"Using cache CSV at: {args.save_csv}")
         df = pd.read_csv(args.save_csv)
 
-    #
-    # Compute forward transfers
-    #
+
+
+
 
     F = np.zeros((10, 10))
     for first_task in range(10):
@@ -95,7 +95,7 @@ if __name__ == "__main__":
                 & (df["second task"] == second_task)
             ]
 
-            # get the curve of the `simple` method
+
             x_baseline, y_baseline, _ = smooth_avg(
                 baseline, xkey="step", ykey="value", w=args.smoothing_window
             )
@@ -109,7 +109,7 @@ if __name__ == "__main__":
             )
             x_method, y_method = remove_nan(x_method, y_method)
 
-            # this can happen if a method hasn't the results for all tasks
+
             if len(x_baseline) > len(x_method):
                 print(f"Skipping first_task={first_task}, second_task={second_task}")
                 continue
@@ -130,9 +130,9 @@ if __name__ == "__main__":
     print()
 
     fs = 14
-    plt.rc("axes", labelsize=fs)  # fontsize of the x and y labels
-    plt.rc("xtick", labelsize=fs)  # fontsize of the tick labels
-    plt.rc("ytick", labelsize=fs)  # fontsize of the tick labels
+    plt.rc("axes", labelsize=fs)
+    plt.rc("xtick", labelsize=fs)
+    plt.rc("ytick", labelsize=fs)
 
     F = np.round(F, 2)
     sns.heatmap(F, annot=True, cmap="RdYlGn", center=0.0, vmin=-1, vmax=1)

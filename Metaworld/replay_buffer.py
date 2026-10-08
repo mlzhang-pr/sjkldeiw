@@ -14,7 +14,7 @@ class ReplayBuffer(object):
         self.obs_shape = obs_shape
         self.action_shape = action_shape
 
-        # the proprioceptive obs is stored as float32, pixels obs as uint8
+
         self.obs_dtype = np.float32 if len(self.obs_shape) == 1 else np.uint8
 
         self.obses = np.empty((self.capacity, *self.obs_shape), dtype=self.obs_dtype)
@@ -75,7 +75,7 @@ class ReplayBuffer(object):
             self.last_save = data['others'][2]
             self.full = data['others'][3]
 
-            # self.freqency_distribution()
+
             return True
         except BaseException as e:
             print(e)
@@ -173,24 +173,24 @@ class Collector():
         self.success_list = []
 
     def initial_collect(self,steps):
-        # collect for some random steps
+
         print('initial_collect ...')
         self.obs,_ = self._reset_env()
         for i in range(steps):
             actions = self.env.env.action_space.sample()
-            next_obs, rewards, terminateds, truncateds, infos = self.env.no_count_step(actions) # do not count the random steps
+            next_obs, rewards, terminateds, truncateds, infos = self.env.no_count_step(actions)
             next_obs = self._obs_vector(next_obs)
 
-            # allow infinite bootstrap
-            done = float(terminateds) or float(truncateds) # this env is weird, done is always false: return (np.array(self._last_stable_obs, dtype=np.float64), reward, False, truncate, info,)
+
+            done = float(terminateds) or float(truncateds)
             done_no_max = 0. if truncateds else done
-            # if done:
-            #     print('done!')
-            # if done_no_max:
-            #     print('done_no_max!')
-            # if truncateds:
-            #     print('truncateds!')
-            # assert np.all((actions >= -1.) & (actions <= 1.0)), actions
+
+
+
+
+
+
+
             self.replay_buffer.add(self.obs, actions, rewards, infos.get("success", False), next_obs, done, done_no_max)
 
             self.obs = next_obs
@@ -207,7 +207,7 @@ class Collector():
         episode_count = 0
         agent_idx = 0
         self.obs,_ = self._reset_env()
-        for i in range(steps): # take care the num_eval_runs * num_agents should be less than steps, right now is 200*10*2, is ok
+        for i in range(steps):
             if agent_idx == len(agent_list):
                 actions = self.env.env.action_space.sample()
             else:
@@ -215,10 +215,10 @@ class Collector():
                     actions = self._act(agent_list[agent_idx])
             next_obs, rewards, terminateds, truncateds, infos = self.env.no_count_step(actions)
             next_obs = self._obs_vector(next_obs)
-            # allow infinite bootstrap
+
             done = float(terminateds) or float(truncateds)
             done_no_max = 0. if truncateds else done
-            # assert np.all((actions >= -1.) & (actions <= 1.0)), actions
+
             self.replay_buffer.add(self.obs, actions, rewards, infos.get("success", False), next_obs, done, done_no_max)
 
             self.obs = next_obs
@@ -235,7 +235,7 @@ class Collector():
                 if episode_count == num_eval_runs:
                     episode_count = 0
                     if agent_idx < len(agent_list):
-                        agent_idx += 1 # the last agent will be the random agent
+                        agent_idx += 1
 
         return return_dict, success_dict
 
@@ -245,20 +245,20 @@ class Collector():
             self.obs,_ = self._reset_env()
         with torch.inference_mode():
             actions = self._act(agent, sample=True)
-        # actions = self.env.env.action_space.sample()
+
         next_obs, rewards, terminateds, truncateds, infos = self.env.step(actions)
         next_obs = self._obs_vector(next_obs)
 
-        # allow infinite bootstrap
+
         done = float(terminateds) or float(truncateds)
         done_no_max = 0. if truncateds else done
-        # assert np.all((actions >= -1.) & (actions <= 1.0)), actions
+
         self.replay_buffer.add(self.obs, actions, rewards, infos.get("success", False), next_obs, done, done_no_max)
 
         self.obs = next_obs
         if terminateds or truncateds:
             self.obs, _ = self._reset_env()
             if infos.get("episode", False) and len(self.env.env.successes) > 0:
-                self.return_list.append(infos['episode']['r']) # no episode if self.make_task() change tasks
+                self.return_list.append(infos['episode']['r'])
                 self.success_list.append(self.env.env.successes[-1])
                 assert len(self.success_list) == len(self.return_list), [len(self.success_list), len(self.return_list)]

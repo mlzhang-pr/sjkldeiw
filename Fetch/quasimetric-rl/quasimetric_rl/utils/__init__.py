@@ -1,8 +1,8 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# All rights reserved.
-#
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
+
+
+
+
+
 
 from typing import *
 
@@ -71,7 +71,7 @@ class lazy_property(Generic[T]):
 
     def __get__(self, instance: Any, obj_type: Any = None) -> T:
         if instance is None:
-            return self  # typing: ignore
+            return self
         value = self.wrapped(instance)
         setattr(instance, self.wrapped.__name__, value)
         return value

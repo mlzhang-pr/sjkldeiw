@@ -15,7 +15,7 @@ from ....data.env_spec.input_encoding import InputEncoding
 class LatentDynamics(MLP):
     @attrs.define(kw_only=True)
     class Conf:
-        # config / argparse uses this to specify behavior
+
 
         arch: Tuple[int, ...] = (512, 512)
         residual: bool = True
@@ -43,7 +43,7 @@ class LatentDynamics(MLP):
         self.residual = residual
 
     def forward(self, zx: LatentTensor, action: torch.Tensor) -> LatentTensor:
-        # broadcast batch shapes before cat
+
         action = self.action_input(action)
         broadcast_bshape: torch.Size = torch.broadcast_shapes(zx.shape[:-1], action.shape[:-1])
         zx = zx.expand(broadcast_bshape + zx.shape[-1:])
@@ -56,7 +56,7 @@ class LatentDynamics(MLP):
             zy = zx + zy
         return zy
 
-    # for type hints
+
     def __call__(self, zx: LatentTensor, action: torch.Tensor) -> LatentTensor:
         return nn.Module.__call__(self, zx, action)
 

@@ -17,7 +17,7 @@ from . import ActorLossBase
 class BCLoss(ActorLossBase):
     @attrs.define(kw_only=True)
     class Conf:
-        # config / argparse uses this to specify behavior
+
 
         weight: float = attrs.field(default=0, validator=attrs.validators.ge(0))
 

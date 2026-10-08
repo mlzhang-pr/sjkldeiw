@@ -11,13 +11,13 @@ import numpy as np
 from ..data.utils import NestedMapping
 
 
-LatentTensor = torch.Tensor  # alias to make type hints more readable
+LatentTensor = torch.Tensor
 
 
 
-#-----------------------------------------------------------------------------#
-#--------------------------------- LossBase ----------------------------------#
-#-----------------------------------------------------------------------------#
+
+
+
 
 InfoT = NestedMapping[Union[float, torch.Tensor]]
 
@@ -29,7 +29,7 @@ class LossResult:
 
     def __attrs_post_init__(self):
         assert isinstance(self.loss, (int, float)) or self.loss.numel() == 1
-        # detach info tensors
+
 
         def detach(d: InfoT) -> InfoT:
             if isinstance(d, torch.Tensor):
@@ -54,14 +54,14 @@ class LossBase(nn.Module, metaclass=abc.ABCMeta):
     def forward(self, *args, **kwargs) -> LossResult:
         pass
 
-    # for type hints
+
     def __call__(self, *args, **kwargs) -> LossResult:
         return super().__call__(*args, **kwargs)
 
 
-#-----------------------------------------------------------------------------#
-#------------------------------------ MLP ------------------------------------#
-#-----------------------------------------------------------------------------#
+
+
+
 
 
 class MLP(nn.Module):
@@ -94,7 +94,7 @@ class MLP(nn.Module):
             nn.Linear(layer_in_size, output_size),
         )
 
-        # initialize with glorot_uniform
+
         with torch.no_grad():
             def init_(m: nn.Module):
                 if isinstance(m, (nn.Linear, nn.Conv2d)):
@@ -113,7 +113,7 @@ class MLP(nn.Module):
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         return self.module(input)
 
-    # for type hints
+
     def __call__(self, input: torch.Tensor) -> torch.Tensor:
         return super().__call__(input)
 
@@ -124,17 +124,17 @@ class MLP(nn.Module):
 
 
 
-#-----------------------------------------------------------------------------#
-#-------------------------------- Module abc ---------------------------------#
-#-----------------------------------------------------------------------------#
-# Makes it easier to switch train/eval modes, or detach gradients. It is
-# recommended to use this at the top-level modules (e.g., actors), which often
-# need such switches.
+
+
+
+
+
+
 
 class Module(nn.Module):
     @property
     def device(self) -> torch.device:
-        return next(self.parameters()).device  # a bit inaccurate, but should be fine
+        return next(self.parameters()).device
 
     @contextlib.contextmanager
     def requiring_grad(self, flag=True):
@@ -154,13 +154,13 @@ class Module(nn.Module):
         module.train(orig)
 
 
-#-----------------------------------------------------------------------------#
-#------------------------------ softplus_inv ---------------------------------#
-#-----------------------------------------------------------------------------#
+
+
+
 
 
 def softplus_inv_float(y: float) -> float:
-    threshold: float = 20.  # https://pytorch.org/docs/stable/generated/torch.nn.functional.softplus.html#torch-nn-functional-softplus
+    threshold: float = 20.
     if y > threshold:
         return y
     else:
@@ -168,9 +168,9 @@ def softplus_inv_float(y: float) -> float:
 
 
 
-#-----------------------------------------------------------------------------#
-#------------------------------- grad_mul ------------------------------------#
-#-----------------------------------------------------------------------------#
+
+
+
 
 
 class GradMul(torch.autograd.Function):

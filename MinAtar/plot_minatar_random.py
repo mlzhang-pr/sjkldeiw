@@ -53,26 +53,26 @@ switch = 500000
 t_seeds = len(seeds) * len(seq_list)
 
 AveragePerformance = False
-"""
-1. load the model at the time t and evaluate on the three enviroments 
-2.together with CF_step_normalized to determined which time of the model to load, then save the excel to plot the overtime figure
-3.default: 7 for final ave performance (reported in the table)
 
-"""
+
+
+
+
+
 CF_step_normalized = 7
 CF_Evaluation = True
-"""
-1.evaluate the forgetting by looping over all the past environments (NOT JUST THREE)
-2.can be costly, CF_step_normalized = 7
-"""
+
+
+
+
 
 PLOT = False
 
 ForwardTransfer = False
-"""
-1. Only evaluate on the return data (results)
-2. self-normalization
-"""
+
+
+
+
 Evaluation_Step = 6000
 
 Game_normalized_list = ["breakout", "space_invaders", "freeway"]
@@ -132,9 +132,9 @@ def AveragePerformance_Evaluation(filename, seqid, seed, modeltype='DQN'):
     Games_normalized = GenerateGames_normalized(seqid, seed)
 
 
-    """
-        modeltype: DQN, DQN_Finetune, PT-DQN, Ours, Multitask, LargeBuffer
-        """
+
+
+
 
     env_initial = Games_normalized[0]
 

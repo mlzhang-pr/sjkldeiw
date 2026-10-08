@@ -29,30 +29,30 @@ class CompoNetAgent(nn.Module):
         super().__init__()
 
         self.net_logstd = net(obs_dim, act_dim)
-        # def _recursive_to(module, device):
-        #     module.to(device)
-        #     for p in module.parameters():
-        #         p.data = p.data.to(device)
-        #         if p.grad is not None:
-        #             p.grad.data = p.grad.data.to(device)
-        #     for b in module.buffers():
-        #         b.data = b.data.to(device)
-        #     return module
-        #
-        # first_model = torch.load(f"{prev_paths[0]}/model.pt", map_location="cpu")
-        # _recursive_to(first_model, map_location)
-        # prev_units = [
-        #     FirstModuleWrapper(
-        #         model=first_model,
-        #         ret_probs=False,
-        #         transform_output=take_first,
-        #     )
-        # ]
-        #
-        # for p in prev_paths[1:]:
-        #     m = torch.load(f"{p}/net_mean.pt", map_location="cpu")
-        #     _recursive_to(m, map_location)
-        #     prev_units.append(m)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         prev_units = [
             FirstModuleWrapper(
@@ -85,7 +85,7 @@ class CompoNetAgent(nn.Module):
             mean, _phi, att_in, att_out, int_pol, head_out = self.net_mean(
                 x, return_atts=True, ret_int_pol=True, ret_head_out=True
             )
-            # log attention values
+
             for i, v in enumerate(att_in.mean(0)[0].detach()):
                 writer.add_scalar(f"charts/att_in_{i}", v.item(), global_step)
             for i, v in enumerate(att_out.mean(0)[0].detach()):

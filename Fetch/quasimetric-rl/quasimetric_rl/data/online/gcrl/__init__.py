@@ -58,7 +58,7 @@ class GoalCondEnvWrapper(gym.ObservationWrapper):
 
 
 def create_env_from_spec(name: str):
-    from . import fetch_envs  # lazy init mujoco/mujoco_py, which has a range of installation issues
+    from . import fetch_envs
 
     env: gym.Env = getattr(fetch_envs, name + 'Env')()
     is_image_based = name.endswith('Image')

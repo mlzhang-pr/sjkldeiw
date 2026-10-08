@@ -69,12 +69,12 @@ class ExperimentWriter:
 
 @attrs.define(kw_only=True)
 class BaseConf(abc.ABC):
-    # Disable hydra working directory creation
+
     hydra: Dict = dict(
         output_subdir=None,
         job=dict(chdir=False),
-        run=dict(dir=tempfile.TemporaryDirectory().name),  # can't disable https://github.com/facebookresearch/hydra/issues/1937
-        mode=hydra.types.RunMode.RUN,  # sigh: https://github.com/facebookresearch/hydra/issues/2262
+        run=dict(dir=tempfile.TemporaryDirectory().name),
+        mode=hydra.types.RunMode.RUN,
     )
 
     base_git_dir: str = subprocess.check_output(
@@ -94,8 +94,8 @@ class BaseConf(abc.ABC):
     @property
     @abc.abstractmethod
     def output_base_dir(self) -> str:
-        # should be an attribute, but abc doesn't support checking that
-        # Subclass should overwrite this
+
+
         pass
 
     output_folder: Optional[str] = None
@@ -114,18 +114,18 @@ class BaseConf(abc.ABC):
 
     device: DeviceConfig = DeviceConfig()
 
-    # Seeding
+
     seed: int = 60912
 
-    # Env
+
     @property
     @abc.abstractmethod
     def env(self) -> data.Dataset.Conf:
-        # should be an attribute, but abc doesn't support checking that
-        # Subclass should overwrite this, with either `data.Dataset.Conf` or `data.online.ReplayBuffer.Conf` (subclass of the former).
+
+
         pass
 
-    # Agent
+
     agent: modules.QRLConf = modules.QRLConf()
 
     @classmethod
@@ -208,7 +208,7 @@ class BaseConf(abc.ABC):
 
         writer = ExperimentWriter(SummaryWriter(self.output_dir), wandb_run)
 
-        # Log config
+
         logging.info('')
         logging.info(config_yaml)
         logging.info('')
@@ -222,7 +222,7 @@ class BaseConf(abc.ABC):
 
         with open(os.path.join(self.output_dir, 'config.yaml'), 'w') as f:
             f.write(config_yaml)
-        writer.add_text('config', f"```\n{config_yaml}\n```")  # markdown
+        writer.add_text('config', f"```\n{config_yaml}\n```")
 
         logging.info('')
         logging.info(f'Base Git directory {self.base_git_dir}')
@@ -238,12 +238,12 @@ class BaseConf(abc.ABC):
             f.write(subprocess.getoutput(f'git diff {self.git_commit}'))
         logging.info('')
 
-        # Seeding
+
         torch_seed, np_seed = utils.split_seed(cast(int, self.seed), 2)
         np.random.seed(np.random.Generator(np.random.PCG64(np_seed)).integers(1 << 31))
         torch.manual_seed(np.random.Generator(np.random.PCG64(torch_seed)).integers(1 << 31))
 
-        # PyTorch setup
+
         torch.backends.cudnn.benchmark = True
         torch.set_num_threads(12)
 

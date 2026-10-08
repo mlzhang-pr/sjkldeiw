@@ -35,7 +35,7 @@ class PackNetAgent(nn.Module):
         return mean, log_std
 
     def save(self, dirname):
-        # un-do the masking for the current task
+
         self.network.set_view(None)
 
         os.makedirs(dirname, exist_ok=True)
@@ -62,12 +62,12 @@ class PackNetAgent(nn.Module):
 
     def start_retraining(self):
         if self.retrain_mode:
-            return  # nothing to do
+            return
 
         print("==> PackNet re-training starts!")
 
         self.retrain_mode = True
-        self.network.prune()  # generate the masks for the current task
+        self.network.prune()
         self.network.set_view(self.network.task_id)
 
     def before_update(self):
@@ -95,9 +95,9 @@ class PackNet(nn.Module):
         self.view = None
         self.handled_layers = (
             []
-        )  # will contain copies of the original parameters when using views
+        )
 
-        # generate the masks
+
         self.masks = []
         for name, param in self.model.named_parameters():
             if name.endswith(".weight"):
@@ -107,7 +107,7 @@ class PackNet(nn.Module):
             else:
                 self.masks.append(None)
 
-        # if we're in a tasks that it's not the first, freeze biases
+
         if not is_first_task:
             for name, param in self.model.named_parameters():
                 if name.endswith(".bias"):
@@ -127,17 +127,17 @@ class PackNet(nn.Module):
             if mask is None:
                 continue
 
-            # sort the unassigned weights from lower to higher magnitudes
-            masked = p * (mask == 0)  # only select "free" weights
+
+            masked = p * (mask == 0)
             flat = masked.flatten()
             _sorted, indices = torch.sort(
                 flat.abs(), descending=True
-            )  # sort from max to min magnitude
+            )
             n_prune = int(
                 self.prune_percentage * flat.size(0)
-            )  # number of weights to keep in pruning
+            )
 
-            # create the mask
+
             mask.flatten()[indices[:n_prune]] = self.task_id
 
     def forward(self, x):
@@ -146,7 +146,7 @@ class PackNet(nn.Module):
     @torch.no_grad()
     def set_view(self, task_id):
         if task_id is None and self.view is not None:
-            # restore the original state of the model in the free parameters (not masked)
+
             for param_copy, param, mask in zip(
                 self.handled_layers, self.model.parameters(), self.masks
             ):
@@ -154,7 +154,7 @@ class PackNet(nn.Module):
                     continue
                 m = torch.logical_and(
                     mask <= self.view, mask > 0
-                )  # pruned=0, not-pruned=1
+                )
                 param.data += param_copy.data * torch.logical_not(m)
 
             self.handled_layers = []
@@ -162,18 +162,18 @@ class PackNet(nn.Module):
             return
 
         if len(self.handled_layers) == 0:
-            # save a copy of each (parametrized) layer of the model
+
             for param, mask in zip(self.model.parameters(), self.masks):
                 if mask is not None:
                     self.handled_layers.append(copy.deepcopy(param))
                 else:
                     self.handled_layers.append(None)
 
-        # apply the masks
+
         for p, mask in zip(self.model.parameters(), self.masks):
             if mask is None:
                 continue
-            # set to zero the parameters that are free (have no mask) or whose mask ID is greater than task_id
+
             p.data *= torch.logical_and(mask <= task_id, mask > 0)
 
         self.view = task_id

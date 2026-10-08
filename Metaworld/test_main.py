@@ -111,14 +111,14 @@ class ConfigDictConverter:
         agent_dict:
         env_dict:
         '''
-        # Improvement: possible to split agent and env parameters here. That is this class contains
-        # two dicts for agent_parameters and env_parameters.
-        # This would help with passing only the required arguments for envs that are already created (e.g gym)
-        # Also, it could help with dealing with parameters that have the same name but are different for agent and env
+
+
+
+
 
         self.config_dict = config_dict.copy()
 
-        # training shouldn't need these variables
+
         if 'num_repeats' in self.config_dict.keys():
             del self.config_dict['num_repeats']
         if 'num_runs_per_group' in self.config_dict.keys():
@@ -127,11 +127,11 @@ class ConfigDictConverter:
         self.agent_dict = self.config_dict.copy()
         self.env_dict = self.config_dict.copy()
 
-        # TODO remove maybe?
+
         self.repeat_idx = config_dict['repeat_idx']
 
-        # environment
-        # reinforcement learning
+
+
         import envs.metaworld_env
         self.env_class = envs.metaworld_env.MetaWorldSingleEnvSequence
 
@@ -142,9 +142,9 @@ class ConfigDictConverter:
                        'goal_conditioned', 'gc_reward_type', 'gc_success_threshold', 'gc_achieved_goal']
         env = config_dict['env'].lower()
 
-        if env[0:19] == 'metaworld_sequence_':  # e.g. 'metaworld_sequence_reach'
-            if env[19:22] == 'set':  # e.g. "metaworld_sequence_set1"
-                self.env_dict['env_sequence'] = env[19:]  # e.g. "set1"
+        if env[0:19] == 'metaworld_sequence_':
+            if env[19:22] == 'set':
+                self.env_dict['env_sequence'] = env[19:]
             else:
                 self.env_dict['base_task_name'] = f'{env[19:]}-v2'
 
@@ -154,10 +154,10 @@ class ConfigDictConverter:
         print('env_dict keys', self.env_dict.keys())
         print('env_dict', self.env_dict)
 
-        # Other params
+
         self.agent_dict['device'] = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-        # Adjust the seed based on repeat
+
         self.env_dict['seed'] += self.repeat_idx * 1
 
 
@@ -345,10 +345,10 @@ def vector_observation_space(observation_space):
 
 def main():
     parser = argparse.ArgumentParser(description='Run RL experiments')
-    # General experiment arguments
+
     parser.add_argument('--repeat_idx', type=int, default=0, help='Index of the repeat (for multiple runs)')
     parser.add_argument('--env', type=str, default='metaworld_sequence_set6', help='Environment to run')
-    parser.add_argument('--change_freq', type=int, default=1e6,help='Frequency to change tasks in the environment')  # note this is overriden below per environment
+    parser.add_argument('--change_freq', type=int, default=1e6,help='Frequency to change tasks in the environment')
     parser.add_argument("--normalize_obs", type=str2none, default=None, help="Normalize observations (pass 'none' to keep None)")
     parser.add_argument('--freeze_rand_vec', type=int, default=0, choices=[0, 1], help='Reuse one MetaWorld task instance across episode resets')
     parser.add_argument('--reseed_each_episode', type=int, default=0, choices=[0, 1], help='Whether to reset every evaluation episode with the current environment seed')
@@ -362,7 +362,7 @@ def main():
     parser.add_argument('--model_path', type=str, default='model', help='Path for saved model files')
     parser.add_argument('--save_freq', type=int, default=25000, help='Number steps between recording metrics')
     parser.add_argument('--save_model_freq', type=int, default=-1,help='Number of steps between saving the model. Set to -1 for never. ')
-    parser.add_argument('--method', type=str, default='independent', help='Method to use for multitask learning') # 'independent', 'average', 'continue', 'buffer', 'buffer_wd'
+    parser.add_argument('--method', type=str, default='independent', help='Method to use for multitask learning')
     parser.add_argument('--store_traj_num', type=int, default=10, help='Number of trajectories to store in the buffer for each task, only for buffer method')
     parser.add_argument('--use_ttest', type=int, default=0, help='Whether to use t-test for agent selection (0: False, 1: True)')
     parser.add_argument('--gpu', type=str, default='0', help='Comma separated list of GPU IDs')
@@ -372,7 +372,7 @@ def main():
     parser.add_argument('--wandb_group', type=str2none, default=None, help='Optional Weights & Biases group name')
     parser.add_argument('--wandb_mode', type=str, default='online', choices=['online', 'offline'], help='Weights & Biases run mode when wandb logging is enabled')
 
-    # args = parser.parse_args(args=[])
+
     args = parser.parse_args()
     try:
         args.log_backends = normalize_log_backends(args.log_backends)
@@ -380,7 +380,7 @@ def main():
         parser.error(str(error))
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
-    # os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # "0,1"
+
 
     config_obj = ConfigDictConverter(vars(args))
     env_parameters = config_obj.env_dict
@@ -388,10 +388,10 @@ def main():
     env = config_obj.env_class(**env_parameters)
     eval_env = copy.deepcopy(env)
     print('env_list:',env.env_list)
-    # print(env_parameters)
+
 
     num_steps_per_run = len(env.env_list) * args.change_freq
-    # print('num_steps_per_run:',num_steps_per_run, env.normalize_obs)
+
 
     num_eval_runs = 10
     set_seed_everywhere(args.seed)
@@ -412,18 +412,18 @@ def main():
     if log_info['wandb_url'] is not None:
         print('wandb_url:', log_info['wandb_url'])
 
-    # sys.stdout = Logger(log_path + log_name + ".txt")
-    # sys.stderr = sys.stdout
+
+
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     start_time = time.perf_counter()
 
-    # print(env.env.action_space)
-    # print(env.env.observation_space)
-    # env.env.env.env.env.env.env.env.base_task_name
-    # print('---')
-    # print(env.env.env.env.env.env.env.action_space)
+
+
+
+
+
 
     random_steps = 10000
     replay_buffer_capacity = args.change_freq
@@ -451,20 +451,20 @@ def main():
             meta_agent_list.append(SACAgent(obs_dim=obs_space.shape[0],
                                   action_dim=env.env.action_space.shape[0],
                                   action_range=[-1., 1.],
-                                  device=device, )) # only the last one will be used finally, save all just for monitoring the training process
+                                  device=device, ))
         meta_buffer = ReplayBuffer(
             obs_space.shape,
             env.env.action_space.shape,
             int(replay_buffer_capacity) + random_steps,
-            device) # no need this large buffer, just store a few trajectories for each task
+            device)
         from_meta = False
 
     collector = Collector(env, replay_buffer)
 
-    obs, _ = env.reset()  # match the gymnasium interface
+    obs, _ = env.reset()
 
     task_counter = env.task_counter
-    agent = agent_list[task_counter-1] # task_counter starts from 1, agent_list from 0
+    agent = agent_list[task_counter-1]
     if method == 'buffer' or method == 'buffer_wd':
         meta_agent = meta_agent_list[task_counter-1]
     collector.initial_collect(random_steps)
@@ -646,7 +646,7 @@ def main():
     intermediate_stats['count_success'].extend([count_success] * (len(intermediate_stats['mean_return']) - len(intermediate_stats['count_success'])))
     intermediate_stats = pd.DataFrame(intermediate_stats)
     intermediate_stats.to_csv(log_path + "/" + log_name + ".csv", index=False)
-    # evaluate all agents on all previous tasks
+
     print('---')
     if method == 'buffer' or method == 'buffer_wd':
         eval_agent_list = meta_agent_list
@@ -662,7 +662,7 @@ def main():
             )
             eval_metrics = summarize_eval_results(eval_results)
 
-            # print(f"Final task {env.env_list[i]} success {round(np.mean(eval_successes), 3)} +/- {round(np.std(eval_successes), 3)}")
+
             print(f"Final task {env.env_list[i]} success {round(eval_metrics['metaworld_success_mean'], 3)} "
                   f"gc_success {round(eval_metrics['gc_success_mean'], 3)} "
                   f"return {round(eval_metrics['return_mean'], 3)}")
@@ -677,100 +677,100 @@ def main():
             final_step = agent_idx * len(env.env_list) + i + 1
             log_eval_metrics(writer, f'final/{task_tag}/agent_{agent_idx+1}', eval_metrics, final_step)
 
-    # evaluate the meta agent on all tasks
-    # if method == 'buffer':
-    #     agent = meta_agent
-    #     for i in range(len(env.env_list)):
-    #         env.set_task(env.env_list[i])
-    #         eval_results = env.evaluate_agent(agent, num_eval_runs)
-    #         eval_episode_returns = eval_results['episodic_returns']
-    #         eval_successes = eval_results['successes']
-    #
-    #         print(f"Final task {env.env_list[i]} success {round(np.mean(eval_successes), 3)} +/- {round(np.std(eval_successes), 3)}")
-    #
-    #         final_stats['mean_return'].append(np.mean(eval_episode_returns))
-    #         final_stats['mean_success'].append(np.mean(eval_successes))
-    #         final_stats['task'].append(env.base_task_name)
-    #         final_stats['task_idx'].append(i+1)
-    #         final_stats['seed'].append(args.seed)
-    #         final_stats['method'].append(method)
-    #         final_stats['agent_idx'].append(-1) # meta agent
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     final_stats = pd.DataFrame(final_stats)
     final_stats.to_csv(log_path + "/" + log_name + "_final.csv", index=False)
     if writer is not None:
         writer.close()
 
-'''
-python test_main.py --seed 1 --method independent --gpu 1 --env metaworld_sequence_set6
-
-python test_main.py --seed 0 --method independent --gpu 0 --store_traj_num 10 --use_ttest 1 --env metaworld_sequence_set12
-
-python test_main.py \
-  --seed 0 \
-  --method buffer \
-  --gpu 1 \
-  --env metaworld_sequence_set12 \
-  --change_freq 1000000 \
-    --freeze_rand_vec 0 \
-    --reseed_each_episode 0 \
-  --store_traj_num 20 \
-  --use_ttest 1 \
-  --log_backends tensorboard wandb \
-  --wandb_mode offline \
-  --model_path results/fame/fame_models_seq12_seed0_traj20 \
-  --results_path results/fame/fame_res_seq12_seed0_traj20 \
-  --save_path results/fame/fame_seq12_seed0_wandb_traj20
 
 
-  python test_main.py \
-  --seed 0 \
-  --method buffer \
-  --gpu 0 \
-  --env metaworld_sequence_set12 \
-  --change_freq 1000000 \
-    --freeze_rand_vec 0 \
-    --reseed_each_episode 0 \
-  --store_traj_num 50 \
-  --use_ttest 1 \
-  --log_backends tensorboard wandb \
-  --wandb_mode online \
-  --model_path results/fame/fame_models_seq12_seed0_traj50 \
-  --results_path results/fame/fame_res_seq12_seed0_traj50 \
-  --save_path results/fame/fame_seq12_seed0_wandb_traj50
 
-  python test_main.py \
-    --seed 1 \
-    --method buffer \
-    --gpu 1 \
-    --env metaworld_sequence_set6 \
-    --change_freq 1000000 \
-      --freeze_rand_vec 0 \
-      --reseed_each_episode 0 \
-    --store_traj_num 50 \
-    --use_ttest 1 \
-    --log_backends tensorboard wandb \
-    --wandb_mode online \
-    --model_path results/fame/fame_models_seq6_seed1_traj50 \
-    --results_path results/fame/fame_res_seq6_seed1_traj50 \
-    --save_path results/fame/fame_seq6_seed1_wandb_traj50
 
-    python test_main.py \
-        --seed 1 \
-        --method buffer \
-        --gpu 0 \
-        --env metaworld_sequence_set6 \
-        --change_freq 1000000 \
-          --freeze_rand_vec 0 \
-          --reseed_each_episode 0 \
-        --store_traj_num 20 \
-        --use_ttest 1 \
-        --log_backends tensorboard wandb \
-        --wandb_mode online \
-        --model_path results/fame/fame_models_seq6_seed1_traj20 \
-        --results_path results/fame/fame_res_seq6_seed1_traj20 \
-        --save_path results/fame/fame_seq6_seed1_wandb_traj20
-'''
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 if __name__ == "__main__":
     main()

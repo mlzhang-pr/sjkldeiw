@@ -309,7 +309,7 @@ def evaluate_seed(args, agent, plan, agent_kind, eval_seed, final_stats):
 					"final",
 					stage_idx,
 					args.num_eval_runs,
-					reseed_each_episode=False,  ##### random episode for evaluation
+					reseed_each_episode=False,
 				)
 				print(
 					f"Stage {stage_idx} task {task_name}: "
@@ -335,8 +335,8 @@ def evaluate_seed(args, agent, plan, agent_kind, eval_seed, final_stats):
 def main():
 	args = parse_args()
 	os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
-	# if "MUJOCO_GL" not in os.environ:
-	# 	os.environ["MUJOCO_GL"] = "egl"
+
+
 	args.seed = args.eval_seeds[0]
 	set_seed_everywhere(args.seed)
 

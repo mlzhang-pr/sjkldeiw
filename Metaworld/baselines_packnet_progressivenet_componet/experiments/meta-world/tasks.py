@@ -44,15 +44,15 @@ def get_task_name(task_id):
 
 
 def get_task(task_id, task_sequence, render=False):
-    # from metaworld.envs import ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE
-    # name = tasks[task_id] + "-goal-observable"
-    # env_cls = ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE[name]
+
+
+
 
     from metaworld.envs import ALL_V2_ENVIRONMENTS_GOAL_HIDDEN
-    # name = tasks[task_id] + "-goal-hidden"
+
     name = RPO10_SEQ[task_sequence-1][task_id] + "-goal-hidden"
-    # print(f"Loading environment: {name}")
-    # name = tasks[task_id] + "-goal-hidden"
+
+
     env_cls = ALL_V2_ENVIRONMENTS_GOAL_HIDDEN[name]
 
     env = env_cls(seed=np.random.randint(0, 1024))
@@ -68,10 +68,10 @@ if __name__ == "__main__":
     env = get_task(0, render=True)
 
     for _ in range(200):
-        obs, _ = env.reset()  # reset environment
-        a = env.action_space.sample()  # sample an action
+        obs, _ = env.reset()
+        a = env.action_space.sample()
 
-        # step the environment with the sampled random action
+
         obs, reward, terminated, truncated, info = env.step(a)
 
         if terminated:

@@ -301,11 +301,3 @@ logger.log({
 	"task/end": 1,
 })
 logger.finish(Games)
-'''
-./MinAtar/run_dqn.sh \
-  --seqs "7" \
-  --seeds "0 1" \
-  --gpu 0 \
-  --reset 1
-
-'''

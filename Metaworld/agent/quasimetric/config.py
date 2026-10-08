@@ -27,7 +27,7 @@ class QuasimetricConfig:
 
 @dataclass
 class ContinualQuasimetricAgentConfig:
-    structure_update_frequency: int = 4    #######
+    structure_update_frequency: int = 4
     structure_updates_per_step: int = 1
     structure_bonus_coef: float = 1.0
     bc_alpha: float = 0.1

@@ -17,7 +17,7 @@ from ....data import EnvSpec
 class QuasimetricCritic(Module):
     @attrs.define(kw_only=True)
     class Conf:
-        # config / argparse uses this to specify behavior
+
 
         encoder: Encoder.Conf = Encoder.Conf()
         quasimetric_model: QuasimetricModel.Conf = QuasimetricModel.Conf()
@@ -40,7 +40,7 @@ class QuasimetricCritic(Module):
     quasimetric_model: QuasimetricModel
     latent_dynamics: LatentDynamics
 
-    raw_lagrange_multiplier: nn.Parameter  # for the QRL constrained optimization
+    raw_lagrange_multiplier: nn.Parameter
 
 
     def __init__(self, encoder: Encoder, quasimetric_model: QuasimetricModel, latent_dynamics: LatentDynamics):
@@ -50,13 +50,13 @@ class QuasimetricCritic(Module):
         self.latent_dynamics = latent_dynamics
 
     def forward(self, x: torch.Tensor, y: torch.Tensor, *, action: Optional[torch.Tensor] = None) -> torch.Tensor:
-        # The basic interface is a V- or Q-function.
+
         zx = self.encoder(x)
         zy = self.encoder(y)
         if action is not None:
             zx = self.latent_dynamics(zx, action)
         return self.quasimetric_model(zx, zy)
 
-    # for type hints
+
     def __call__(self, x: torch.Tensor, y: torch.Tensor, *, action: Optional[torch.Tensor] = None) -> torch.Tensor:
         return super().__call__(x, y, action=action)

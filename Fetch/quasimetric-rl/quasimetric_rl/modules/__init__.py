@@ -33,7 +33,7 @@ class QRLLosses(Module):
 
     def forward(self, agent: QRLAgent, data: BatchData, *, optimize: bool = True,
                 auxiliary_actor_loss: Optional[torch.Tensor] = None) -> LossResult:
-        # compute CriticBatchInfo
+
         critic_batch_infos = []
         loss_results: Dict[str, LossResult] = {}
 
@@ -58,7 +58,7 @@ class QRLLosses(Module):
 
         return LossResult.combine(loss_results)
 
-    # for type hints
+
     def __call__(self, agent: QRLAgent, data: BatchData, *, optimize: bool = True,
                  auxiliary_actor_loss: Optional[torch.Tensor] = None) -> LossResult:
         return super().__call__(

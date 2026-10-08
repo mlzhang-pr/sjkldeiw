@@ -86,7 +86,7 @@ class ContinualQuasimetricSACAgent(SACAgent):
             return reward
 
         with torch.no_grad():
-            bonus = self.quasimetric.structure_bonus(obs, action, next_obs).unsqueeze(-1)  # one step bonus calculated by qusimetric critic
+            bonus = self.quasimetric.structure_bonus(obs, action, next_obs).unsqueeze(-1)
         metrics["structure_bonus"] = float(bonus.mean().item())
         return reward + coef * bonus
 
@@ -209,7 +209,7 @@ class ContinualQuasimetricSACAgent(SACAgent):
         weighted_q_loss = self.continual_cfg.q_loss_coef * q_loss
         weighted_distill_loss = float(distill_loss_weight) * distill_loss
         actor_loss = weighted_q_loss + bc_loss + weighted_distill_loss
-        # actor_loss = bc_loss
+
 
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
@@ -295,7 +295,7 @@ class ContinualQuasimetricSACAgent(SACAgent):
         return structure_metrics, actor_metrics
 
     def update_structure(self, replay_buffer, current_batch=None):
-        return self.quasimetric.update_from_replay_buffer(   #### 
+        return self.quasimetric.update_from_replay_buffer(
             replay_buffer,
             memory=self.structure_memory,
             current_batch=current_batch,
@@ -307,7 +307,7 @@ class ContinualQuasimetricSACAgent(SACAgent):
             max_transitions=max_transitions,
         )
 
-    def update(self, replay_buffer, step):  #####
+    def update(self, replay_buffer, step):
         shared_batch = None
         if self.continual_cfg.share_sac_batch:
             shared_batch = self._sample_shared_batch(replay_buffer)
