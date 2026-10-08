@@ -28,9 +28,7 @@ class MultistepQuasimetricLearner(nn.Module):
         if self.config.nce_mode not in ("forward_nce", "backward_nce"):
             raise ValueError(f"Unsupported NCE mode: {self.config.nce_mode}")
         if self.config.transition_input not in ("state", "latent"):
-            raise ValueError(
-                "transition_input must be either 'state' or 'latent'."
-            )
+            raise ValueError("transition_input must be either 'state' or 'latent'.")
         if self.config.latent_dim % self.config.components != 0:
             raise ValueError(
                 f"latent_dim={self.config.latent_dim} must be divisible by "
@@ -44,12 +42,6 @@ class MultistepQuasimetricLearner(nn.Module):
             hidden_dim=self.config.hidden_dim,
             hidden_depth=self.config.hidden_depth,
         )
-
-
-
-
-
-
 
         transition_state_dim = (
             obs_dim
@@ -70,13 +62,9 @@ class MultistepQuasimetricLearner(nn.Module):
         for parameter in self.target_state_encoder.parameters():
             parameter.requires_grad_(False)
 
-
-
-
         self._trainable_parameters = list(self.state_encoder.parameters()) + list(
             self.latent_transition_encoder.parameters()
         )
-
 
         self.optimizer = torch.optim.Adam(self._trainable_parameters, lr=self.config.lr)
 
@@ -136,12 +124,18 @@ class MultistepQuasimetricLearner(nn.Module):
 
             if bool(known_tasks.all()) and task_count > 1:
                 cross_task = task_ids[:, None] != task_ids[None, :]
-                diagonal = torch.eye(logits.shape[0], dtype=torch.bool, device=logits.device)
+                diagonal = torch.eye(
+                    logits.shape[0], dtype=torch.bool, device=logits.device
+                )
                 valid_logits = diagonal | cross_task
-                logits = logits.masked_fill(~valid_logits, torch.finfo(logits.dtype).min)
+                logits = logits.masked_fill(
+                    ~valid_logits, torch.finfo(logits.dtype).min
+                )
                 off_diagonal_count = max(logits.numel() - logits.shape[0], 1)
                 stats["cross_task_contrastive"] = torch.ones((), device=logits.device)
-                stats["contrastive_negative_fraction"] = cross_task.sum() / off_diagonal_count
+                stats["contrastive_negative_fraction"] = (
+                    cross_task.sum() / off_diagonal_count
+                )
 
         return F.cross_entropy(logits, labels), logits, stats
 
@@ -170,10 +164,7 @@ class MultistepQuasimetricLearner(nn.Module):
 
         device = next(iter(batch.values())).device
         indices = torch.randperm(available, device=device)[:batch_size]
-        return {
-            key: value.index_select(0, indices)
-            for key, value in batch.items()
-        }
+        return {key: value.index_select(0, indices) for key, value in batch.items()}
 
     def _current_structure_batch(
         self,
@@ -222,7 +213,6 @@ class MultistepQuasimetricLearner(nn.Module):
         action = torch.as_tensor(action, device=self.device).float()
         next_obs = torch.as_tensor(next_obs, device=self.device).float()
 
-
         transition_rep = self.transition_representation(obs, action)
         next_rep = self.target_state_encoder(next_obs)
         return alignment_score(
@@ -239,8 +229,6 @@ class MultistepQuasimetricLearner(nn.Module):
         dones = batch["dones"].reshape(-1)
         offsets = batch["intermediate_value_goals_offsets"].reshape(-1)
 
-
-
         state_rep = self.state_encoder(obses)
 
         goal_rep = self.state_encoder(goals)
@@ -248,14 +236,13 @@ class MultistepQuasimetricLearner(nn.Module):
 
         with torch.no_grad():
             next_rep_target = self.target_state_encoder(next_obses)
-            intermediate_goal_rep = self.target_state_encoder(batch["intermediate_value_goals"])
+            intermediate_goal_rep = self.target_state_encoder(
+                batch["intermediate_value_goals"]
+            )
             goal_rep_target = self.target_state_encoder(goals)
 
         dist = self.distance(transition_rep, goal_rep)
         dist_next = self.distance(intermediate_goal_rep, goal_rep_target)
-
-
-
 
         transition_consistency_loss = torch.zeros((), device=self.device)
 
@@ -289,7 +276,6 @@ class MultistepQuasimetricLearner(nn.Module):
         total_loss = (
             backup_loss
             + self.config.action_invariance_coef * action_invariance_loss
-
             + self.config.contrastive_coef * contrastive_loss
         )
 
@@ -326,8 +312,6 @@ class MultistepQuasimetricLearner(nn.Module):
         dones = batch["dones"].reshape(-1)
         offsets = batch["intermediate_value_goals_offsets"].reshape(-1)
 
-
-
         state_rep = self.state_encoder(obses)
 
         goal_rep = self.state_encoder(goals)
@@ -335,14 +319,13 @@ class MultistepQuasimetricLearner(nn.Module):
 
         with torch.no_grad():
             next_rep_target = self.target_state_encoder(next_obses)
-            intermediate_goal_rep = self.target_state_encoder(batch["intermediate_value_goals"])
+            intermediate_goal_rep = self.target_state_encoder(
+                batch["intermediate_value_goals"]
+            )
             goal_rep_target = self.target_state_encoder(goals)
 
         dist = self.distance(transition_rep, goal_rep)
         dist_next = self.distance(intermediate_goal_rep, goal_rep_target)
-
-
-
 
         transition_consistency_loss = torch.zeros((), device=self.device)
 
@@ -376,7 +359,6 @@ class MultistepQuasimetricLearner(nn.Module):
         total_loss = (
             backup_loss
             + self.config.action_invariance_coef * action_invariance_loss
-
             + self.config.contrastive_coef * contrastive_loss
         )
 
@@ -405,8 +387,6 @@ class MultistepQuasimetricLearner(nn.Module):
             metrics.update(contrastive_metrics)
         return total_loss, metrics
 
-    
-
     def update(self, batch: Dict[str, torch.Tensor]):
         self.optimizer.zero_grad()
         loss, metrics = self.compute_loss(batch)
@@ -424,8 +404,7 @@ class MultistepQuasimetricLearner(nn.Module):
         )
 
         return {
-            key: float(value.detach().cpu().item())
-            for key, value in metrics.items()
+            key: float(value.detach().cpu().item()) for key, value in metrics.items()
         }
 
     def _build_batch(
@@ -456,14 +435,20 @@ class MultistepQuasimetricLearner(nn.Module):
                 self.config.next_state_sample,
             )
 
-        current_batch_size = max(1, int(self.config.batch_size * self.config.current_batch_ratio))
+        current_batch_size = max(
+            1, int(self.config.batch_size * self.config.current_batch_ratio)
+        )
         memory_batch_size = max(0, self.config.batch_size - current_batch_size)
 
         batches = []
-        shared_current_batch = self._current_structure_batch(current_batch, batch_size=current_batch_size)
+        shared_current_batch = self._current_structure_batch(
+            current_batch, batch_size=current_batch_size
+        )
         if shared_current_batch is not None:
             batches.append(shared_current_batch)
-            memory_batch_size = max(0, self.config.batch_size - self._batch_size(shared_current_batch))
+            memory_batch_size = max(
+                0, self.config.batch_size - self._batch_size(shared_current_batch)
+            )
         else:
             current_view = ReplayBufferView.from_replay_buffer(
                 replay_buffer,

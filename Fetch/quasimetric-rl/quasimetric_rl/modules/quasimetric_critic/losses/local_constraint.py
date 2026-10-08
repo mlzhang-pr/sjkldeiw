@@ -13,21 +13,18 @@ from ...utils import LatentTensor, LossResult, grad_mul, softplus_inv_float
 from . import CriticLossBase, CriticBatchInfo
 
 
-
 class LocalConstraintLoss(CriticLossBase):
     @attrs.define(kw_only=True)
     class Conf:
-
-
         epsilon: float = attrs.field(default=0.25, validator=attrs.validators.gt(0))
-
-
 
         step_cost: float = attrs.field(default=1, validator=attrs.validators.gt(0))
 
-        init_lagrange_multiplier: float = attrs.field(default=0.01, validator=attrs.validators.gt(0))
+        init_lagrange_multiplier: float = attrs.field(
+            default=0.01, validator=attrs.validators.gt(0)
+        )
 
-        def make(self) -> 'LocalConstraintLoss':
+        def make(self) -> "LocalConstraintLoss":
             return LocalConstraintLoss(
                 epsilon=self.epsilon,
                 step_cost=self.step_cost,
@@ -40,29 +37,43 @@ class LocalConstraintLoss(CriticLossBase):
 
     raw_lagrange_multiplier: nn.Parameter
 
-    def __init__(self, *, epsilon: float, step_cost: float, init_lagrange_multiplier: float):
+    def __init__(
+        self, *, epsilon: float, step_cost: float, init_lagrange_multiplier: float
+    ):
         super().__init__()
         self.epsilon = epsilon
         self.step_cost = step_cost
         self.init_lagrange_multiplier = init_lagrange_multiplier
         self.raw_lagrange_multiplier = nn.Parameter(
-            torch.tensor(softplus_inv_float(init_lagrange_multiplier), dtype=torch.float32))
+            torch.tensor(
+                softplus_inv_float(init_lagrange_multiplier), dtype=torch.float32
+            )
+        )
 
-    def forward(self, data: BatchData, critic_batch_info: CriticBatchInfo) -> LossResult:
+    def forward(
+        self, data: BatchData, critic_batch_info: CriticBatchInfo
+    ) -> LossResult:
 
-        dist = critic_batch_info.critic.quasimetric_model(critic_batch_info.zx, critic_batch_info.zy)
+        dist = critic_batch_info.critic.quasimetric_model(
+            critic_batch_info.zx, critic_batch_info.zy
+        )
 
         lagrange_mult = F.softplus(self.raw_lagrange_multiplier)
 
         lagrange_mult = grad_mul(lagrange_mult, -1)
 
         sq_deviation = (dist - self.step_cost).relu().square().mean()
-        violation = (sq_deviation - self.epsilon ** 2)
+        violation = sq_deviation - self.epsilon**2
         loss = violation * lagrange_mult
 
         return LossResult(
             loss=loss,
-            info=dict(dist=dist.mean(), sq_deviation=sq_deviation, violation=violation, lagrange_mult=lagrange_mult),
+            info=dict(
+                dist=dist.mean(),
+                sq_deviation=sq_deviation,
+                violation=violation,
+                lagrange_mult=lagrange_mult,
+            ),
         )
 
     def extra_repr(self) -> str:

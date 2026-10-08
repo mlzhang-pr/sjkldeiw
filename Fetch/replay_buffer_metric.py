@@ -133,7 +133,10 @@ class ReplayBufferMetric(ReplayBuffer):
 
     def _sample_discounted_offsets(self, max_offsets, discount):
         return np.array(
-            [_discounted_offset(int(max_offset), discount) for max_offset in max_offsets],
+            [
+                _discounted_offset(int(max_offset), discount)
+                for max_offset in max_offsets
+            ],
             dtype=np.int64,
         )
 
@@ -144,7 +147,9 @@ class ReplayBufferMetric(ReplayBuffer):
             if force_next or max_offset <= 0:
                 intermediate_offsets.append(0)
             else:
-                intermediate_offsets.append(_discounted_offset(int(max_offset), discount))
+                intermediate_offsets.append(
+                    _discounted_offset(int(max_offset), discount)
+                )
         return np.array(intermediate_offsets, dtype=np.int64)
 
     def sample_metric_batch(
@@ -163,7 +168,9 @@ class ReplayBufferMetric(ReplayBuffer):
                     "structure_discount, structure_lambda_, and structure_next_state_sample must be set together."
                 )
         elif structure_lambda_ is None:
-            raise ValueError("structure_lambda_ must be provided when structure_discount is set.")
+            raise ValueError(
+                "structure_lambda_ must be provided when structure_discount is set."
+            )
 
         size = len(self)
         if size == 0:
@@ -200,10 +207,14 @@ class ReplayBufferMetric(ReplayBuffer):
         }
 
         if structure_discount is not None:
-            structure_goal_offsets = self._sample_discounted_offsets(max_goal_offsets, structure_discount)
+            structure_goal_offsets = self._sample_discounted_offsets(
+                max_goal_offsets, structure_discount
+            )
             structure_goal_indices = idxs + structure_goal_offsets
             structure_next_state_sample = (
-                next_state_sample if structure_next_state_sample is None else structure_next_state_sample
+                next_state_sample
+                if structure_next_state_sample is None
+                else structure_next_state_sample
             )
             intermediate_offsets = self._sample_intermediate_offsets(
                 structure_goal_offsets,
@@ -247,8 +258,12 @@ class ReplayBufferMetric(ReplayBuffer):
 
         start_indices = np.random.randint(0, size, size=batch_size)
         episode_ends = self.episode_ends[start_indices]
-        episode_ends = np.where(episode_ends >= start_indices, episode_ends, start_indices)
-        goal_offsets = self._sample_discounted_offsets(episode_ends - start_indices, discount)
+        episode_ends = np.where(
+            episode_ends >= start_indices, episode_ends, start_indices
+        )
+        goal_offsets = self._sample_discounted_offsets(
+            episode_ends - start_indices, discount
+        )
         goals = np.array(self.next_obses[start_indices + goal_offsets], copy=True)
         return goals[0] if batch_size == 1 else goals
 
@@ -274,7 +289,9 @@ class ReplayBufferMetricNoHER(ReplayBufferMetric):
                     "structure_discount, structure_lambda_, and structure_next_state_sample must be set together."
                 )
         elif structure_lambda_ is None:
-            raise ValueError("structure_lambda_ must be provided when structure_discount is set.")
+            raise ValueError(
+                "structure_lambda_ must be provided when structure_discount is set."
+            )
 
         size = len(self)
         if size == 0:
@@ -311,10 +328,14 @@ class ReplayBufferMetricNoHER(ReplayBufferMetric):
         }
 
         if structure_discount is not None:
-            structure_goal_offsets = self._sample_discounted_offsets(max_goal_offsets, structure_discount)
+            structure_goal_offsets = self._sample_discounted_offsets(
+                max_goal_offsets, structure_discount
+            )
             structure_goal_indices = idxs + structure_goal_offsets
             structure_next_state_sample = (
-                next_state_sample if structure_next_state_sample is None else structure_next_state_sample
+                next_state_sample
+                if structure_next_state_sample is None
+                else structure_next_state_sample
             )
             intermediate_offsets = self._sample_intermediate_offsets(
                 structure_goal_offsets,

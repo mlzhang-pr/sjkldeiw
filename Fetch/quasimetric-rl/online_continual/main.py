@@ -22,15 +22,15 @@ if FETCH_DIR not in sys.path:
 if QUASIMETRIC_RL_DIR not in sys.path:
     sys.path.insert(0, QUASIMETRIC_RL_DIR)
 
-from agent.quasimetric import ( 
+from agent.quasimetric import (
     ContinualQuasimetricAgentConfig,
     ContinualQuasimetricSACAgent,
     QuasimetricConfig,
 )
-from fetch_env import FetchGoalEnvSequence  
-from quasimetric_rl.data import BatchData, EnvSpec 
-from quasimetric_rl.modules import QRLConf  
-from replay_buffer import Collector  
+from fetch_env import FetchGoalEnvSequence
+from quasimetric_rl.data import BatchData, EnvSpec
+from quasimetric_rl.modules import QRLConf
+from replay_buffer import Collector
 from replay_buffer_metric import ReplayBufferMetric, ReplayBufferMetricNoHER
 
 
@@ -84,7 +84,9 @@ class TensorboardSink:
         try:
             from torch.utils.tensorboard import SummaryWriter
         except ImportError:
-            print("TensorBoard is unavailable. Install tensorboard to enable TensorBoard logging.")
+            print(
+                "TensorBoard is unavailable. Install tensorboard to enable TensorBoard logging."
+            )
             return
         self.writer = SummaryWriter(log_dir=log_dir)
 
@@ -182,7 +184,9 @@ def normalize_log_backends(backends):
         backend = backend.lower()
         if backend == "none":
             if len(backends) != 1:
-                raise ValueError("'none' cannot be combined with other logging backends")
+                raise ValueError(
+                    "'none' cannot be combined with other logging backends"
+                )
             return []
         if backend not in {"tensorboard", "wandb"}:
             raise ValueError(f"Unsupported logging backend: {backend}")
@@ -218,7 +222,9 @@ def create_experiment_logger(args, log_name, run_dir):
     if "wandb" in args.log_backends:
         wandb_module = load_wandb_module()
         if wandb_module is None:
-            print("W&B is unavailable. Install wandb to enable Weights & Biases logging.")
+            print(
+                "W&B is unavailable. Install wandb to enable Weights & Biases logging."
+            )
         else:
             try:
                 wandb_run = wandb_module.init(
@@ -266,7 +272,9 @@ def actor_distribution(agent, obs, goal_obs=None, detach_goal=True):
     if hasattr(agent, "actor_distribution"):
         return agent.actor_distribution(obs, goal_obs=goal_obs, detach_goal=detach_goal)
     if hasattr(agent, "_prepare_goal_rep") and hasattr(agent, "_augment_obs"):
-        goal_rep = agent._prepare_goal_rep(obs.shape[0], goal_obs=goal_obs, detach=detach_goal)
+        goal_rep = agent._prepare_goal_rep(
+            obs.shape[0], goal_obs=goal_obs, detach=detach_goal
+        )
         return agent.actor(agent._augment_obs(obs, goal_rep))
     return agent.actor(obs)
 
@@ -278,15 +286,21 @@ def distribution_mean_action(distribution):
         return distribution.mode
     if hasattr(distribution, "loc"):
         return distribution.loc
-    raise AttributeError(f"Cannot extract a deterministic action from {type(distribution).__name__}.")
+    raise AttributeError(
+        f"Cannot extract a deterministic action from {type(distribution).__name__}."
+    )
 
 
-def distill_meta_actor_to_agent(agent, meta_agent, replay_buffer, goal_buffer, update_num):
+def distill_meta_actor_to_agent(
+    agent, meta_agent, replay_buffer, goal_buffer, update_num
+):
     if update_num <= 0:
         return {}
 
     if hasattr(agent, "distill_actor_from_agent"):
-        return agent.distill_actor_from_agent(meta_agent, replay_buffer, goal_buffer, update_num)
+        return agent.distill_actor_from_agent(
+            meta_agent, replay_buffer, goal_buffer, update_num
+        )
 
     print_interval = max(update_num // 5, 1)
     last_goal_obs = None
@@ -308,10 +322,14 @@ def distill_meta_actor_to_agent(agent, meta_agent, replay_buffer, goal_buffer, u
             last_goal_obs = goal_obs
 
         with torch.no_grad():
-            teacher_dist = actor_distribution(meta_agent, obs, goal_obs=goal_obs, detach_goal=True)
+            teacher_dist = actor_distribution(
+                meta_agent, obs, goal_obs=goal_obs, detach_goal=True
+            )
             teacher_action = distribution_mean_action(teacher_dist).detach()
 
-        student_dist = actor_distribution(agent, obs, goal_obs=goal_obs, detach_goal=True)
+        student_dist = actor_distribution(
+            agent, obs, goal_obs=goal_obs, detach_goal=True
+        )
         student_action = distribution_mean_action(student_dist)
         actor_loss = torch.square(student_action - teacher_action).sum(-1).mean()
 
@@ -346,9 +364,15 @@ def summarize_eval_results(eval_results):
     return_mean, return_std = mean_std(eval_results["episodic_returns"])
     success_mean, success_std = mean_std(eval_results["successes"])
     gc_success_mean, gc_success_std = mean_std(eval_results.get("goal_successes", []))
-    final_distance_mean, final_distance_std = mean_std(eval_results.get("final_goal_distances", []))
-    min_distance_mean, min_distance_std = mean_std(eval_results.get("min_goal_distances", []))
-    mean_distance_mean, mean_distance_std = mean_std(eval_results.get("mean_goal_distances", []))
+    final_distance_mean, final_distance_std = mean_std(
+        eval_results.get("final_goal_distances", [])
+    )
+    min_distance_mean, min_distance_std = mean_std(
+        eval_results.get("min_goal_distances", [])
+    )
+    mean_distance_mean, mean_distance_std = mean_std(
+        eval_results.get("mean_goal_distances", [])
+    )
     return {
         "return_mean": return_mean,
         "return_std": return_std,
@@ -384,12 +408,42 @@ def log_eval_metrics(writer, prefix, eval_metrics, step):
     log_scalar(writer, f"{prefix}/fetch_success_std", eval_metrics["success_std"], step)
     log_scalar(writer, f"{prefix}/gc_success", eval_metrics["gc_success_mean"], step)
     log_scalar(writer, f"{prefix}/gc_success_std", eval_metrics["gc_success_std"], step)
-    log_scalar(writer, f"{prefix}/gc_final_goal_distance", eval_metrics["gc_final_goal_distance_mean"], step)
-    log_scalar(writer, f"{prefix}/gc_final_goal_distance_std", eval_metrics["gc_final_goal_distance_std"], step)
-    log_scalar(writer, f"{prefix}/gc_min_goal_distance", eval_metrics["gc_min_goal_distance_mean"], step)
-    log_scalar(writer, f"{prefix}/gc_min_goal_distance_std", eval_metrics["gc_min_goal_distance_std"], step)
-    log_scalar(writer, f"{prefix}/gc_mean_goal_distance", eval_metrics["gc_mean_goal_distance_mean"], step)
-    log_scalar(writer, f"{prefix}/gc_mean_goal_distance_std", eval_metrics["gc_mean_goal_distance_std"], step)
+    log_scalar(
+        writer,
+        f"{prefix}/gc_final_goal_distance",
+        eval_metrics["gc_final_goal_distance_mean"],
+        step,
+    )
+    log_scalar(
+        writer,
+        f"{prefix}/gc_final_goal_distance_std",
+        eval_metrics["gc_final_goal_distance_std"],
+        step,
+    )
+    log_scalar(
+        writer,
+        f"{prefix}/gc_min_goal_distance",
+        eval_metrics["gc_min_goal_distance_mean"],
+        step,
+    )
+    log_scalar(
+        writer,
+        f"{prefix}/gc_min_goal_distance_std",
+        eval_metrics["gc_min_goal_distance_std"],
+        step,
+    )
+    log_scalar(
+        writer,
+        f"{prefix}/gc_mean_goal_distance",
+        eval_metrics["gc_mean_goal_distance_mean"],
+        step,
+    )
+    log_scalar(
+        writer,
+        f"{prefix}/gc_mean_goal_distance_std",
+        eval_metrics["gc_mean_goal_distance_std"],
+        step,
+    )
 
 
 def vector_observation_space(observation_space):
@@ -404,22 +458,48 @@ def make_student_qrl_conf(args):
     qrl_conf.num_critics = args.student_qrl_num_critics
     qrl_conf.actor.losses.actor_optim.lr = args.student_qrl_actor_lr
     qrl_conf.actor.losses.entropy_weight_optim.lr = args.student_qrl_entropy_lr
-    qrl_conf.actor.losses.min_dist.adaptive_entropy_regularizer = bool(args.student_qrl_adaptive_entropy)
-    qrl_conf.actor.losses.min_dist.add_goal_as_future_state = bool(args.student_qrl_add_goal_as_future_state)
+    qrl_conf.actor.losses.min_dist.adaptive_entropy_regularizer = bool(
+        args.student_qrl_adaptive_entropy
+    )
+    qrl_conf.actor.losses.min_dist.add_goal_as_future_state = bool(
+        args.student_qrl_add_goal_as_future_state
+    )
     qrl_conf.actor.losses.behavior_cloning.weight = args.student_qrl_bc_weight
-    qrl_conf.quasimetric_critic.model.encoder.latent_size = args.student_qrl_encoder_latent_size
-    qrl_conf.quasimetric_critic.model.quasimetric_model.quasimetric_head_spec = args.student_qrl_head_spec
+    qrl_conf.quasimetric_critic.model.encoder.latent_size = (
+        args.student_qrl_encoder_latent_size
+    )
+    qrl_conf.quasimetric_critic.model.quasimetric_model.quasimetric_head_spec = (
+        args.student_qrl_head_spec
+    )
     qrl_conf.quasimetric_critic.losses.critic_optim.lr = args.student_qrl_critic_lr
-    qrl_conf.quasimetric_critic.losses.lagrange_mult_optim.lr = args.student_qrl_lagrange_lr
-    qrl_conf.quasimetric_critic.losses.local_constraint.epsilon = args.student_qrl_local_epsilon
-    qrl_conf.quasimetric_critic.losses.local_constraint.step_cost = args.student_qrl_step_cost
-    qrl_conf.quasimetric_critic.losses.global_push.softplus_offset = args.student_qrl_global_push_offset
-    qrl_conf.quasimetric_critic.losses.latent_dynamics.weight = args.student_qrl_dynamics_weight
+    qrl_conf.quasimetric_critic.losses.lagrange_mult_optim.lr = (
+        args.student_qrl_lagrange_lr
+    )
+    qrl_conf.quasimetric_critic.losses.local_constraint.epsilon = (
+        args.student_qrl_local_epsilon
+    )
+    qrl_conf.quasimetric_critic.losses.local_constraint.step_cost = (
+        args.student_qrl_step_cost
+    )
+    qrl_conf.quasimetric_critic.losses.global_push.softplus_offset = (
+        args.student_qrl_global_push_offset
+    )
+    qrl_conf.quasimetric_critic.losses.latent_dynamics.weight = (
+        args.student_qrl_dynamics_weight
+    )
     return qrl_conf
 
 
 class OnlineQRLStudentAgent:
-    def __init__(self, observation_space, action_space, device, batch_size, total_optim_steps, args):
+    def __init__(
+        self,
+        observation_space,
+        action_space,
+        device,
+        batch_size,
+        total_optim_steps,
+        args,
+    ):
         self.device = torch.device(device)
         self.batch_size = batch_size
         self.goal_discount = args.student_qrl_future_discount
@@ -444,7 +524,9 @@ class OnlineQRLStudentAgent:
         self.qrl_losses.to(self.device)
         self.actor = self.qrl_agent.actor
         self.action_low = torch.as_tensor(action_space.low, device=self.device).float()
-        self.action_high = torch.as_tensor(action_space.high, device=self.device).float()
+        self.action_high = torch.as_tensor(
+            action_space.high, device=self.device
+        ).float()
         self.train()
 
     def train(self, training=True):
@@ -472,7 +554,9 @@ class OnlineQRLStudentAgent:
         if goal_obs is None:
             goal_obs = self.behavior_goal
         if goal_obs is None:
-            goal = torch.zeros(batch_size, self.actor_critic_goal_dim, device=self.device)
+            goal = torch.zeros(
+                batch_size, self.actor_critic_goal_dim, device=self.device
+            )
         else:
             goal = self._to_tensor(goal_obs)
             if goal.shape[-1] != self.actor_critic_goal_dim:
@@ -511,7 +595,9 @@ class OnlineQRLStudentAgent:
                 reward_type=self.goal_reward_type,
             )
         else:
-            obs, action, reward, success, next_obs, not_done_no_max = replay_buffer.sample(self.batch_size)
+            obs, action, reward, success, next_obs, not_done_no_max = (
+                replay_buffer.sample(self.batch_size)
+            )
             del success
             obs, action, reward, _, next_obs, not_done_no_max = replay_buffer.as_torch(
                 obs,
@@ -531,7 +617,9 @@ class OnlineQRLStudentAgent:
                 "goal_steps": torch.ones_like(reward),
             }
         return {
-            key: value.to(self.device).float() if torch.is_tensor(value) else torch.as_tensor(value, device=self.device).float()
+            key: value.to(self.device).float()
+            if torch.is_tensor(value)
+            else torch.as_tensor(value, device=self.device).float()
             for key, value in batch.items()
         }
 
@@ -555,7 +643,11 @@ class OnlineQRLStudentAgent:
                 discount=self.goal_discount,
                 success_only=self.behavior_goal_success_only,
             )
-        if goal_obs is None and batch.get("goals") is not None and batch["goals"].shape[0] > 0:
+        if (
+            goal_obs is None
+            and batch.get("goals") is not None
+            and batch["goals"].shape[0] > 0
+        ):
             goal_obs = batch["goals"][0].detach().cpu().numpy()
         if goal_obs is not None:
             self.set_behavior_goal(goal_obs)
@@ -563,10 +655,14 @@ class OnlineQRLStudentAgent:
     def update(self, replay_buffer, step):
         del step
         batch = self._sample_batch(replay_buffer)
-        result = self.qrl_losses(self.qrl_agent, self._to_batch_data(batch), optimize=True)
+        result = self.qrl_losses(
+            self.qrl_agent, self._to_batch_data(batch), optimize=True
+        )
         self._refresh_behavior_goal(replay_buffer, batch)
         info = dict(result.info)
-        info["loss"] = result.loss.detach() if torch.is_tensor(result.loss) else result.loss
+        info["loss"] = (
+            result.loss.detach() if torch.is_tensor(result.loss) else result.loss
+        )
         info["behavior_goal_ready"] = float(self.behavior_goal is not None)
         if "goal_steps" in batch:
             info["goal_steps"] = batch["goal_steps"].mean().detach()
@@ -575,7 +671,9 @@ class OnlineQRLStudentAgent:
     def sac_update(self, replay_buffer, step):
         return self.update(replay_buffer, step)
 
-    def distill_actor_from_agent(self, teacher_agent, replay_buffer, goal_buffer, update_num):
+    def distill_actor_from_agent(
+        self, teacher_agent, replay_buffer, goal_buffer, update_num
+    ):
         print_interval = max(update_num // 5, 1)
         last_goal_obs = None
         last_metrics = {}
@@ -586,8 +684,12 @@ class OnlineQRLStudentAgent:
             goal_obs = None
             if hasattr(goal_buffer, "sample_behavior_goal"):
                 goal_obs = goal_buffer.sample_behavior_goal(
-                    discount=getattr(teacher_agent, "goal_discount", self.goal_discount),
-                    success_only=getattr(teacher_agent, "behavior_goal_success_only", True),
+                    discount=getattr(
+                        teacher_agent, "goal_discount", self.goal_discount
+                    ),
+                    success_only=getattr(
+                        teacher_agent, "behavior_goal_success_only", True
+                    ),
                     batch_size=self.batch_size,
                 )
             if goal_obs is None:
@@ -596,10 +698,14 @@ class OnlineQRLStudentAgent:
                 last_goal_obs = goal_obs
 
             with torch.no_grad():
-                teacher_dist = actor_distribution(teacher_agent, obs, goal_obs=goal_obs, detach_goal=True)
+                teacher_dist = actor_distribution(
+                    teacher_agent, obs, goal_obs=goal_obs, detach_goal=True
+                )
                 teacher_action = distribution_mean_action(teacher_dist).detach()
 
-            student_dist = self.actor_distribution(obs, goal_obs=goal_obs, detach_goal=True)
+            student_dist = self.actor_distribution(
+                obs, goal_obs=goal_obs, detach_goal=True
+            )
             student_action = distribution_mean_action(student_dist)
             actor_loss = torch.square(student_action - teacher_action).sum(-1).mean()
 
@@ -618,7 +724,11 @@ class OnlineQRLStudentAgent:
                 print("actor_distill:", idx, last_metrics)
 
         if last_goal_obs is not None:
-            behavior_goal = last_goal_obs[0] if np.asarray(last_goal_obs).ndim > 1 else last_goal_obs
+            behavior_goal = (
+                last_goal_obs[0]
+                if np.asarray(last_goal_obs).ndim > 1
+                else last_goal_obs
+            )
             if hasattr(teacher_agent, "set_behavior_goal"):
                 teacher_agent.set_behavior_goal(behavior_goal)
             self.set_behavior_goal(behavior_goal)
@@ -631,8 +741,12 @@ class OnlineQRLStudentAgent:
 
     def copy_actor_state_from(self, source_agent):
         self.qrl_agent.actor.load_state_dict(source_agent.qrl_agent.actor.state_dict())
-        self.qrl_losses.actor_loss.actor_optim.load_state_dict(source_agent.qrl_losses.actor_loss.actor_optim.state_dict())
-        self.qrl_losses.actor_loss.actor_sched.load_state_dict(source_agent.qrl_losses.actor_loss.actor_sched.state_dict())
+        self.qrl_losses.actor_loss.actor_optim.load_state_dict(
+            source_agent.qrl_losses.actor_loss.actor_optim.state_dict()
+        )
+        self.qrl_losses.actor_loss.actor_sched.load_state_dict(
+            source_agent.qrl_losses.actor_loss.actor_sched.state_dict()
+        )
         self.qrl_losses.actor_loss.entropy_weight_optim.load_state_dict(
             source_agent.qrl_losses.actor_loss.entropy_weight_optim.state_dict()
         )
@@ -653,13 +767,19 @@ class OnlineQRLStudentAgent:
         )
 
     def load(self, model_dir, model_name):
-        payload = torch.load(os.path.join(model_dir, f"{model_name}_online_qrl.pt"), map_location=self.device, weights_only=False)
+        payload = torch.load(
+            os.path.join(model_dir, f"{model_name}_online_qrl.pt"),
+            map_location=self.device,
+            weights_only=False,
+        )
         self.qrl_agent.load_state_dict(payload["agent"])
         self.qrl_losses.load_state_dict(payload["losses"])
         self.set_behavior_goal(payload.get("behavior_goal"))
 
 
-def build_student_agent(observation_space, action_space, device, args, total_optim_steps):
+def build_student_agent(
+    observation_space, action_space, device, args, total_optim_steps
+):
     return OnlineQRLStudentAgent(
         observation_space=observation_space,
         action_space=action_space,
@@ -739,13 +859,26 @@ def copy_sac_state(source_agent, target_agent):
     target_agent.critic_target.load_state_dict(source_agent.critic_target.state_dict())
     target_agent.actor.load_state_dict(source_agent.actor.state_dict())
     if hasattr(source_agent, "goal_encoder") and hasattr(target_agent, "goal_encoder"):
-        if source_agent.goal_encoder is not None and target_agent.goal_encoder is not None:
-            target_agent.goal_encoder.load_state_dict(source_agent.goal_encoder.state_dict())
+        if (
+            source_agent.goal_encoder is not None
+            and target_agent.goal_encoder is not None
+        ):
+            target_agent.goal_encoder.load_state_dict(
+                source_agent.goal_encoder.state_dict()
+            )
     target_agent.log_alpha.data.copy_(source_agent.log_alpha.data)
-    target_agent.critic_optimizer.load_state_dict(source_agent.critic_optimizer.state_dict())
-    target_agent.actor_optimizer.load_state_dict(source_agent.actor_optimizer.state_dict())
-    target_agent.log_alpha_optimizer.load_state_dict(source_agent.log_alpha_optimizer.state_dict())
-    if hasattr(source_agent, "behavior_goal") and hasattr(target_agent, "set_behavior_goal"):
+    target_agent.critic_optimizer.load_state_dict(
+        source_agent.critic_optimizer.state_dict()
+    )
+    target_agent.actor_optimizer.load_state_dict(
+        source_agent.actor_optimizer.state_dict()
+    )
+    target_agent.log_alpha_optimizer.load_state_dict(
+        source_agent.log_alpha_optimizer.state_dict()
+    )
+    if hasattr(source_agent, "behavior_goal") and hasattr(
+        target_agent, "set_behavior_goal"
+    ):
         target_agent.set_behavior_goal(source_agent.behavior_goal)
 
 
@@ -754,8 +887,12 @@ def copy_actor_state(source_agent, target_agent):
         target_agent.copy_actor_state_from(source_agent)
         return
     target_agent.actor.load_state_dict(source_agent.actor.state_dict())
-    target_agent.actor_optimizer.load_state_dict(source_agent.actor_optimizer.state_dict())
-    if hasattr(source_agent, "behavior_goal") and hasattr(target_agent, "set_behavior_goal"):
+    target_agent.actor_optimizer.load_state_dict(
+        source_agent.actor_optimizer.state_dict()
+    )
+    if hasattr(source_agent, "behavior_goal") and hasattr(
+        target_agent, "set_behavior_goal"
+    ):
         target_agent.set_behavior_goal(source_agent.behavior_goal)
 
 
@@ -773,7 +910,7 @@ def chronological_indices(replay_buffer):
     )
 
 
-def copy_recent_trajectories(source_buffer, target_buffer, store_traj_num): 
+def copy_recent_trajectories(source_buffer, target_buffer, store_traj_num):
     indices = chronological_indices(source_buffer)
     if indices.size == 0:
         return 0, 0
@@ -788,7 +925,9 @@ def copy_recent_trajectories(source_buffer, target_buffer, store_traj_num):
     count_success = 0
     episode_success = False
     for source_idx in selected_indices:
-        episode_success = episode_success or bool(source_buffer.successes[source_idx, 0] > 0.5)
+        episode_success = episode_success or bool(
+            source_buffer.successes[source_idx, 0] > 0.5
+        )
         target_buffer.add(
             source_buffer.obses[source_idx],
             source_buffer.actions[source_idx],
@@ -866,7 +1005,9 @@ def make_env_kwargs(args):
     }
 
 
-def evaluate_and_log(env, agent, writer, prefix, step, num_eval_runs, reseed_each_episode=True):
+def evaluate_and_log(
+    env, agent, writer, prefix, step, num_eval_runs, reseed_each_episode=True
+):
     eval_results = env.evaluate_agent(
         agent,
         num_eval_runs,
@@ -878,7 +1019,12 @@ def evaluate_and_log(env, agent, writer, prefix, step, num_eval_runs, reseed_eac
 
 
 def add_common_args(parser):
-    parser.add_argument("--method", type=str, default="buffer", choices=["independent", "continue", "buffer", "buffer_wd", "average"])
+    parser.add_argument(
+        "--method",
+        type=str,
+        default="buffer",
+        choices=["independent", "continue", "buffer", "buffer_wd", "average"],
+    )
     parser.add_argument("--store_traj_num", type=int, default=2000)
     parser.add_argument(
         "--transfer_traj_num",
@@ -899,9 +1045,19 @@ def add_common_args(parser):
     parser.add_argument("--reset_obs_stats", type=int, default=0)
     parser.add_argument("--change_when_solved", type=int, default=0)
     parser.add_argument("--goal_conditioned", type=int, default=1)
-    parser.add_argument("--gc_reward_type", type=str_choice, default="sparse", choices=["sparse", "dense", "success"])
+    parser.add_argument(
+        "--gc_reward_type",
+        type=str_choice,
+        default="sparse",
+        choices=["sparse", "dense", "success"],
+    )
     parser.add_argument("--gc_success_threshold", type=float, default=0.05)
-    parser.add_argument("--fetch_goal_format", type=str_choice, default="online", choices=["online", "native"])
+    parser.add_argument(
+        "--fetch_goal_format",
+        type=str_choice,
+        default="online",
+        choices=["online", "native"],
+    )
     parser.add_argument("--fetch_env_version", type=str2none, default="auto")
     parser.add_argument("--max_episode_steps", type=int, default=50)
     parser.add_argument(
@@ -918,11 +1074,21 @@ def add_common_args(parser):
     parser.add_argument("--gpu", type=str, default="0")
     parser.add_argument("--random_steps", type=int, default=10000)
     parser.add_argument("--num_eval_runs", type=int, default=10)
-    parser.add_argument("--log_backends", type=str.lower, nargs="+", default=["wandb"], choices=["tensorboard", "wandb", "none"])
-    parser.add_argument("--wandb_project_name", type=str, default="continual-quasimetric-fetch")
+    parser.add_argument(
+        "--log_backends",
+        type=str.lower,
+        nargs="+",
+        default=["wandb"],
+        choices=["tensorboard", "wandb", "none"],
+    )
+    parser.add_argument(
+        "--wandb_project_name", type=str, default="continual-quasimetric-fetch"
+    )
     parser.add_argument("--wandb_entity", type=str2none, default=None)
     parser.add_argument("--wandb_group", type=str2none, default=None)
-    parser.add_argument("--wandb_mode", type=str, default="online", choices=["online", "offline"])
+    parser.add_argument(
+        "--wandb_mode", type=str, default="online", choices=["online", "offline"]
+    )
 
 
 def add_sac_args(parser):
@@ -944,7 +1110,9 @@ def add_student_qrl_args(parser):
     parser.add_argument("--student_qrl_critic_lr", type=float, default=1e-4)
     parser.add_argument("--student_qrl_lagrange_lr", type=float, default=1e-2)
     parser.add_argument("--student_qrl_encoder_latent_size", type=int, default=128)
-    parser.add_argument("--student_qrl_head_spec", type=str, default="iqe(dim=2048,components=64)")
+    parser.add_argument(
+        "--student_qrl_head_spec", type=str, default="iqe(dim=2048,components=64)"
+    )
     parser.add_argument("--student_qrl_local_epsilon", type=float, default=0.25)
     parser.add_argument("--student_qrl_step_cost", type=float, default=1.0)
     parser.add_argument("--student_qrl_global_push_offset", type=float, default=15.0)
@@ -987,7 +1155,7 @@ def add_quasimetric_args(parser):
     parser.add_argument(
         "--qm_nce_mode",
         choices=("forward_nce", "backward_nce"),
-        default="forward_nce",
+        default="backward_nce",
     )
     parser.add_argument("--qm_target_tau", type=float, default=0.01)
     parser.add_argument("--qm_current_batch_ratio", type=float, default=0.5)
@@ -1003,14 +1171,23 @@ def add_quasimetric_args(parser):
     parser.add_argument("--memory_max_transitions_per_task", type=int, default=None)
     parser.add_argument("--goal_reward_scale", type=float, default=1.0)
     parser.add_argument("--task_reward_scale", type=float, default=0.0)
-    parser.add_argument("--goal_reward_type", type=str, default="step_cost", choices=["binary", "step_cost"])
+    parser.add_argument(
+        "--goal_reward_type",
+        type=str,
+        default="step_cost",
+        choices=["binary", "step_cost"],
+    )
     parser.add_argument("--behavior_goal_success_only", type=int, default=1)
     parser.add_argument("--encode_actor_critic_goal", type=int, default=0)
-    parser.add_argument("--replay_buffer_mode", type=str, default="her", choices=["her", "no_her"])
+    parser.add_argument(
+        "--replay_buffer_mode", type=str, default="her", choices=["her", "no_her"]
+    )
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Run online continual quasimetric RL on Fetch task streams")
+    parser = argparse.ArgumentParser(
+        description="Run online continual quasimetric RL on Fetch task streams"
+    )
     add_common_args(parser)
     add_sac_args(parser)
     add_student_qrl_args(parser)
@@ -1074,7 +1251,9 @@ def handle_task_switch(
     log_scalar(writer, "meta/copied_transitions", copied_transitions, step)
     log_scalar(writer, "meta/count_success", count_success, step)
 
-    update_num = max(1, args.store_traj_num * previous_task_counter * args.meta_updates_per_traj)
+    update_num = max(
+        1, args.store_traj_num * previous_task_counter * args.meta_updates_per_traj
+    )
     if args.method == "buffer":
         print("---- updating quasimetric critic and actor ----")
         structure_metrics = {}
@@ -1088,7 +1267,9 @@ def handle_task_switch(
         log_metric_dict(writer, "meta_actor", meta_actor_log, step)
 
     eval_env.set_task(env.env_list[(previous_task_counter - 1) % len(env.env_list)])
-    eval_metrics = evaluate_and_log(eval_env, meta_agent, writer, "meta_eval", step, args.num_eval_runs)
+    eval_metrics = evaluate_and_log(
+        eval_env, meta_agent, writer, "meta_eval", step, args.num_eval_runs
+    )
     print(
         f"meta_agent: task {eval_env.base_task_name}, "
         f"success {eval_metrics['success_mean']:.3f} +/- {eval_metrics['success_std']:.3f}, "
@@ -1101,10 +1282,18 @@ def handle_task_switch(
     return count_success
 
 
-def train_average_agent(env, replay_buffer, agent, agent_list, task_counter, step, writer):
-    if not hasattr(agent, "compute_target_q") or not hasattr(agent, "update_with_target_q"):
-        raise NotImplementedError("The average method requires SAC-style Q targets and is not defined for online QRL students.")
-    obs, action, reward, success, next_obs, not_done_no_max = replay_buffer.sample(agent.batch_size)
+def train_average_agent(
+    env, replay_buffer, agent, agent_list, task_counter, step, writer
+):
+    if not hasattr(agent, "compute_target_q") or not hasattr(
+        agent, "update_with_target_q"
+    ):
+        raise NotImplementedError(
+            "The average method requires SAC-style Q targets and is not defined for online QRL students."
+        )
+    obs, action, reward, success, next_obs, not_done_no_max = replay_buffer.sample(
+        agent.batch_size
+    )
     del success
     obs, action, reward, _, next_obs, not_done_no_max = replay_buffer.as_torch(
         obs,
@@ -1117,7 +1306,10 @@ def train_average_agent(env, replay_buffer, agent, agent_list, task_counter, ste
     agent_num = len(env.env_list) if task_counter >= len(env.env_list) else task_counter
     q_target = agent.compute_target_q(reward, next_obs, not_done_no_max) / agent_num
     for agent_idx in range(agent_num - 1):
-        q_target += agent_list[agent_idx].compute_target_q(reward, next_obs, not_done_no_max) / agent_num
+        q_target += (
+            agent_list[agent_idx].compute_target_q(reward, next_obs, not_done_no_max)
+            / agent_num
+        )
     train_metrics = agent.update_with_target_q(obs, action, q_target, step)
     log_scalar(writer, "train/average_agent_num", agent_num, step)
     return train_metrics
@@ -1126,7 +1318,6 @@ def train_average_agent(env, replay_buffer, agent, agent_list, task_counter, ste
 def main():
     args = parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
-
 
     os.makedirs(args.save_path, exist_ok=True)
     set_seed_everywhere(args.seed)
@@ -1140,7 +1331,12 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     start_time = time.perf_counter()
 
-    order_name = args.task_order or env_kwargs["env_sequence"] or env_kwargs["base_task_name"] or args.env
+    order_name = (
+        args.task_order
+        or env_kwargs["env_sequence"]
+        or env_kwargs["base_task_name"]
+        or args.env
+    )
     task_tag = safe_tag(str(order_name).replace(",", "-"))
     log_name = f"fetch_continual_{task_tag}_seed{args.seed}_{args.method}_gc-{args.gc_reward_type}"
     if args.slide_goal_scale != 1.0:
@@ -1166,7 +1362,9 @@ def main():
     action_shape = env.env.action_space.shape
     action_dim = action_shape[0]
     replay_buffer_capacity = int(args.change_freq) + int(args.random_steps)
-    replay_buffer = ReplayBufferMetric(obs_space.shape, action_shape, replay_buffer_capacity, device)
+    replay_buffer = ReplayBufferMetric(
+        obs_space.shape, action_shape, replay_buffer_capacity, device
+    )
 
     log_scalar(writer, "config/goal_conditioned", int(bool(args.goal_conditioned)), 0)
     log_scalar(writer, "config/obs_dim", obs_dim, 0)
@@ -1193,11 +1391,19 @@ def main():
     from_meta = False
     if use_meta:
         meta_agent_list = [
-            build_meta_agent(obs_dim=obs_dim, action_dim=action_dim, device=device, args=args)
+            build_meta_agent(
+                obs_dim=obs_dim, action_dim=action_dim, device=device, args=args
+            )
             for _ in range(len(env.env_list))
         ]
-        meta_buffer_cls = ReplayBufferMetric if args.replay_buffer_mode == "her" else ReplayBufferMetricNoHER
-        quasimetric_buffer = meta_buffer_cls(obs_space.shape, action_shape, replay_buffer_capacity, device)
+        meta_buffer_cls = (
+            ReplayBufferMetric
+            if args.replay_buffer_mode == "her"
+            else ReplayBufferMetricNoHER
+        )
+        quasimetric_buffer = meta_buffer_cls(
+            obs_space.shape, action_shape, replay_buffer_capacity, device
+        )
 
     collector = Collector(env, replay_buffer)
     env.reset()
@@ -1259,17 +1465,31 @@ def main():
                 if hasattr(agent, "set_task_start_step"):
                     agent.set_task_start_step(task_start_step)
 
-                collector.initial_agent_collect(args.random_steps, [agent], args.num_eval_runs)
-                print("---- distill goal-conditioned meta actor into the task-specific actor ----")
-                distill_update_num = max(1, args.transfer_traj_num * args.meta_updates_per_traj * task_counter)
+                collector.initial_agent_collect(
+                    args.random_steps, [agent], args.num_eval_runs
+                )
+                print(
+                    "---- distill goal-conditioned meta actor into the task-specific actor ----"
+                )
+                distill_update_num = max(
+                    1,
+                    args.transfer_traj_num * args.meta_updates_per_traj * task_counter,
+                )
                 print(
                     "distillation trajectory budget:",
                     args.transfer_traj_num,
                     "updates:",
                     distill_update_num,
                 )
-                log_scalar(writer, "meta_distill/trajectory_budget", args.transfer_traj_num, step)
-                log_scalar(writer, "meta_distill/update_budget", distill_update_num, step)
+                log_scalar(
+                    writer,
+                    "meta_distill/trajectory_budget",
+                    args.transfer_traj_num,
+                    step,
+                )
+                log_scalar(
+                    writer, "meta_distill/update_budget", distill_update_num, step
+                )
                 actor_distill_metrics = distill_meta_actor_to_agent(
                     agent,
                     meta_agent,
@@ -1280,13 +1500,19 @@ def main():
                 log_metric_dict(writer, "meta_distill", actor_distill_metrics, step)
                 from_meta = True
                 print("--------- distillation done ---------")
-                print("--------- reset buffer then collect by new agent (planning with structure prior) ---------")
+                print(
+                    "--------- reset buffer then collect by new agent (planning with structure prior) ---------"
+                )
 
                 replay_buffer.reset()
-                collector.initial_agent_collect(args.random_steps, [agent], args.num_eval_runs)
+                collector.initial_agent_collect(
+                    args.random_steps, [agent], args.num_eval_runs
+                )
                 log_scalar(writer, "meta/from_meta", int(from_meta), step)
 
-                next_meta_agent = meta_agent_list[(task_counter - 1) % len(env.env_list)]
+                next_meta_agent = meta_agent_list[
+                    (task_counter - 1) % len(env.env_list)
+                ]
                 copy_actor_state(meta_agent, next_meta_agent)
                 meta_agent = next_meta_agent
             else:
@@ -1296,14 +1522,18 @@ def main():
         if args.method in {"independent", "continue", "buffer", "buffer_wd"}:
             train_metrics = agent.update(replay_buffer, step)
         elif args.method == "average":
-            train_metrics = train_average_agent(env, replay_buffer, agent, agent_list, task_counter, step, writer)
+            train_metrics = train_average_agent(
+                env, replay_buffer, agent, agent_list, task_counter, step, writer
+            )
         else:
             raise ValueError(f"Unsupported method: {args.method}")
 
         collector.run_one_step(step, agent)
         log_metric_dict(writer, "train", train_metrics, step)
         log_scalar(writer, "train/task_idx", task_counter, step)
-        log_scalar(writer, "train/agent_idx", (task_counter - 1) % len(env.env_list), step)
+        log_scalar(
+            writer, "train/agent_idx", (task_counter - 1) % len(env.env_list), step
+        )
         log_scalar(writer, "train/replay_buffer_size", len(replay_buffer), step)
 
         if step % args.save_freq == 0:
@@ -1326,7 +1556,9 @@ def main():
                 args.seed,
             )
 
-            eval_metrics = evaluate_and_log(env, agent, writer, "eval", step, args.num_eval_runs)
+            eval_metrics = evaluate_and_log(
+                env, agent, writer, "eval", step, args.num_eval_runs
+            )
             append_eval_stats(intermediate_stats, eval_metrics)
             intermediate_stats["steps"].append(step)
             intermediate_stats["task"].append(env.base_task_name)
@@ -1340,7 +1572,9 @@ def main():
 
             log_scalar(writer, "charts/SPS", sps, step)
             log_scalar(writer, "eval/task_idx", task_counter, step)
-            log_scalar(writer, "eval/agent_idx", (task_counter - 1) % len(env.env_list), step)
+            log_scalar(
+                writer, "eval/agent_idx", (task_counter - 1) % len(env.env_list), step
+            )
             log_scalar(writer, "eval/count_success", count_success, step)
             if use_meta:
                 log_scalar(writer, "eval/from_meta", int(from_meta), step)

@@ -15,11 +15,9 @@ from ...data.env_spec.act_distn import ActionOutputConverter
 class Actor(nn.Module):
     @attrs.define(kw_only=True)
     class Conf:
-
-
         arch: Tuple[int, ...] = (512, 512)
 
-        def make(self, *, env_spec: EnvSpec) -> 'Actor':
+        def make(self, *, env_spec: EnvSpec) -> "Actor":
             return Actor(
                 env_spec=env_spec,
                 arch=self.arch,
@@ -37,15 +35,24 @@ class Actor(nn.Module):
 
         self.action_output = env_spec.make_action_output_distn()
         backbone_input_size = self.observation_encoding.output_size * 2
-        self.backbone = MLP(backbone_input_size, self.action_output.input_size, hidden_sizes=arch,
-                            zero_init_last_fc=True)
+        self.backbone = MLP(
+            backbone_input_size,
+            self.action_output.input_size,
+            hidden_sizes=arch,
+            zero_init_last_fc=True,
+        )
 
-    def forward(self, o: torch.Tensor, g: torch.Tensor) -> torch.distributions.Distribution:
+    def forward(
+        self, o: torch.Tensor, g: torch.Tensor
+    ) -> torch.distributions.Distribution:
         og = torch.stack([o, g], dim=-len(self.observation_shape) - 1)
-        return self.action_output(self.backbone(self.observation_encoding(og).flatten(-2, -1)))
+        return self.action_output(
+            self.backbone(self.observation_encoding(og).flatten(-2, -1))
+        )
 
-
-    def __call__(self, o: torch.Tensor, g: torch.Tensor) -> torch.distributions.Distribution:
+    def __call__(
+        self, o: torch.Tensor, g: torch.Tensor
+    ) -> torch.distributions.Distribution:
         return super().__call__(o, g)
 
     def extra_repr(self) -> str:

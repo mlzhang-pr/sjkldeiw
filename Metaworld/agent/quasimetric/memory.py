@@ -56,7 +56,9 @@ def _discounted_offset(max_offset: int, discount: float) -> int:
     return int(np.random.choice(support, p=probs))
 
 
-def cat_tensor_batches(batches: List[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
+def cat_tensor_batches(
+    batches: List[Dict[str, torch.Tensor]],
+) -> Dict[str, torch.Tensor]:
     if not batches:
         raise ValueError("Expected at least one batch to concatenate.")
 
@@ -78,7 +80,9 @@ class ReplayBufferView:
     not_dones: Optional[np.ndarray] = None
 
     def __post_init__(self):
-        done_source = self.not_dones if self.not_dones is not None else self.not_dones_no_max
+        done_source = (
+            self.not_dones if self.not_dones is not None else self.not_dones_no_max
+        )
         done_flags = (1.0 - done_source.reshape(-1)) > 0.5
         self.episode_ends = _compute_episode_end_indices(done_flags.astype(np.bool_))
         self.episode_ids = _compute_episode_ids(done_flags.astype(np.bool_))
@@ -138,7 +142,9 @@ class ReplayBufferView:
             not_dones_no_max=self.not_dones_no_max[-max_transitions:].copy(),
             device=self.device,
             task_id=self.task_id,
-            not_dones=self.not_dones[-max_transitions:].copy() if self.not_dones is not None else None,
+            not_dones=self.not_dones[-max_transitions:].copy()
+            if self.not_dones is not None
+            else None,
         )
 
     def _to_torch(self, array: np.ndarray) -> torch.Tensor:
@@ -173,7 +179,10 @@ class ReplayBufferView:
         idxs = np.random.randint(0, len(self), size=batch_size)
         max_goal_offsets = self.episode_ends[idxs] - idxs
         goal_offsets = np.array(
-            [_discounted_offset(int(max_offset), discount) for max_offset in max_goal_offsets],
+            [
+                _discounted_offset(int(max_offset), discount)
+                for max_offset in max_goal_offsets
+            ],
             dtype=np.int64,
         )
         goal_indices = idxs + goal_offsets
@@ -184,7 +193,9 @@ class ReplayBufferView:
             if force_next or max_offset <= 0:
                 intermediate_offsets.append(0)
             else:
-                intermediate_offsets.append(_discounted_offset(int(max_offset), lambda_))
+                intermediate_offsets.append(
+                    _discounted_offset(int(max_offset), lambda_)
+                )
         intermediate_offsets = np.array(intermediate_offsets, dtype=np.int64)
         intermediate_indices = idxs + intermediate_offsets
 
@@ -200,7 +211,9 @@ class ReplayBufferView:
             "not_dones": self._to_torch(not_dones),
             "dones": self._to_torch(dones),
             "value_goals": self._to_torch(self.next_obses[goal_indices]),
-            "intermediate_value_goals": self._to_torch(self.next_obses[intermediate_indices]),
+            "intermediate_value_goals": self._to_torch(
+                self.next_obses[intermediate_indices]
+            ),
             "intermediate_value_goals_offsets": self._to_torch(step_offsets),
             "task_ids": torch.full(
                 (batch_size,),
@@ -292,4 +305,6 @@ class TaskAwareReplayMemory:
         self.max_tasks = state_dict.get("max_tasks", self.max_tasks)
         self._tasks = OrderedDict()
         for task_id, payload in state_dict.get("tasks", []):
-            self._tasks[task_id] = ReplayBufferView.from_state_dict(payload, self.device)
+            self._tasks[task_id] = ReplayBufferView.from_state_dict(
+                payload, self.device
+            )

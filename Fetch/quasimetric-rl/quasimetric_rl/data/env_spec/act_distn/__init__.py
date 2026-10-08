@@ -14,12 +14,6 @@ import torch.distributions.constraints
 from .... import FLAGS
 
 
-
-
-
-
-
-
 class TensorDistributionProtocol(Protocol):
     batch_shape: torch.Size
     event_shape: torch.Size
@@ -54,11 +48,6 @@ class ActionOutputConverter(nn.Module, metaclass=abc.ABCMeta):
         return super().__call__(feature)
 
 
-
-
-
-
-
 class DiscreteOutputOneHot(ActionOutputConverter):
     input_size: Final[int]
     num_actions: Final[int]
@@ -90,20 +79,24 @@ class BoxOutputLinearNormalization(ActionOutputConverter):
         self.input_size = torch.Size(action_space.shape).numel() * 2
         high = torch.as_tensor(action_space.high, dtype=torch.float32)
         low = torch.as_tensor(action_space.low, dtype=torch.float32)
-        self.register_buffer('mean', (high + low) / 2)
-        self.register_buffer('half_len', ((high - low) / 2).clamp_min(1e-3))
-        assert torch.as_tensor(action_space.bounded_above & action_space.bounded_below).all(), "Must have bounded action space"
+        self.register_buffer("mean", (high + low) / 2)
+        self.register_buffer("half_len", ((high - low) / 2).clamp_min(1e-3))
+        assert torch.as_tensor(
+            action_space.bounded_above & action_space.bounded_below
+        ).all(), "Must have bounded action space"
 
     def forward(self, feature: torch.Tensor) -> torch.distributions.Distribution:
-        gmean, grawstd = feature.view(*feature.shape[:-1], 2, *self.mean.shape).unbind(dim=-self.mean.ndim - 1)
+        gmean, grawstd = feature.view(*feature.shape[:-1], 2, *self.mean.shape).unbind(
+            dim=-self.mean.ndim - 1
+        )
         distn = torch.distributions.Normal(
             loc=gmean,
             scale=F.softplus(grawstd) + 1e-4,
             validate_args=FLAGS.DEBUG,
         )
 
-
         from .utils import AcmeTanhTransformedDistribution, SampleDist
+
         distn = AcmeTanhTransformedDistribution(
             distn,
             validate_args=FLAGS.DEBUG,

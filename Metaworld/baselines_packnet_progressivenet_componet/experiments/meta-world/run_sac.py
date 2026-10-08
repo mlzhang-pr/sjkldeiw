@@ -1,4 +1,3 @@
-
 import os
 import random
 import time
@@ -21,14 +20,9 @@ from collections import defaultdict
 import pandas as pd
 
 
-
-
-
-
-
-
 class SuccessCounter(gym.Wrapper):
     """From Continual World's Codebase"""
+
     def __init__(self, env):
         super().__init__(env)
         self.successes = []
@@ -51,6 +45,7 @@ class SuccessCounter(gym.Wrapper):
         self.current_success = False
         return self.env.reset(**kwargs)
 
+
 @dataclass
 class Args:
     model_type: Literal["simple", "finetune", "componet", "packnet", "prognet"]
@@ -58,7 +53,6 @@ class Args:
     save_dir: Optional[str] = None
 
     prev_units: Tuple[pathlib.Path, ...] = ()
-
 
     exp_name: str = os.path.basename(__file__)[: -len(".py")]
 
@@ -76,8 +70,6 @@ class Args:
 
     capture_video: bool = False
 
-
-
     task_id: int = 0
 
     task_sequence: int = 6
@@ -87,7 +79,6 @@ class Args:
     num_evals: int = 10
 
     total_timesteps: int = int(1e6)
-
 
     buffer_size: int = int(1e6)
 
@@ -116,10 +107,9 @@ class Args:
     autotune: bool = True
 
 
-
-def make_env(task_id,task_sequence,eval_mode=False):
+def make_env(task_id, task_sequence, eval_mode=False):
     def thunk(eval_mode=eval_mode):
-        env = get_task(task_id,task_sequence)
+        env = get_task(task_id, task_sequence)
         if not eval_mode:
             env = gym.wrappers.TransformReward(env, lambda r: r / 500)
         env = gym.wrappers.TimeLimit(env, max_episode_steps=200)
@@ -128,7 +118,6 @@ def make_env(task_id,task_sequence,eval_mode=False):
         return env
 
     return thunk
-
 
 
 class SoftQNetwork(nn.Module):
@@ -156,7 +145,6 @@ class Actor(nn.Module):
         super().__init__()
         self.model = model
 
-
         self.register_buffer(
             "action_scale",
             torch.tensor(
@@ -175,9 +163,7 @@ class Actor(nn.Module):
     def forward(self, x, **kwargs):
         mean, log_std = self.model(x, **kwargs)
         log_std = torch.tanh(log_std)
-        log_std = LOG_STD_MIN + 0.5 * (LOG_STD_MAX - LOG_STD_MIN) * (
-            log_std + 1
-        )
+        log_std = LOG_STD_MIN + 0.5 * (LOG_STD_MAX - LOG_STD_MIN) * (log_std + 1)
 
         return mean, log_std
 
@@ -191,7 +177,6 @@ class Actor(nn.Module):
         x_t = normal.rsample()
         y_t = torch.tanh(x_t)
 
-
         action = y_t * self.action_scale + self.action_bias
         log_prob = normal.log_prob(x_t)
 
@@ -201,44 +186,14 @@ class Actor(nn.Module):
         return action, log_prob, mean
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @torch.no_grad()
-def evaluate_agent(agent, task_id,task_sequence, num_evals,device):
-    ''' Runs and evaluation of the agent
-    It runs on the current seed i.e. the current task '''
+def evaluate_agent(agent, task_id, task_sequence, num_evals, device):
+    """Runs and evaluation of the agent
+    It runs on the current seed i.e. the current task"""
 
-    test_env = gym.vector.SyncVectorEnv([make_env(task_id,task_sequence,eval_mode=True)]).envs[0]
+    test_env = gym.vector.SyncVectorEnv(
+        [make_env(task_id, task_sequence, eval_mode=True)]
+    ).envs[0]
     obs, _ = test_env.reset()
     step = 0
     avg_ep_ret = 0
@@ -251,21 +206,24 @@ def evaluate_agent(agent, task_id,task_sequence, num_evals,device):
         obs = torch.Tensor(obs).to(device).unsqueeze(0)
         action, _ = agent(obs)
 
-        next_obs, reward, terminated, truncated, info = test_env.step(action[0].cpu().numpy())
-        step+=1
+        next_obs, reward, terminated, truncated, info = test_env.step(
+            action[0].cpu().numpy()
+        )
+        step += 1
         ep_ret += reward
 
         if "episode" in info:
-            episodic_returns.append(info['episode']['r'].item())
+            episodic_returns.append(info["episode"]["r"].item())
         obs = next_obs
         if terminated or truncated:
             obs, _ = test_env.reset()
             step = 0
 
-    eval_results['episodic_returns'] = episodic_returns
-    eval_results['successes'] = test_env.pop_successes()
+    eval_results["episodic_returns"] = episodic_returns
+    eval_results["successes"] = test_env.pop_successes()
 
     return eval_results
+
 
 if __name__ == "__main__":
     args = tyro.cli(Args)
@@ -284,45 +242,40 @@ if __name__ == "__main__":
             save_code=True,
         )
 
-
-
-
-
-
-
-
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     torch.backends.cudnn.deterministic = args.torch_deterministic
 
     if torch.cuda.is_available() and args.cuda:
-        device = torch.device('cuda:' + str(args.cuda_device))
+        device = torch.device("cuda:" + str(args.cuda_device))
     else:
-        device = torch.device('cpu')
+        device = torch.device("cpu")
 
     print(f"*** Device: {device}")
 
-
-    envs = gym.vector.SyncVectorEnv([make_env(args.task_id,args.task_sequence)])
+    envs = gym.vector.SyncVectorEnv([make_env(args.task_id, args.task_sequence)])
     task_name = RPO10_SEQ[args.task_sequence - 1][args.task_id]
     print(f"Loading environment: {task_name}")
-    assert isinstance(
-        envs.single_action_space, gym.spaces.Box
-    ), "only continuous action space is supported"
+    assert isinstance(envs.single_action_space, gym.spaces.Box), (
+        "only continuous action space is supported"
+    )
 
     max_action = float(envs.single_action_space.high[0])
 
-
-    print('single_observation_space:',envs.single_observation_space.shape,np.array(envs.single_observation_space.shape).prod())
-    print('single_action_space:',envs.single_action_space.shape)
+    print(
+        "single_observation_space:",
+        envs.single_observation_space.shape,
+        np.array(envs.single_observation_space.shape).prod(),
+    )
+    print("single_action_space:", envs.single_action_space.shape)
     obs_dim = np.array(envs.single_observation_space.shape).prod()
     act_dim = np.prod(envs.single_action_space.shape)
     print(f"*** Loading model `{args.model_type}` ***")
     if args.model_type in ["finetune", "componet"]:
-        assert (
-            len(args.prev_units) > 0
-        ), f"Model type {args.model_type} requires at least one previous unit"
+        assert len(args.prev_units) > 0, (
+            f"Model type {args.model_type} requires at least one previous unit"
+        )
 
     if args.model_type == "simple":
         model = SimpleAgent(obs_dim=obs_dim, act_dim=act_dim).to(device)
@@ -377,7 +330,6 @@ if __name__ == "__main__":
     )
     actor_optimizer = optim.Adam(list(actor.parameters()), lr=args.policy_lr)
 
-
     if args.autotune:
         target_entropy = -torch.prod(
             torch.Tensor(envs.action_space.shape).to(device)
@@ -400,18 +352,8 @@ if __name__ == "__main__":
     start_time = time.time()
     intermediate_stats = defaultdict(list)
 
-
     obs, _ = envs.reset(seed=args.seed)
     for global_step in range(args.total_timesteps):
-
-
-
-
-
-
-
-
-
         if global_step < args.random_actions_end:
             actions = np.array(
                 [envs.single_action_space.sample() for _ in range(envs.num_envs)]
@@ -420,32 +362,13 @@ if __name__ == "__main__":
             if args.model_type == "componet" and global_step % 1000 == 0:
                 actions, _, _ = actor.get_action(
                     torch.Tensor(obs).to(device),
-
                     global_step=global_step,
                 )
             else:
                 actions, _, _ = actor.get_action(torch.Tensor(obs).to(device))
             actions = actions.detach().cpu().numpy()
 
-
         next_obs, rewards, terminations, truncations, infos = envs.step(actions)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         real_next_obs = next_obs.copy()
         for idx, trunc in enumerate(truncations):
@@ -453,9 +376,7 @@ if __name__ == "__main__":
                 real_next_obs[idx] = infos["final_observation"][idx]
         rb.add(obs, real_next_obs, actions, rewards, terminations, infos)
 
-
         obs = next_obs
-
 
         if global_step > args.learning_starts:
             data = rb.sample(args.batch_size)
@@ -479,15 +400,12 @@ if __name__ == "__main__":
             qf2_loss = F.mse_loss(qf2_a_values, next_q_value)
             qf_loss = qf1_loss + qf2_loss
 
-
             q_optimizer.zero_grad()
             qf_loss.backward()
             q_optimizer.step()
 
             if global_step % args.policy_frequency == 0:
-                for _ in range(
-                    args.policy_frequency
-                ):
+                for _ in range(args.policy_frequency):
                     pi, log_pi, _ = actor.get_action(data.observations)
                     qf1_pi = qf1(data.observations, pi)
                     qf2_pi = qf2(data.observations, pi)
@@ -498,7 +416,6 @@ if __name__ == "__main__":
                     actor_loss.backward()
                     if args.model_type == "packnet":
                         if global_step >= packnet_retrain_start:
-
                             actor.model.start_retraining()
                         actor.model.before_update()
                     actor_optimizer.step()
@@ -515,7 +432,6 @@ if __name__ == "__main__":
                         a_optimizer.step()
                         alpha = log_alpha.exp().item()
 
-
             if global_step % args.target_network_frequency == 0:
                 for param, target_param in zip(
                     qf1.parameters(), qf1_target.parameters()
@@ -530,69 +446,67 @@ if __name__ == "__main__":
                         args.tau * param.data + (1 - args.tau) * target_param.data
                     )
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         if global_step % 25000 == 0:
+            print(
+                "step:",
+                global_step,
+                "time:",
+                round((time.time() - start_time) / 60, 3),
+                "SPS:",
+                int(global_step / (time.time() - start_time)),
+                "task_id",
+                args.task_id,
+                "method",
+                args.model_type,
+                "seed",
+                args.seed,
+            )
 
-            print('step:',global_step, 'time:', round((time.time() - start_time) / 60, 3), "SPS:", int(global_step / (time.time() - start_time)),
-                  'task_id', args.task_id, 'method', args.model_type, 'seed', args.seed)
+            eval_results = evaluate_agent(
+                actor, args.task_id, args.task_sequence, args.num_evals, device
+            )
 
-            eval_results = evaluate_agent(actor, args.task_id, args.task_sequence, args.num_evals, device)
+            eval_episode_returns = eval_results["episodic_returns"]
+            eval_successes = eval_results["successes"]
+            print(
+                f"success {round(np.mean(eval_successes), 3)} +/- {round(np.std(eval_successes), 3)},",
+                f"eval return {round(np.mean(eval_episode_returns), 3)} +/- {round(np.std(eval_episode_returns), 3)}",
+            )
 
-            eval_episode_returns = eval_results['episodic_returns']
-            eval_successes = eval_results['successes']
-            print(f"success {round(np.mean(eval_successes), 3)} +/- {round(np.std(eval_successes), 3)},",
-                  f"eval return {round(np.mean(eval_episode_returns), 3)} +/- {round(np.std(eval_episode_returns), 3)}")
+            intermediate_stats["mean_return"].append(np.mean(eval_episode_returns))
+            intermediate_stats["mean_success"].append(np.mean(eval_successes))
+            intermediate_stats["steps"].append(
+                global_step + args.task_id * args.total_timesteps
+            )
+            intermediate_stats["task"].append(task_name)
+            intermediate_stats["seed"].append(args.seed)
+            intermediate_stats["task_idx"].append(args.task_id + 1)
+            intermediate_stats["method"].append(args.model_type)
+            intermediate_stats["time"].append(
+                round((time.time() - start_time) / 3600, 3)
+            )
+            intermediate_stats["count_success"].append(-1)
 
-            intermediate_stats['mean_return'].append(np.mean(eval_episode_returns))
-            intermediate_stats['mean_success'].append(np.mean(eval_successes))
-            intermediate_stats['steps'].append(global_step + args.task_id * args.total_timesteps)
-            intermediate_stats['task'].append(task_name)
-            intermediate_stats['seed'].append(args.seed)
-            intermediate_stats['task_idx'].append(args.task_id+1)
-            intermediate_stats['method'].append(args.model_type)
-            intermediate_stats['time'].append(round((time.time() - start_time) / 3600, 3))
-            intermediate_stats['count_success'].append(-1)
-
-    log_path = 'log/'
+    log_path = "log/"
     if not os.path.exists(log_path):
         os.makedirs(log_path)
     intermediate_stats = pd.DataFrame(intermediate_stats)
 
-    file_path = log_path + "/sac_metaworld_sequence_set" + str(args.task_sequence) + '_' + str(args.seed) + '_' + args.model_type + ".csv"
-    intermediate_stats.to_csv(file_path,
-                              mode='a',
-                              header=not os.path.exists(file_path),
-                              index=False)
-
-
-
-
-
+    file_path = (
+        log_path
+        + "/sac_metaworld_sequence_set"
+        + str(args.task_sequence)
+        + "_"
+        + str(args.seed)
+        + "_"
+        + args.model_type
+        + ".csv"
+    )
+    intermediate_stats.to_csv(
+        file_path, mode="a", header=not os.path.exists(file_path), index=False
+    )
 
     envs.close()
-
 
     if args.save_dir is not None:
         print(f"Saving trained agent in `{args.save_dir}` with name `{run_name}`")

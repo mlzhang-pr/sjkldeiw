@@ -3,18 +3,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
-matplotlib.use('TkAgg')
-matplotlib.rcParams['font.family'] = 'sans-serif'
-matplotlib.rcParams['font.sans-serif'] = 'NSimSun,Times New Roman'
 
-
-
+matplotlib.use("TkAgg")
+matplotlib.rcParams["font.family"] = "sans-serif"
+matplotlib.rcParams["font.sans-serif"] = "NSimSun,Times New Roman"
 
 
 T = np.arange(2, 8)
 
-methods = ["DQN-Reset", 'Finetune',   "MultiHead", "LargeBuffer", "PT-DQN", "FAME"]
-colors = ['g', 'pink',  'brown', 'black', 'blue', 'red']
+methods = ["DQN-Reset", "Finetune", "MultiHead", "LargeBuffer", "PT-DQN", "FAME"]
+colors = ["g", "pink", "brown", "black", "blue", "red"]
 Games = ["breakout", "space_invaders", "freeway"]
 Games_title = ["Breakout", "Spaceinvaders", "Freeway"]
 
@@ -27,15 +25,14 @@ for subplot_idx, game in enumerate(Games):
     ax.set_ylabel("Average Performance", fontsize=24)
     ax.set_xticks(T)
 
-    ax.grid(True, linestyle='--', alpha=0.3)
+    ax.grid(True, linestyle="--", alpha=0.3)
     all_means = []
     all_stds = []
     for t in range(1, 7):
-
         df_mean = pd.read_excel(f"MinAtar_Ave_T{t + 1}_mean.xlsx")
         df_std = pd.read_excel(f"MinAtar_Ave_T{t + 1}_std.xlsx")
         all_means.append(df_mean[game].values)
-        print(f"t: {t+1}, {len(all_means)} ")
+        print(f"t: {t + 1}, {len(all_means)} ")
         all_stds.append(df_std[game].values)
 
     all_means = np.array(all_means).T
@@ -45,18 +42,26 @@ for subplot_idx, game in enumerate(Games):
         mean = all_means[i]
         std = all_stds[i]
 
-
         ax.errorbar(
-            T, mean, yerr=std,
+            T,
+            mean,
+            yerr=std,
             label=method,
             color=colors[i],
-            fmt='-o',
+            fmt="-o",
             capsize=4,
-            linewidth=2, markersize=5
+            linewidth=2,
+            markersize=5,
         )
 
 
-ax.legend(loc='lower center', frameon=False, fontsize=16, bbox_to_anchor=(-0.7, -0.35, 0.0, 0.0), ncol=6)
+ax.legend(
+    loc="lower center",
+    frameon=False,
+    fontsize=16,
+    bbox_to_anchor=(-0.7, -0.35, 0.0, 0.0),
+    ncol=6,
+)
 plt.tight_layout()
 
 plt.show()

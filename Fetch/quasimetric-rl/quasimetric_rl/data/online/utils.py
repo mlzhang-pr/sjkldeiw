@@ -7,12 +7,13 @@ import torch.utils.data
 
 from .. import EnvSpec
 from ..base import (
-    EpisodeData, MultiEpisodeData,
+    EpisodeData,
+    MultiEpisodeData,
 )
 
 
 def get_empty_episode(env_spec: EnvSpec, episode_length: int) -> EpisodeData:
-    r'''
+    r"""
     episode_lengths: torch.Tensor                                          # [1]
     all_observations: torch.Tensor                                        # [L + 1, *observation_shape]
     actions: torch.Tensor                                                 # [L, *action_shape]
@@ -29,8 +30,12 @@ def get_empty_episode(env_spec: EnvSpec, episode_length: int) -> EpisodeData:
         is_success
         desired_goals
     afterwards.
-    '''
-    all_observations = torch.empty(episode_length + 1, *env_spec.observation_shape, dtype=env_spec.observation_dtype)
+    """
+    all_observations = torch.empty(
+        episode_length + 1,
+        *env_spec.observation_shape,
+        dtype=env_spec.observation_dtype,
+    )
     timeouts = torch.zeros(episode_length, dtype=torch.bool)
     timeouts[-1] = True
     if env_spec.observation_space_is_dict:
@@ -43,7 +48,9 @@ def get_empty_episode(env_spec: EnvSpec, episode_length: int) -> EpisodeData:
     return EpisodeData(
         episode_lengths=torch.tensor(episode_length).view(-1),
         all_observations=all_observations,
-        actions=torch.empty(episode_length, *env_spec.action_shape, dtype=env_spec.action_dtype),
+        actions=torch.empty(
+            episode_length, *env_spec.action_shape, dtype=env_spec.action_dtype
+        ),
         rewards=torch.empty(episode_length),
         terminals=torch.zeros(episode_length, dtype=torch.bool),
         timeouts=timeouts,
@@ -54,8 +61,14 @@ def get_empty_episode(env_spec: EnvSpec, episode_length: int) -> EpisodeData:
     )
 
 
-def get_empty_episodes(env_spec: EnvSpec, episode_length: int, num_episodes: int) -> MultiEpisodeData:
-    all_observations = torch.empty(episode_length * num_episodes + num_episodes, *env_spec.observation_shape, dtype=env_spec.observation_dtype)
+def get_empty_episodes(
+    env_spec: EnvSpec, episode_length: int, num_episodes: int
+) -> MultiEpisodeData:
+    all_observations = torch.empty(
+        episode_length * num_episodes + num_episodes,
+        *env_spec.observation_shape,
+        dtype=env_spec.observation_dtype,
+    )
     timeouts = torch.zeros(num_episodes, episode_length, dtype=torch.bool)
     timeouts[:, -1] = True
     if env_spec.observation_space_is_dict:
@@ -68,7 +81,11 @@ def get_empty_episodes(env_spec: EnvSpec, episode_length: int, num_episodes: int
     return MultiEpisodeData(
         episode_lengths=torch.full([num_episodes], episode_length, dtype=torch.int64),
         all_observations=all_observations,
-        actions=torch.empty(episode_length * num_episodes, *env_spec.action_shape, dtype=env_spec.action_dtype),
+        actions=torch.empty(
+            episode_length * num_episodes,
+            *env_spec.action_shape,
+            dtype=env_spec.action_dtype,
+        ),
         rewards=torch.empty(episode_length * num_episodes),
         terminals=torch.zeros(episode_length * num_episodes, dtype=torch.bool),
         timeouts=timeouts.flatten(),

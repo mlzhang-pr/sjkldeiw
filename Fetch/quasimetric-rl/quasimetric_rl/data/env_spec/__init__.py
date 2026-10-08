@@ -9,6 +9,7 @@ import attrs
 
 import gym
 import gym.spaces
+
 try:
     import gymnasium
 except ImportError:
@@ -26,9 +27,9 @@ def _space_types(name: str):
     return tuple(space_types)
 
 
-BOX_SPACE_TYPES = _space_types('Box')
-DICT_SPACE_TYPES = _space_types('Dict')
-DISCRETE_SPACE_TYPES = _space_types('Discrete')
+BOX_SPACE_TYPES = _space_types("Box")
+DICT_SPACE_TYPES = _space_types("Dict")
+DISCRETE_SPACE_TYPES = _space_types("Discrete")
 
 
 @attrs.define(kw_only=True)
@@ -38,13 +39,16 @@ class EnvSpec:
     action_space: gym.Space
 
     @classmethod
-    def from_env(self, env: gym.Env) -> 'EnvSpec':
+    def from_env(self, env: gym.Env) -> "EnvSpec":
         ospace = env.observation_space
         observation_space_is_dict = False
         if isinstance(ospace, DICT_SPACE_TYPES):
-
-            assert set(ospace.spaces.keys()) == {'observation', 'achieved_goal', 'desired_goal'}
-            ospace = ospace['observation']
+            assert set(ospace.spaces.keys()) == {
+                "observation",
+                "achieved_goal",
+                "desired_goal",
+            }
+            ospace = ospace["observation"]
             observation_space_is_dict = True
         return EnvSpec(
             observation_space=ospace,
@@ -80,7 +84,9 @@ class EnvSpec:
     def make_action_input(self) -> input_encoding.InputEncoding:
         if isinstance(self.action_space, DISCRETE_SPACE_TYPES):
             assert len(self.action_shape) == 0
-            return input_encoding.OneHot(input_shape=torch.Size([]), num_classes=self.action_space.n)
+            return input_encoding.OneHot(
+                input_shape=torch.Size([]), num_classes=self.action_space.n
+            )
         elif isinstance(self.action_space, BOX_SPACE_TYPES):
             return input_encoding.Identity(input_shape=self.action_shape)
         else:
@@ -92,35 +98,38 @@ class EnvSpec:
             range = torch.as_tensor(self.action_space.high - self.action_space.low)
             return -float(range.sum()) / 2
         elif isinstance(self.action_space, DISCRETE_SPACE_TYPES):
-            raise RuntimeError("Discrete action spaces don't usually require entropy regularization")
+            raise RuntimeError(
+                "Discrete action spaces don't usually require entropy regularization"
+            )
         else:
             raise NotImplementedError(self.action_space)
 
     def make_action_output_distn(self) -> act_distn.ActionOutputConverter:
         if isinstance(self.action_space, BOX_SPACE_TYPES):
-            return act_distn.BoxOutputLinearNormalization(action_space=self.action_space)
+            return act_distn.BoxOutputLinearNormalization(
+                action_space=self.action_space
+            )
         elif isinstance(self.action_space, DISCRETE_SPACE_TYPES):
             return act_distn.DiscreteOutputOneHot(action_space=self.action_space)
         else:
             raise NotImplementedError(self.action_space)
 
 
-
 def convert_to_pytorch_dtype(np_dtype):
-    if hasattr(np_dtype, 'name'):
+    if hasattr(np_dtype, "name"):
         name = np_dtype.name
     else:
         name = np_dtype.__name__
     return {
-        'bool_'      : torch.bool,
-        'uint8'      : torch.uint8,
-        'int8'       : torch.int8,
-        'int16'      : torch.int16,
-        'int32'      : torch.int32,
-        'int64'      : torch.int64,
-        'float16'    : torch.float16,
-        'float32'    : torch.float32,
-        'float64'    : torch.float64,
-        'complex64'  : torch.complex64,
-        'complex128' : torch.complex128
+        "bool_": torch.bool,
+        "uint8": torch.uint8,
+        "int8": torch.int8,
+        "int16": torch.int16,
+        "int32": torch.int32,
+        "int64": torch.int64,
+        "float16": torch.float16,
+        "float32": torch.float32,
+        "float64": torch.float64,
+        "complex64": torch.complex64,
+        "complex128": torch.complex128,
     }[name]

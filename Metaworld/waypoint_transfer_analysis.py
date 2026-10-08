@@ -76,7 +76,9 @@ def parse_args():
         "--checkpoint",
         help="One frozen quasimetric checkpoint used for buffer-based analysis",
     )
-    parser.add_argument("--config", default=None, help="Optional rollout training config")
+    parser.add_argument(
+        "--config", default=None, help="Optional rollout training config"
+    )
     parser.add_argument(
         "--model-name",
         default=None,
@@ -168,7 +170,14 @@ def resolve_buffer_path(path):
 
 
 def load_replay_snapshot(path):
-    required = {"next_obses", "actions", "rewards", "successes", "task_ids", "episode_ids"}
+    required = {
+        "next_obses",
+        "actions",
+        "rewards",
+        "successes",
+        "task_ids",
+        "episode_ids",
+    }
     with np.load(path) as replay:
         missing = required.difference(replay.files)
         if missing:
@@ -192,9 +201,7 @@ def load_replay_snapshot(path):
 
 
 def load_awr_evaluator():
-    spec = importlib.util.spec_from_file_location(
-        "conquest_eval", AWR_EVALUATOR_PATH
-    )
+    spec = importlib.util.spec_from_file_location("conquest_eval", AWR_EVALUATOR_PATH)
     if spec is None or spec.loader is None:
         raise ImportError(f"Cannot load AWR evaluator: {AWR_EVALUATOR_PATH}")
     module = importlib.util.module_from_spec(spec)
@@ -266,7 +273,9 @@ def collect_meta_rollouts(args, device, output_prefix):
             try:
                 for episode_idx in range(args.rollout_episodes):
                     reset_kwargs = (
-                        initial_reset_kwargs if episode_idx == 0 else subsequent_reset_kwargs
+                        initial_reset_kwargs
+                        if episode_idx == 0
+                        else subsequent_reset_kwargs
                     )
                     observation, _ = test_env.reset(**reset_kwargs)
                     if env._uses_obs_normalization():
@@ -281,8 +290,8 @@ def collect_meta_rollouts(args, device, output_prefix):
                                 action = agent.act(actor_observation, sample=True)
                             else:
                                 action = env._evaluate_action(agent, observation)
-                        next_observation, reward, terminated, truncated, info = test_env.step(
-                            action
+                        next_observation, reward, terminated, truncated, info = (
+                            test_env.step(action)
                         )
                         if env._uses_obs_normalization():
                             next_observation = env._normalize_obs(next_observation)
@@ -375,7 +384,9 @@ def sample_episode_indices(indices, count, trim_fraction):
 
 
 def extract_waypoints(replay, args):
-    task_ids = sorted(int(value) for value in np.unique(replay["task_ids"]) if value >= 0)
+    task_ids = sorted(
+        int(value) for value in np.unique(replay["task_ids"]) if value >= 0
+    )
     if not task_ids:
         raise ValueError("Replay snapshot contains no nonnegative task IDs")
 
@@ -469,8 +480,10 @@ def infer_task_names(buffer_path, task_ids, ft_frame=None):
                     names[int(task_id)] = str(task_name)
 
     if ft_frame is not None and "task" in ft_frame.columns:
-        for target_id, task_name in ft_frame[["target_task_idx", "task"]].drop_duplicates().itertuples(
-            index=False, name=None
+        for target_id, task_name in (
+            ft_frame[["target_task_idx", "task"]]
+            .drop_duplicates()
+            .itertuples(index=False, name=None)
         ):
             target_id = int(target_id)
             if target_id in names:
@@ -489,7 +502,9 @@ def discover_final_checkpoint(model_dir):
             continue
         stage = int(match.group("stage"))
         if stage in checkpoints:
-            raise ValueError(f"Multiple quasimetric checkpoints found for stage {stage}")
+            raise ValueError(
+                f"Multiple quasimetric checkpoints found for stage {stage}"
+            )
         checkpoints[stage] = path
     if not checkpoints:
         raise FileNotFoundError(f"No meta quasimetric checkpoints found in {model_dir}")
@@ -601,9 +616,7 @@ def coverage_row(
 ):
     rows = []
     checkpoint_match = CHECKPOINT_PATTERN.fullmatch(Path(checkpoint_path).name)
-    encoder_stage = (
-        int(checkpoint_match.group("stage")) if checkpoint_match else np.nan
-    )
+    encoder_stage = int(checkpoint_match.group("stage")) if checkpoint_match else np.nan
     if source_task_id not in encoded:
         for target_task_id in task_ids:
             if source_task_id != target_task_id:
@@ -752,7 +765,9 @@ def spearman_correlation(x, y):
     return float(np.corrcoef(rankdata(x), rankdata(y))[0, 1])
 
 
-def task_label_permutation_test(frame, pair_frame, metric, task_ids, permutations, seed):
+def task_label_permutation_test(
+    frame, pair_frame, metric, task_ids, permutations, seed
+):
     available = frame.dropna(subset=[metric, "forward_transfer"]).copy()
     observed = spearman_correlation(available[metric], available["forward_transfer"])
     result = {
@@ -811,8 +826,7 @@ def task_label_permutation_test(frame, pair_frame, metric, task_ids, permutation
             "spearman_rho": observed,
             "valid_qap_permutations": int(null_values.size),
             "qap_p_greater": float(
-                (1 + np.count_nonzero(null_values >= observed))
-                / (1 + null_values.size)
+                (1 + np.count_nonzero(null_values >= observed)) / (1 + null_values.size)
             ),
             "qap_p_two_sided": float(
                 (1 + np.count_nonzero(np.abs(null_values) >= abs(observed)))
@@ -856,11 +870,15 @@ def plot_coverage_matrix(pair_frame, task_ids, task_names, output_path):
         index="source_task_idx", columns="target_task_idx", values="directed_coverage"
     ).reindex(index=task_ids, columns=task_ids)
     tasks_with_waypoints = set(
-        pair_frame.loc[pair_frame["source_waypoints"] > 0, "source_task_idx"].astype(int)
+        pair_frame.loc[pair_frame["source_waypoints"] > 0, "source_task_idx"].astype(
+            int
+        )
     )
     for task_id in tasks_with_waypoints:
         matrix.loc[task_id, task_id] = 1.0
-    labels = [f"{task_id}. {task_names[task_id].removesuffix('-v3')}" for task_id in task_ids]
+    labels = [
+        f"{task_id}. {task_names[task_id].removesuffix('-v3')}" for task_id in task_ids
+    ]
     matrix.index = labels
     matrix.columns = labels
 
@@ -976,11 +994,15 @@ def main():
         task_names = infer_task_names(buffer_path, buffer_task_ids, ft_for_names)
         source_metadata = {}
         if args.model_dir:
-            encoder_checkpoint, encoder_stage = discover_final_checkpoint(args.model_dir)
+            encoder_checkpoint, encoder_stage = discover_final_checkpoint(
+                args.model_dir
+            )
         else:
             encoder_checkpoint = Path(args.checkpoint).expanduser().resolve()
             if not encoder_checkpoint.is_file():
-                raise FileNotFoundError(f"Checkpoint does not exist: {encoder_checkpoint}")
+                raise FileNotFoundError(
+                    f"Checkpoint does not exist: {encoder_checkpoint}"
+                )
             match = CHECKPOINT_PATTERN.fullmatch(encoder_checkpoint.name)
             encoder_stage = int(match.group("stage")) if match else None
 
@@ -989,8 +1011,7 @@ def main():
     audit_frame.to_csv(f"{output_prefix}_waypoint_audit.csv", index=False)
 
     print(
-        f"using shared final meta encoder: {encoder_checkpoint} "
-        f"(stage={encoder_stage})"
+        f"using shared final meta encoder: {encoder_checkpoint} (stage={encoder_stage})"
     )
     pair_frame = compute_coverage(
         replay,
@@ -1065,7 +1086,9 @@ def main():
         "source_metadata": source_metadata,
         "encoder_mode": "final_meta_shared",
         "model_dir": source_metadata.get("model_dir")
-        or (str(Path(args.model_dir).expanduser().resolve()) if args.model_dir else None),
+        or (
+            str(Path(args.model_dir).expanduser().resolve()) if args.model_dir else None
+        ),
         "checkpoint": str(encoder_checkpoint),
         "encoder_stage": encoder_stage,
         "ft_components": str(Path(args.ft_components).expanduser().resolve())

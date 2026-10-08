@@ -14,11 +14,20 @@ from ...optim import OptimWrapper, AdamWSpec
 
 class ActorLossBase(LossBase):
     @abc.abstractmethod
-    def forward(self, actor: Actor, critic_batch_infos: Collection[CriticBatchInfo], data: BatchData) -> LossResult:
+    def forward(
+        self,
+        actor: Actor,
+        critic_batch_infos: Collection[CriticBatchInfo],
+        data: BatchData,
+    ) -> LossResult:
         pass
 
-
-    def __call__(self, actor: Actor, critic_batch_infos: Collection[CriticBatchInfo], data: BatchData) -> LossResult:
+    def __call__(
+        self,
+        actor: Actor,
+        critic_batch_infos: Collection[CriticBatchInfo],
+        data: BatchData,
+    ) -> LossResult:
         return super().__call__(actor, critic_batch_infos, data)
 
 
@@ -29,15 +38,15 @@ from .behavior_cloning import BCLoss
 class ActorLosses(ActorLossBase):
     @attrs.define(kw_only=True)
     class Conf:
-
-
         min_dist: MinDistLoss.Conf = MinDistLoss.Conf()
         behavior_cloning: BCLoss.Conf = BCLoss.Conf()
 
         actor_optim: AdamWSpec.Conf = AdamWSpec.Conf(lr=3e-5)
         entropy_weight_optim: AdamWSpec.Conf = AdamWSpec.Conf(lr=3e-4)
 
-        def make(self, actor: Actor, total_optim_steps: int, env_spec: EnvSpec) -> 'ActorLosses':
+        def make(
+            self, actor: Actor, total_optim_steps: int, env_spec: EnvSpec
+        ) -> "ActorLosses":
             return ActorLosses(
                 actor,
                 total_optim_steps=total_optim_steps,
@@ -55,30 +64,49 @@ class ActorLosses(ActorLossBase):
     entropy_weight_optim: OptimWrapper
     entropy_weight_sched: torch.optim.lr_scheduler._LRScheduler
 
-    def __init__(self, actor: Actor, *, total_optim_steps: int,
-                 min_dist: MinDistLoss, behavior_cloning: BCLoss,
-                 actor_optim_spec: AdamWSpec, entropy_weight_optim_spec: AdamWSpec):
+    def __init__(
+        self,
+        actor: Actor,
+        *,
+        total_optim_steps: int,
+        min_dist: MinDistLoss,
+        behavior_cloning: BCLoss,
+        actor_optim_spec: AdamWSpec,
+        entropy_weight_optim_spec: AdamWSpec,
+    ):
         super().__init__()
         self.min_dist = min_dist
         self.behavior_cloning = behavior_cloning
 
         self.actor_optim, self.actor_sched = actor_optim_spec.create_optim_scheduler(
-            actor.parameters(), total_optim_steps)
-        self.entropy_weight_optim, self.entropy_weight_sched = entropy_weight_optim_spec.create_optim_scheduler(
-            min_dist.parameters(), total_optim_steps)
+            actor.parameters(), total_optim_steps
+        )
+        self.entropy_weight_optim, self.entropy_weight_sched = (
+            entropy_weight_optim_spec.create_optim_scheduler(
+                min_dist.parameters(), total_optim_steps
+            )
+        )
         assert len(list(min_dist.parameters())) <= 1
 
-    def forward(self, actor: Actor, critic_batch_infos: Collection[CriticBatchInfo], data: BatchData, *,
-                optimize: bool = True, auxiliary_loss: Optional[torch.Tensor] = None) -> LossResult:
-        with self.actor_optim.update_context(optimize=optimize), \
-                self.entropy_weight_optim.update_context(optimize=optimize):
-
+    def forward(
+        self,
+        actor: Actor,
+        critic_batch_infos: Collection[CriticBatchInfo],
+        data: BatchData,
+        *,
+        optimize: bool = True,
+        auxiliary_loss: Optional[torch.Tensor] = None,
+    ) -> LossResult:
+        with (
+            self.actor_optim.update_context(optimize=optimize),
+            self.entropy_weight_optim.update_context(optimize=optimize),
+        ):
             loss_results = dict(
                 min_dist=self.min_dist(actor, critic_batch_infos, data),
                 behavior_cloning=self.behavior_cloning(actor, critic_batch_infos, data),
             )
             if auxiliary_loss is not None:
-                loss_results['auxiliary'] = LossResult(
+                loss_results["auxiliary"] = LossResult(
                     loss=auxiliary_loss,
                     info=dict(loss=auxiliary_loss.detach()),
                 )
@@ -90,9 +118,15 @@ class ActorLosses(ActorLossBase):
             self.entropy_weight_sched.step()
         return result
 
-
-    def __call__(self, actor: Actor, critic_batch_infos: Collection[CriticBatchInfo], data: BatchData, *,
-                 optimize: bool = True, auxiliary_loss: Optional[torch.Tensor] = None) -> LossResult:
+    def __call__(
+        self,
+        actor: Actor,
+        critic_batch_infos: Collection[CriticBatchInfo],
+        data: BatchData,
+        *,
+        optimize: bool = True,
+        auxiliary_loss: Optional[torch.Tensor] = None,
+    ) -> LossResult:
         return torch.nn.Module.__call__(
             self,
             actor,

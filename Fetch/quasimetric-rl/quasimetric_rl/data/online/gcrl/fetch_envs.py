@@ -1,19 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 """Utility for loading the Gymnasium-Robotics Fetch v4 environments."""
 
 import gymnasium as gym
@@ -26,12 +10,12 @@ import numpy as np
 def get_reward(norm_dist, reward_mode):
 
     is_success = float(norm_dist < 1)
-    if reward_mode == 'dense':
+    if reward_mode == "dense":
         return np.exp(-norm_dist * np.log(2))
-    elif reward_mode == 'positive':
+    elif reward_mode == "positive":
         return is_success
     else:
-        assert reward_mode == 'negative'
+        assert reward_mode == "negative"
         return is_success - 1
 
 
@@ -60,7 +44,7 @@ FETCH_PUSH_IMAGE_CAMERA_CONFIGS = dict(
 
 def _hide_fetch_markers(env):
     env.model.geom_rgba[1:5] = 0
-    target_site_id = env._model_names.site_name2id.get('target0')
+    target_site_id = env._model_names.site_name2id.get("target0")
     if target_site_id is not None:
         env.model.site_rgba[target_site_id, 3] = 0
 
@@ -82,20 +66,21 @@ def _step_obs(step_result):
     return step_result[0]
 
 
-
 class FetchReachEnv(reach.MujocoFetchReachEnv):
     """Wrapper for the FetchReach environment."""
 
-    def __init__(self,
-                 reward_mode='positive',
-                 ):
+    def __init__(
+        self,
+        reward_mode="positive",
+    ):
         self.reward_mode = reward_mode
-        super(FetchReachEnv, self).__init__(reward_type='sparse')
+        super(FetchReachEnv, self).__init__(reward_type="sparse")
         self._old_observation_space = self.observation_space
         self._new_observation_space = gym.spaces.Box(
             low=np.full((20,), -np.inf, dtype=np.float32),
             high=np.full((20,), np.inf, dtype=np.float32),
-                dtype=np.float32)
+            dtype=np.float32,
+        )
         self.observation_space = self._new_observation_space
 
     def reset(self, *, seed=None, options=None):
@@ -108,7 +93,7 @@ class FetchReachEnv(reach.MujocoFetchReachEnv):
         s = _step_obs(super(FetchReachEnv, self).step(action))
         terminated = False
         truncated = False
-        dist = np.linalg.norm(s['achieved_goal'] - s['desired_goal'])
+        dist = np.linalg.norm(s["achieved_goal"] - s["desired_goal"])
         is_success = float(dist < 0.05)
         info = dict(
             is_success=is_success,
@@ -119,28 +104,30 @@ class FetchReachEnv(reach.MujocoFetchReachEnv):
     def observation(self, observation):
         start_index = 0
         end_index = 3
-        goal_pos_1 = observation['achieved_goal']
-        goal_pos_2 = observation['observation'][start_index:end_index]
+        goal_pos_1 = observation["achieved_goal"]
+        goal_pos_2 = observation["observation"][start_index:end_index]
         assert np.all(goal_pos_1 == goal_pos_2)
-        s = observation['observation']
+        s = observation["observation"]
         g = np.zeros_like(s)
-        g[start_index:end_index] = observation['desired_goal']
+        g[start_index:end_index] = observation["desired_goal"]
         return np.concatenate([s, g]).astype(np.float32)
 
 
 class FetchPushEnv(push.MujocoFetchPushEnv):
     """Wrapper for the FetchPush environment."""
 
-    def __init__(self,
-                 reward_mode='positive',
-                 ):
+    def __init__(
+        self,
+        reward_mode="positive",
+    ):
         self.reward_mode = reward_mode
-        super(FetchPushEnv, self).__init__(reward_type='sparse')
+        super(FetchPushEnv, self).__init__(reward_type="sparse")
         self._old_observation_space = self.observation_space
         self._new_observation_space = gym.spaces.Box(
             low=np.full((50,), -np.inf, dtype=np.float32),
             high=np.full((50,), np.inf, dtype=np.float32),
-                dtype=np.float32)
+            dtype=np.float32,
+        )
         self.observation_space = self._new_observation_space
 
     def reset(self, *, seed=None, options=None):
@@ -153,7 +140,7 @@ class FetchPushEnv(push.MujocoFetchPushEnv):
         s = _step_obs(super(FetchPushEnv, self).step(action))
         terminated = False
         truncated = False
-        dist = np.linalg.norm(s['achieved_goal'] - s['desired_goal'])
+        dist = np.linalg.norm(s["achieved_goal"] - s["desired_goal"])
         is_success = float(dist < 0.05)
         info = dict(
             is_success=is_success,
@@ -164,29 +151,31 @@ class FetchPushEnv(push.MujocoFetchPushEnv):
     def observation(self, observation):
         start_index = 3
         end_index = 6
-        goal_pos_1 = observation['achieved_goal']
-        goal_pos_2 = observation['observation'][start_index:end_index]
+        goal_pos_1 = observation["achieved_goal"]
+        goal_pos_2 = observation["observation"][start_index:end_index]
         assert np.all(goal_pos_1 == goal_pos_2)
-        s = observation['observation']
+        s = observation["observation"]
         g = np.zeros_like(s)
-        g[:start_index] = observation['desired_goal']
-        g[start_index:end_index] = observation['desired_goal']
+        g[:start_index] = observation["desired_goal"]
+        g[start_index:end_index] = observation["desired_goal"]
         return np.concatenate([s, g]).astype(np.float32)
 
 
 class FetchSlideEnv(slide.MujocoFetchSlideEnv):
     """Wrapper for the FetchSlide environment."""
 
-    def __init__(self,
-                 reward_mode='positive',
-                 ):
+    def __init__(
+        self,
+        reward_mode="positive",
+    ):
         self.reward_mode = reward_mode
-        super(FetchSlideEnv, self).__init__(reward_type='sparse')
+        super(FetchSlideEnv, self).__init__(reward_type="sparse")
         self._old_observation_space = self.observation_space
         self._new_observation_space = gym.spaces.Box(
             low=np.full((50,), -np.inf, dtype=np.float32),
             high=np.full((50,), np.inf, dtype=np.float32),
-                dtype=np.float32)
+            dtype=np.float32,
+        )
         self.observation_space = self._new_observation_space
 
     def reset(self, *, seed=None, options=None):
@@ -199,7 +188,7 @@ class FetchSlideEnv(slide.MujocoFetchSlideEnv):
         s = _step_obs(super(FetchSlideEnv, self).step(action))
         terminated = False
         truncated = False
-        dist = np.linalg.norm(s['achieved_goal'] - s['desired_goal'])
+        dist = np.linalg.norm(s["achieved_goal"] - s["desired_goal"])
         is_success = float(dist < 0.05)
         info = dict(
             is_success=is_success,
@@ -210,37 +199,39 @@ class FetchSlideEnv(slide.MujocoFetchSlideEnv):
     def observation(self, observation):
         start_index = 3
         end_index = 6
-        goal_pos_1 = observation['achieved_goal']
-        goal_pos_2 = observation['observation'][start_index:end_index]
+        goal_pos_1 = observation["achieved_goal"]
+        goal_pos_2 = observation["observation"][start_index:end_index]
         assert np.all(goal_pos_1 == goal_pos_2)
-        s = observation['observation']
+        s = observation["observation"]
         g = np.zeros_like(s)
-        g[:start_index] = observation['desired_goal']
-        g[start_index:end_index] = observation['desired_goal']
+        g[:start_index] = observation["desired_goal"]
+        g[start_index:end_index] = observation["desired_goal"]
         return np.concatenate([s, g]).astype(np.float32)
 
 
 class FetchReachImageEnv(reach.MujocoFetchReachEnv):
     """Wrapper for the FetchReach environment with image observations."""
 
-    def __init__(self,
-                 reward_mode='positive',
-                 ):
+    def __init__(
+        self,
+        reward_mode="positive",
+    ):
         self.reward_mode = reward_mode
         self._dist = []
         self._dist_vec = []
         super(FetchReachImageEnv, self).__init__(
-            reward_type='sparse',
-            render_mode='rgb_array',
+            reward_type="sparse",
+            render_mode="rgb_array",
             width=64,
             height=64,
             default_camera_config=FETCH_REACH_IMAGE_CAMERA_CONFIG,
         )
         self._old_observation_space = self.observation_space
         self._new_observation_space = gym.spaces.Box(
-                low=np.full((64*64*6), 0),
-                high=np.full((64*64*6), 255),
-                dtype=np.uint8)
+            low=np.full((64 * 64 * 6), 0),
+            high=np.full((64 * 64 * 6), 255),
+            dtype=np.uint8,
+        )
         self.observation_space = self._new_observation_space
         _hide_fetch_markers(self)
 
@@ -253,15 +244,14 @@ class FetchReachImageEnv(reach.MujocoFetchReachEnv):
             self._dist_vec.append(self._dist)
         self._dist = []
 
-
         self.observation_space = self._old_observation_space
         s, info = super(FetchReachImageEnv, self).reset(seed=seed, options=options)
         self.observation_space = self._new_observation_space
-        self._goal = s['desired_goal'].copy()
+        self._goal = s["desired_goal"].copy()
 
         for _ in range(10):
-            hand = s['achieved_goal']
-            obj = s['desired_goal']
+            hand = s["achieved_goal"]
+            obj = s["desired_goal"]
             delta = obj - hand
             a = np.concatenate([np.clip(10 * delta, -1, 1), [0.0]])
             s = _step_obs(super(FetchReachImageEnv, self).step(a))
@@ -272,13 +262,13 @@ class FetchReachImageEnv(reach.MujocoFetchReachEnv):
         s, _ = super(FetchReachImageEnv, self).reset(options=options)
         self.observation_space = self._new_observation_space
         img = self.observation(s)
-        dist = np.linalg.norm(s['achieved_goal'] - self._goal)
+        dist = np.linalg.norm(s["achieved_goal"] - self._goal)
         self._dist.append(dist)
         return np.concatenate([img, self._goal_img]), info
 
     def step(self, action):
         s = _step_obs(super(FetchReachImageEnv, self).step(action))
-        dist = np.linalg.norm(s['achieved_goal'] - self._goal)
+        dist = np.linalg.norm(s["achieved_goal"] - self._goal)
         self._dist.append(dist)
         terminated = False
         truncated = False
@@ -298,10 +288,10 @@ class FetchReachImageEnv(reach.MujocoFetchReachEnv):
 
         assert achieved_goal.shape == goal.shape, (achieved_goal.shape, goal.shape)
         is_success = (achieved_goal == goal).all(axis=-1)
-        if self.reward_mode == 'positive':
+        if self.reward_mode == "positive":
             r = is_success
         else:
-            assert self.reward_mode == 'negative'
+            assert self.reward_mode == "negative"
             r = is_success - 1
         return r
 
@@ -309,9 +299,13 @@ class FetchReachImageEnv(reach.MujocoFetchReachEnv):
 class FetchPushImageEnv(push.MujocoFetchPushEnv):
     """Wrapper for the FetchPush environment with image observations."""
 
-    def __init__(self, camera='camera2', start_at_obj=True, rand_y=False,
-                 reward_mode='positive',
-                 ):
+    def __init__(
+        self,
+        camera="camera2",
+        start_at_obj=True,
+        rand_y=False,
+        reward_mode="positive",
+    ):
         self.reward_mode = reward_mode
         self._start_at_obj = start_at_obj
         self._rand_y = rand_y
@@ -321,17 +315,18 @@ class FetchPushImageEnv(push.MujocoFetchPushEnv):
         if camera not in FETCH_PUSH_IMAGE_CAMERA_CONFIGS:
             raise NotImplementedError
         super(FetchPushImageEnv, self).__init__(
-            reward_type='sparse',
-            render_mode='rgb_array',
+            reward_type="sparse",
+            render_mode="rgb_array",
             width=64,
             height=64,
             default_camera_config=FETCH_PUSH_IMAGE_CAMERA_CONFIGS[camera],
         )
         self._old_observation_space = self.observation_space
         self._new_observation_space = gym.spaces.Box(
-                low=np.full((64*64*6), 0),
-                high=np.full((64*64*6), 255),
-                dtype=np.uint8)
+            low=np.full((64 * 64 * 6), 0),
+            high=np.full((64 * 64 * 6), 255),
+            dtype=np.uint8,
+        )
         self.observation_space = self._new_observation_space
         _hide_fetch_markers(self)
 
@@ -342,8 +337,8 @@ class FetchPushImageEnv(push.MujocoFetchPushEnv):
     def _move_hand_to_obj(self):
         s = super(FetchPushImageEnv, self)._get_obs()
         for _ in range(100):
-            hand = s['observation'][:3]
-            obj = s['achieved_goal'] + np.array([-0.02, 0.0, 0.0])
+            hand = s["observation"][:3]
+            obj = s["achieved_goal"] + np.array([-0.02, 0.0, 0.0])
             delta = obj - hand
             if np.linalg.norm(delta) < 0.06:
                 break
@@ -355,22 +350,21 @@ class FetchPushImageEnv(push.MujocoFetchPushEnv):
             self._dist_vec.append(self._dist)
         self._dist = []
 
-
         self.observation_space = self._old_observation_space
         s, info = super(FetchPushImageEnv, self).reset(seed=seed, options=options)
         self.observation_space = self._new_observation_space
 
         for _ in range(8):
             super(FetchPushImageEnv, self).step(np.array([-1.0, 0.0, 0.0, 0.0]))
-        object_qpos = _get_joint_qpos(self, 'object0:joint')
+        object_qpos = _get_joint_qpos(self, "object0:joint")
         if not self._rand_y:
             object_qpos[1] = 0.75
-        _set_joint_qpos(self, 'object0:joint', object_qpos)
+        _set_joint_qpos(self, "object0:joint", object_qpos)
         self._move_hand_to_obj()
         self._goal_img = self.observation(s)
-        block_xyz = _get_joint_qpos(self, 'object0:joint')[:3]
+        block_xyz = _get_joint_qpos(self, "object0:joint")[:3]
         if block_xyz[2] < 0.4:
-            print('Bad reset, recursing.')
+            print("Bad reset, recursing.")
             return self.reset(options=options)
         self._goal = block_xyz[:2].copy()
 
@@ -379,27 +373,27 @@ class FetchPushImageEnv(push.MujocoFetchPushEnv):
         self.observation_space = self._new_observation_space
         for _ in range(8):
             super(FetchPushImageEnv, self).step(np.array([-1.0, 0.0, 0.0, 0.0]))
-        object_qpos = _get_joint_qpos(self, 'object0:joint')
+        object_qpos = _get_joint_qpos(self, "object0:joint")
         object_qpos[:2] = np.array([1.15, 0.75])
-        _set_joint_qpos(self, 'object0:joint', object_qpos)
+        _set_joint_qpos(self, "object0:joint", object_qpos)
         if self._start_at_obj:
             self._move_hand_to_obj()
         else:
             for _ in range(5):
                 super(FetchPushImageEnv, self).step(self.action_space.sample())
 
-        block_xyz = _get_joint_qpos(self, 'object0:joint')[:3].copy()
+        block_xyz = _get_joint_qpos(self, "object0:joint")[:3].copy()
         img = self.observation(s)
         dist = np.linalg.norm(block_xyz[:2] - self._goal)
         self._dist.append(dist)
         if block_xyz[2] < 0.4:
-            print('Bad reset, recursing.')
+            print("Bad reset, recursing.")
             return self.reset(options=options)
         return np.concatenate([img, self._goal_img]), info
 
     def step(self, action):
         s = _step_obs(super(FetchPushImageEnv, self).step(action))
-        block_xy = _get_joint_qpos(self, 'object0:joint')[:2]
+        block_xy = _get_joint_qpos(self, "object0:joint")[:2]
         dist = np.linalg.norm(block_xy - self._goal)
         self._dist.append(dist)
         terminated = False
@@ -420,13 +414,12 @@ class FetchPushImageEnv(push.MujocoFetchPushEnv):
 
         assert achieved_goal.shape == goal.shape, (achieved_goal.shape, goal.shape)
         is_success = (achieved_goal == goal).all(axis=-1)
-        if self.reward_mode == 'positive':
+        if self.reward_mode == "positive":
             r = is_success
         else:
-            assert self.reward_mode == 'negative'
+            assert self.reward_mode == "negative"
             r = is_success - 1
         return r
-
 
 
 class BackToGymWrapper(gym.ObservationWrapper):
@@ -446,11 +439,13 @@ class BackToGymWrapper(gym.ObservationWrapper):
                 high=np.split(ospace.high, 2)[0],
                 dtype=ospace.dtype,
             )
-        self.observation_space = gym.spaces.Dict(dict(
-            observation=single_ospace,
-            achieved_goal=single_ospace,
-            desired_goal=single_ospace,
-        ))
+        self.observation_space = gym.spaces.Dict(
+            dict(
+                observation=single_ospace,
+                achieved_goal=single_ospace,
+                desired_goal=single_ospace,
+            )
+        )
 
     def observation(self, observation):
         o, g = np.split(observation, 2)
@@ -463,9 +458,9 @@ class BackToGymWrapper(gym.ObservationWrapper):
     def compute_reward(self, achieved_goal, goal, info):
         assert achieved_goal.shape == goal.shape, (achieved_goal.shape, goal.shape)
         is_success = (achieved_goal == goal).all(axis=-1)
-        if self.env.reward_mode == 'positive':
+        if self.env.reward_mode == "positive":
             r = is_success
         else:
-            assert self.env.reward_mode == 'negative'
+            assert self.env.reward_mode == "negative"
             r = is_success - 1
         return r

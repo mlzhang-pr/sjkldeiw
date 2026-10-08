@@ -12,10 +12,13 @@ import functools
 
 
 @attrs.define(kw_only=True)
-class FlagsDefinition():
+class FlagsDefinition:
     DEBUG: bool = attrs.field(
-        default=distutils.util.strtobool(os.environ.get('QRL_DEBUG', 'False')),
-        on_setattr=lambda self, field, val: (torch.autograd.set_detect_anomaly(val), val)[1],
+        default=distutils.util.strtobool(os.environ.get("QRL_DEBUG", "False")),
+        on_setattr=lambda self, field, val: (
+            torch.autograd.set_detect_anomaly(val),
+            val,
+        )[1],
     )
 
 
@@ -28,25 +31,17 @@ def pdb_if_DEBUG(fn: Callable):
         try:
             fn(*args, **kwargs)
         except:
-
-
-
             exc = sys.exc_info()[1]
             if isinstance(exc, KeyboardInterrupt):
                 raise
 
-
-
-
             if isinstance(exc, SystemExit) and not exc.code:
                 raise
-
-
 
             if FLAGS.DEBUG:
                 traceback.print_exc()
                 print()
-                print(' *** Entering post-mortem debugging ***')
+                print(" *** Entering post-mortem debugging ***")
                 print()
                 pdb.post_mortem()
             raise
@@ -54,4 +49,4 @@ def pdb_if_DEBUG(fn: Callable):
     return wrapped
 
 
-__all__ = ['FLAGS', 'pdb_if_DEBUG']
+__all__ = ["FLAGS", "pdb_if_DEBUG"]

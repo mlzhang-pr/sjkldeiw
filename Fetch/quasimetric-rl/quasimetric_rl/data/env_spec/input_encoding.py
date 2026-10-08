@@ -13,6 +13,7 @@ class InputEncoding(nn.Module, metaclass=abc.ABCMeta):
 
     Supports arbitrary batching.
     """
+
     input_shape: torch.Size
     output_size: int
 
@@ -24,7 +25,6 @@ class InputEncoding(nn.Module, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         pass
-
 
     def __call__(self, input: torch.Tensor) -> torch.Tensor:
         return super().__call__(input)
@@ -41,7 +41,7 @@ class Identity(InputEncoding):
 
 class OneHot(InputEncoding):
     def __init__(self, input_shape: torch.Size, num_classes: int) -> None:
-        assert len(input_shape) == 0, 'we only support single scalar discrete action'
+        assert len(input_shape) == 0, "we only support single scalar discrete action"
         super().__init__(input_shape, num_classes)
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
@@ -92,6 +92,8 @@ class AtariTorso(InputEncoding):
         return s.div(255).permute(list(range(s.ndim - 3)) + [-1, -3, -2]) - 0.5
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
-        return self.torso(self.permute(
-            input.flatten(0, -4),
-        )).unflatten(0, input.shape[:-3])
+        return self.torso(
+            self.permute(
+                input.flatten(0, -4),
+            )
+        ).unflatten(0, input.shape[:-3])

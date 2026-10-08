@@ -6,9 +6,10 @@ import contextlib
 import torch
 
 
-
 class OptimWrapper(object):
-    def __init__(self, optim: torch.optim.Optimizer, *, grad_clip_norm: Optional[float] = None):
+    def __init__(
+        self, optim: torch.optim.Optimizer, *, grad_clip_norm: Optional[float] = None
+    ):
         self.optim = optim
         self.grad_clip_norm = grad_clip_norm
         if grad_clip_norm is not None:
@@ -24,7 +25,7 @@ class OptimWrapper(object):
             yield
             if self.grad_clip_norm is not None:
                 torch.nn.utils.clip_grad_norm_(
-                    self.param_groups[0]['params'],
+                    self.param_groups[0]["params"],
                     self.grad_clip_norm,
                     norm_type=2,
                 )
@@ -53,7 +54,7 @@ class OptimWrapper(object):
 class AdamWSpec:
     @attrs.define(kw_only=True)
     class Conf:
-        alg: str = 'adamw'
+        alg: str = "adamw"
         lr: float = attrs.field(default=1e-3, validator=attrs.validators.gt(0))
         betas: Tuple[float, float] = attrs.field(
             converter=tuple,
@@ -63,12 +64,15 @@ class AdamWSpec:
         grad_clip_norm: Optional[float] = attrs.field(
             default=None, validator=attrs.validators.optional(attrs.validators.gt(0))
         )
-        cosine_lr_decay_final_mul: float = attrs.field(default=1, validator=attrs.validators.and_(
-            attrs.validators.ge(0),
-            attrs.validators.le(1),
-        ))
+        cosine_lr_decay_final_mul: float = attrs.field(
+            default=1,
+            validator=attrs.validators.and_(
+                attrs.validators.ge(0),
+                attrs.validators.le(1),
+            ),
+        )
 
-        def make(self) -> 'AdamWSpec':
+        def make(self) -> "AdamWSpec":
             return AdamWSpec(**attrs.asdict(self))
 
     alg: str
@@ -79,21 +83,28 @@ class AdamWSpec:
     cosine_lr_decay_final_mul: float
 
     def __attrs_post_init__(self):
-        assert self.alg == 'adamw', 'Only AdamW is supported.'
+        assert self.alg == "adamw", "Only AdamW is supported."
 
     def create_optim(self, params) -> OptimWrapper:
         params = list(params)
         if len(params) == 0:
             params = [dict(params=[])]
         return OptimWrapper(
-            torch.optim.AdamW(params, lr=self.lr, betas=self.betas, weight_decay=self.weight_decay),
+            torch.optim.AdamW(
+                params, lr=self.lr, betas=self.betas, weight_decay=self.weight_decay
+            ),
             grad_clip_norm=self.grad_clip_norm,
         )
 
-    def create_scheduler(self, optim: OptimWrapper, epochs: int) -> torch.optim.lr_scheduler._LRScheduler:
+    def create_scheduler(
+        self, optim: OptimWrapper, epochs: int
+    ) -> torch.optim.lr_scheduler._LRScheduler:
         return torch.optim.lr_scheduler.CosineAnnealingLR(
-            optim.optim, T_max=epochs, eta_min=self.lr * self.cosine_lr_decay_final_mul)
+            optim.optim, T_max=epochs, eta_min=self.lr * self.cosine_lr_decay_final_mul
+        )
 
-    def create_optim_scheduler(self, params, epochs) -> Tuple[OptimWrapper, torch.optim.lr_scheduler._LRScheduler]:
+    def create_optim_scheduler(
+        self, params, epochs
+    ) -> Tuple[OptimWrapper, torch.optim.lr_scheduler._LRScheduler]:
         optim = self.create_optim(params)
         return optim, self.create_scheduler(optim, epochs)

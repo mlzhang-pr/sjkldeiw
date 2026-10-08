@@ -9,15 +9,19 @@ from tqdm import tqdm
 import os, time
 
 parser = ArgumentParser()
-parser.add_argument('--seed', type=int, default=0, help="seed")
-parser.add_argument('--env-name', type=str, default="all", help="Environment Name")
-parser.add_argument('--t-steps', type=int, default=3500000, help="number of episodes")
-parser.add_argument('--switch', type=int, default=500000, help="switch env steps")
-parser.add_argument('--save', action="store_true")
-parser.add_argument("--gpu", type=int, default=0, help="Random seed and device selector")
+parser.add_argument("--seed", type=int, default=0, help="seed")
+parser.add_argument("--env-name", type=str, default="all", help="Environment Name")
+parser.add_argument("--t-steps", type=int, default=3500000, help="number of episodes")
+parser.add_argument("--switch", type=int, default=500000, help="switch env steps")
+parser.add_argument("--save", action="store_true")
+parser.add_argument(
+    "--gpu", type=int, default=0, help="Random seed and device selector"
+)
 
-parser.add_argument('--seq', type=int, default=0, help="selected sequence in the environment list")
-parser.add_argument('--reset', type=int, default=1, help="reset every environment")
+parser.add_argument(
+    "--seq", type=int, default=0, help="selected sequence in the environment list"
+)
+parser.add_argument("--reset", type=int, default=1, help="reset every environment")
 
 args = parser.parse_args()
 
@@ -37,8 +41,7 @@ done = False
 _ = env.reset()
 
 for step in tqdm(range(args.t_steps)):
-    
-    if step %args.switch == 0 and step > 0:
+    if step % args.switch == 0 and step > 0:
         gameid += 1
         env = CL_envs_func_new(seq=args.seq, game_id=gameid, seed=args.seed)
         Games.append(env.game_name)
@@ -58,9 +61,22 @@ for step in tqdm(range(args.t_steps)):
 
 if args.save:
     os.makedirs("results", exist_ok=True)
-    filename = ("Random_"+str(args.t_steps)+"_switch_"+str(args.switch)+"_env_name_"+str(args.env_name) +
-                "_seq_" + str(args.seq) +"_reset_"+str(args.reset) + "_seed_"+str(args.seed)+".pkl")
-    with open("results/"+filename, "wb") as f:
+    filename = (
+        "Random_"
+        + str(args.t_steps)
+        + "_switch_"
+        + str(args.switch)
+        + "_env_name_"
+        + str(args.env_name)
+        + "_seq_"
+        + str(args.seq)
+        + "_reset_"
+        + str(args.reset)
+        + "_seed_"
+        + str(args.seed)
+        + ".pkl"
+    )
+    with open("results/" + filename, "wb") as f:
         pickle.dump(returns_array, f)
 
-print('Games: ', Games, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+print("Games: ", Games, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))

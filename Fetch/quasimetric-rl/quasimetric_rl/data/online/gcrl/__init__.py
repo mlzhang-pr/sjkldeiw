@@ -35,11 +35,13 @@ class GoalCondEnvWrapper(gym.ObservationWrapper):
                 high=np.split(ospace.high, 2)[0],
                 dtype=ospace.dtype,
             )
-        self.observation_space = gym.spaces.Dict(dict(
-            observation=single_ospace,
-            achieved_goal=single_ospace,
-            desired_goal=single_ospace,
-        ))
+        self.observation_space = gym.spaces.Dict(
+            dict(
+                observation=single_ospace,
+                achieved_goal=single_ospace,
+                desired_goal=single_ospace,
+            )
+        )
         self.episode_length = episode_length
         self.is_image_based = is_image_based
 
@@ -56,27 +58,27 @@ class GoalCondEnvWrapper(gym.ObservationWrapper):
         return odict
 
 
-
 def create_env_from_spec(name: str):
     from . import fetch_envs
 
-    env: gym.Env = getattr(fetch_envs, name + 'Env')()
-    is_image_based = name.endswith('Image')
+    env: gym.Env = getattr(fetch_envs, name + "Env")()
+    is_image_based = name.endswith("Image")
     return GoalCondEnvWrapper(env, episode_length=50, is_image_based=is_image_based)
 
 
 valid_names = (
-    'FetchReach',
-    'FetchReachImage',
-    'FetchPush',
-    'FetchPushImage',
-    'FetchSlide',
+    "FetchReach",
+    "FetchReachImage",
+    "FetchPush",
+    "FetchPushImage",
+    "FetchSlide",
 )
 
 
 for name in valid_names:
     register_online_env(
-        'gcrl', name,
+        "gcrl",
+        name,
         create_env_fn=functools.partial(create_env_from_spec, name),
         episode_length=50,
     )

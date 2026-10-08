@@ -14,14 +14,6 @@ from .utils import TensorCollectionAttrsMixin
 from .env_spec import EnvSpec
 
 
-
-
-
-
-
-
-
-
 @attrs.define(kw_only=True)
 class BatchData(TensorCollectionAttrsMixin):
     observations: torch.Tensor
@@ -46,19 +38,11 @@ class BatchData(TensorCollectionAttrsMixin):
         return self.terminals.numel()
 
 
-
-
-
-
-
-
 @attrs.define(kw_only=True)
 class MultiEpisodeData(TensorCollectionAttrsMixin):
     r"""
     The DATASET of MULTIPLE episodes
     """
-
-
 
     episode_lengths: torch.Tensor
 
@@ -88,7 +72,9 @@ class MultiEpisodeData(TensorCollectionAttrsMixin):
         assert self.episode_lengths.ndim == 1
         N = self.num_transitions
         assert N > 0
-        assert self.all_observations.ndim >= 1 and self.all_observations.shape[0] == (N + self.num_episodes), self.all_observations.shape
+        assert self.all_observations.ndim >= 1 and self.all_observations.shape[0] == (
+            N + self.num_episodes
+        ), self.all_observations.shape
         assert self.actions.ndim >= 1 and self.actions.shape[0] == N
         assert self.rewards.ndim == 1 and self.rewards.shape[0] == N
         assert self.terminals.ndim == 1 and self.terminals.shape[0] == N
@@ -97,7 +83,6 @@ class MultiEpisodeData(TensorCollectionAttrsMixin):
             assert v.shape[0] == N + self.num_episodes, k
         for k, v in self.transition_infos.items():
             assert v.shape[0] == N, k
-
 
 
 @attrs.define(kw_only=True)
@@ -111,15 +96,17 @@ class EpisodeData(MultiEpisodeData):
         assert self.num_episodes == 1
 
     @classmethod
-    def from_simple_trajectory(cls,
-                               observations: Union[np.ndarray, torch.Tensor],
-                               actions: Union[np.ndarray, torch.Tensor],
-                               next_observations: Union[np.ndarray, torch.Tensor],
-                               rewards: Union[np.ndarray, torch.Tensor],
-                               terminals: Union[np.ndarray, torch.Tensor],
-                               timeouts: Union[np.ndarray, torch.Tensor]):
+    def from_simple_trajectory(
+        cls,
+        observations: Union[np.ndarray, torch.Tensor],
+        actions: Union[np.ndarray, torch.Tensor],
+        next_observations: Union[np.ndarray, torch.Tensor],
+        rewards: Union[np.ndarray, torch.Tensor],
+        terminals: Union[np.ndarray, torch.Tensor],
+        timeouts: Union[np.ndarray, torch.Tensor],
+    ):
         observations = torch.tensor(observations)
-        next_observations=torch.tensor(next_observations)
+        next_observations = torch.tensor(next_observations)
         all_observations = torch.cat([observations, next_observations[-1:]], dim=0)
         return cls(
             episode_lengths=torch.tensor([observations.shape[0]]),
@@ -131,17 +118,9 @@ class EpisodeData(MultiEpisodeData):
         )
 
 
-
-
-
-
-
-
-
-
-
-
-LOAD_EPISODES_REGISTRY: Mapping[Tuple[str, str], Callable[[], Iterator[EpisodeData]]] = {}
+LOAD_EPISODES_REGISTRY: Mapping[
+    Tuple[str, str], Callable[[], Iterator[EpisodeData]]
+] = {}
 CREATE_ENV_REGISTRY: Mapping[Tuple[str, str], Callable[[], gym.Env]] = {}
 
 
@@ -168,44 +147,39 @@ def register_offline_env(kind: str, spec: str, *, load_episodes_fn, create_env_f
 class Dataset:
     @attrs.define(kw_only=True)
     class Conf:
-
-
         kind: str = MISSING
         name: str = MISSING
 
+        future_observation_discount: float = attrs.field(
+            default=0.99,
+            validator=attrs.validators.and_(
+                attrs.validators.ge(0.0),
+                attrs.validators.le(1.0),
+            ),
+        )
 
-        future_observation_discount: float = attrs.field(default=0.99, validator=attrs.validators.and_(
-            attrs.validators.ge(0.0),
-            attrs.validators.le(1.0),
-        ))
-
-        def make(self, *, dummy: bool = False) -> 'Dataset':
-            return Dataset(self.kind, self.name,
-                           future_observation_discount=self.future_observation_discount,
-                           dummy=dummy)
+        def make(self, *, dummy: bool = False) -> "Dataset":
+            return Dataset(
+                self.kind,
+                self.name,
+                future_observation_discount=self.future_observation_discount,
+                dummy=dummy,
+            )
 
     kind: str
     name: str
     future_observation_discount: float
 
-
-
-
     raw_data: MultiEpisodeData
-
 
     env_spec: EnvSpec
 
-
     future_observation_discount: float
-
-
 
     obs_indices_to_obs_index_in_episode: torch.Tensor
     indices_to_episode_indices: torch.Tensor
     indices_to_episode_timesteps: torch.Tensor
     max_episode_length: int
-
 
     def create_env(self) -> gym.Env:
         return CREATE_ENV_REGISTRY[self.kind, self.name]()
@@ -213,10 +187,14 @@ class Dataset:
     def load_episodes(self) -> Iterator[EpisodeData]:
         return LOAD_EPISODES_REGISTRY[self.kind, self.name]()
 
-    def __init__(self, kind: str, name: str, *,
-                 future_observation_discount: float,
-                 dummy: bool = False,
-                 ) -> None:
+    def __init__(
+        self,
+        kind: str,
+        name: str,
+        *,
+        future_observation_discount: float,
+        dummy: bool = False,
+    ) -> None:
         self.kind = kind
         self.name = name
         self.future_observation_discount = future_observation_discount
@@ -230,6 +208,7 @@ class Dataset:
             episodes = tuple(self.load_episodes())
         else:
             from .online.utils import get_empty_episode
+
             episodes = (get_empty_episode(self.env_spec, episode_length=1),)
 
         obs_indices_to_obs_index_in_episode = []
@@ -237,16 +216,22 @@ class Dataset:
         indices_to_episode_timesteps = []
         for eidx, episode in enumerate(episodes):
             l = episode.num_transitions
-            obs_indices_to_obs_index_in_episode.append(torch.arange(l + 1, dtype=torch.int64))
+            obs_indices_to_obs_index_in_episode.append(
+                torch.arange(l + 1, dtype=torch.int64)
+            )
             indices_to_episode_indices.append(torch.full([l], eidx, dtype=torch.int64))
             indices_to_episode_timesteps.append(torch.arange(l, dtype=torch.int64))
 
         assert len(episodes) > 0, "must have at least one episode"
         self.raw_data = MultiEpisodeData.cat(episodes)
 
-        self.obs_indices_to_obs_index_in_episode = torch.cat(obs_indices_to_obs_index_in_episode, dim=0)
+        self.obs_indices_to_obs_index_in_episode = torch.cat(
+            obs_indices_to_obs_index_in_episode, dim=0
+        )
         self.indices_to_episode_indices = torch.cat(indices_to_episode_indices, dim=0)
-        self.indices_to_episode_timesteps = torch.cat(indices_to_episode_timesteps, dim=0)
+        self.indices_to_episode_timesteps = torch.cat(
+            indices_to_episode_timesteps, dim=0
+        )
         self.max_episode_length = self.raw_data.episode_lengths.max().item()
 
     def get_observations(self, obs_indices: torch.Tensor):
@@ -265,9 +250,8 @@ class Dataset:
         epilengths = self.raw_data.episode_lengths[eindices]
         deltas = torch.arange(self.max_episode_length)
         pdeltas = torch.where(
-
             (tindices[:, None] + deltas) < epilengths[:, None],
-            self.future_observation_discount ** deltas,
+            self.future_observation_discount**deltas,
             0,
         )
         deltas = torch.distributions.Categorical(
@@ -295,14 +279,19 @@ class Dataset:
     name={self.name!r},
     future_observation_discount={self.future_observation_discount!r},
     env_spec={self.env_spec!r},
-)""".lstrip('\n')
+)""".lstrip("\n")
 
-    def get_dataloader(self, *,
-                       batch_size: int, shuffle: bool = False,
-                       drop_last: bool = False,
-                       pin_memory: bool = False,
-                       num_workers: int = 0, persistent_workers: bool = False,
-                       **kwargs) -> torch.utils.data.DataLoader:
+    def get_dataloader(
+        self,
+        *,
+        batch_size: int,
+        shuffle: bool = False,
+        drop_last: bool = False,
+        pin_memory: bool = False,
+        num_workers: int = 0,
+        persistent_workers: bool = False,
+        **kwargs,
+    ) -> torch.utils.data.DataLoader:
         sampler = torch.utils.data.BatchSampler(
             torch.utils.data.RandomSampler(self),
             batch_size=batch_size,
@@ -321,7 +310,7 @@ class Dataset:
 
 
 def seed_worker(_):
-    worker_seed = torch.utils.data.get_worker_info().seed % (2 ** 32)
+    worker_seed = torch.utils.data.get_worker_info().seed % (2**32)
     np.random.seed(worker_seed)
 
 

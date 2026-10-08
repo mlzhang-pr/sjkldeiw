@@ -8,17 +8,20 @@ import math
 from torch import nn
 from torch import distributions as pyd
 
+
 class Dict(dict):
-  __setattr__ = dict.__setitem__
-  __getattr__ = dict.__getitem__
+    __setattr__ = dict.__setitem__
+    __getattr__ = dict.__getitem__
+
 
 def dict_to_object(dictObj):
-  if not isinstance(dictObj, dict):
-    return dictObj
-  inst=Dict()
-  for k,v in dictObj.items():
-    inst[k] = dict_to_object(v)
-  return inst
+    if not isinstance(dictObj, dict):
+        return dictObj
+    inst = Dict()
+    for k, v in dictObj.items():
+        inst[k] = dict_to_object(v)
+    return inst
+
 
 class eval_mode(object):
     def __init__(self, *models):
@@ -35,6 +38,7 @@ class eval_mode(object):
             model.train(state)
         return False
 
+
 class train_mode(object):
     def __init__(self, *models):
         self.models = models
@@ -50,17 +54,19 @@ class train_mode(object):
             model.train(state)
         return False
 
+
 def soft_update_params(net, target_net, tau):
     for param, target_param in zip(net.parameters(), target_net.parameters()):
         target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
+
 
 def set_seed_everywhere(seed_value):
     seed_value = int(seed_value)
     random.seed(seed_value)
     np.random.seed(seed_value)
     torch.manual_seed(seed_value)
-    os.environ['PYTHONHASHSEED'] = str(seed_value)
-    if torch.cuda.is_available(): 
+    os.environ["PYTHONHASHSEED"] = str(seed_value)
+    if torch.cuda.is_available():
         torch.cuda.manual_seed(seed_value)
         torch.cuda.manual_seed_all(seed_value)
         torch.backends.cudnn.deterministic = True
@@ -80,12 +86,14 @@ def weight_init(m):
     """Custom weight init for Conv2D and Linear layers."""
     if isinstance(m, nn.Linear):
         nn.init.orthogonal_(m.weight.data)
-        if hasattr(m.bias, 'data'):
+        if hasattr(m.bias, "data"):
             m.bias.data.fill_(0.0)
 
 
 class MLP(nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim, hidden_depth, output_mod=None):
+    def __init__(
+        self, input_dim, hidden_dim, output_dim, hidden_depth, output_mod=None
+    ):
         super().__init__()
         self.trunk = mlp(input_dim, hidden_dim, output_dim, hidden_depth, output_mod)
         self.apply(weight_init)
@@ -115,11 +123,9 @@ class TanhTransform(pyd.transforms.Transform):
 
     def _inverse(self, y):
 
-
         return self.atanh(y)
 
     def log_abs_det_jacobian(self, x, y):
-
 
         return 2.0 * (math.log(2.0) - x - F.softplus(-2.0 * x))
 
@@ -164,7 +170,9 @@ class TorchRunningMeanStd:
         return torch.sqrt(self.var)
 
 
-def update_mean_var_count_from_moments(mean, var, count, batch_mean, batch_var, batch_count):
+def update_mean_var_count_from_moments(
+    mean, var, count, batch_mean, batch_var, batch_count
+):
     delta = batch_mean - mean
     tot_count = count + batch_count
 

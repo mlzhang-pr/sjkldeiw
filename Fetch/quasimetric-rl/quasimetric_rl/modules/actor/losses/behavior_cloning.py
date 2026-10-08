@@ -13,15 +13,12 @@ from ...quasimetric_critic import CriticBatchInfo
 from . import ActorLossBase
 
 
-
 class BCLoss(ActorLossBase):
     @attrs.define(kw_only=True)
     class Conf:
-
-
         weight: float = attrs.field(default=0, validator=attrs.validators.ge(0))
 
-        def make(self) -> 'BCLoss':
+        def make(self) -> "BCLoss":
             return BCLoss(weight=self.weight)
 
     weight: float
@@ -30,7 +27,12 @@ class BCLoss(ActorLossBase):
         super().__init__()
         self.weight = weight
 
-    def forward(self, actor: Actor, critic_batch_infos: Collection[CriticBatchInfo], data: BatchData) -> LossResult:
+    def forward(
+        self,
+        actor: Actor,
+        critic_batch_infos: Collection[CriticBatchInfo],
+        data: BatchData,
+    ) -> LossResult:
         if self.weight == 0:
             return LossResult(loss=0, info={})
         actor_distn = actor(data.observations, data.future_observations)

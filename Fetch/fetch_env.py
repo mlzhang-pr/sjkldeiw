@@ -204,7 +204,9 @@ def _candidate_fetch_env_ids(task_name, fetch_env_version):
     return [f"{prefix}-v{version}" for version in versions]
 
 
-def make_fetch_env(task_name, reward_type="sparse", fetch_env_version="auto", max_episode_steps=50):
+def make_fetch_env(
+    task_name, reward_type="sparse", fetch_env_version="auto", max_episode_steps=50
+):
     _import_gymnasium_robotics()
     native_reward_type = "sparse" if reward_type == "success" else reward_type
     make_kwargs = {"reward_type": native_reward_type}
@@ -267,7 +269,13 @@ class FetchGoalInfoWrapper(gym.Wrapper):
         obs, _, terminated, truncated, info = self.env.step(action)
         obs = self._cast_obs(obs)
         reward = self.compute_reward(obs["achieved_goal"], obs["desired_goal"], info)
-        return obs, float(np.asarray(reward).reshape(-1)[0]), terminated, truncated, self._goal_info(info, obs)
+        return (
+            obs,
+            float(np.asarray(reward).reshape(-1)[0]),
+            terminated,
+            truncated,
+            self._goal_info(info, obs),
+        )
 
     def compute_reward(self, achieved_goal, desired_goal, info=None):
         del info
@@ -296,8 +304,12 @@ class FetchGoalInfoWrapper(gym.Wrapper):
         info["is_success"] = np.float32(success)
         info["success"] = success
         info["goal_distance"] = distance
-        info["achieved_goal"] = np.array(obs["achieved_goal"], dtype=np.float32, copy=True)
-        info["desired_goal"] = np.array(obs["desired_goal"], dtype=np.float32, copy=True)
+        info["achieved_goal"] = np.array(
+            obs["achieved_goal"], dtype=np.float32, copy=True
+        )
+        info["desired_goal"] = np.array(
+            obs["desired_goal"], dtype=np.float32, copy=True
+        )
         return info
 
 
@@ -313,7 +325,9 @@ class FetchGoalScaleWrapper(gym.Wrapper):
         obs, info = self.env.reset(**kwargs)
         achieved_goal = np.asarray(obs["achieved_goal"], dtype=np.float32)
         desired_goal = np.asarray(obs["desired_goal"], dtype=np.float32)
-        self.episode_goal = achieved_goal + self.goal_scale * (desired_goal - achieved_goal)
+        self.episode_goal = achieved_goal + self.goal_scale * (
+            desired_goal - achieved_goal
+        )
         return self._replace_goal(obs), info
 
     def step(self, action):
@@ -487,7 +501,9 @@ class FetchObservationPaddingWrapper(gym.Wrapper):
 
         obs_space = env.observation_space
         if not isinstance(obs_space, gym.spaces.Dict):
-            raise TypeError("FetchObservationPaddingWrapper expects a Dict observation space.")
+            raise TypeError(
+                "FetchObservationPaddingWrapper expects a Dict observation space."
+            )
 
         observation_space = obs_space.spaces["observation"]
         self.source_observation_dim = int(np.prod(observation_space.shape))
@@ -498,8 +514,12 @@ class FetchObservationPaddingWrapper(gym.Wrapper):
             )
 
         spaces = dict(obs_space.spaces)
-        low = self._pad_observation(np.asarray(observation_space.low, dtype=np.float32), pad_value=0.0)
-        high = self._pad_observation(np.asarray(observation_space.high, dtype=np.float32), pad_value=0.0)
+        low = self._pad_observation(
+            np.asarray(observation_space.low, dtype=np.float32), pad_value=0.0
+        )
+        high = self._pad_observation(
+            np.asarray(observation_space.high, dtype=np.float32), pad_value=0.0
+        )
         spaces["observation"] = gym.spaces.Box(low, high, dtype=np.float32)
         self.observation_space = gym.spaces.Dict(spaces)
 
@@ -547,8 +567,12 @@ class FetchOnlineGoalWrapper(gym.Wrapper):
         self.observation_space = gym.spaces.Dict(
             {
                 "observation": state_space,
-                "achieved_goal": gym.spaces.Box(state_low.copy(), state_high.copy(), dtype=np.float32),
-                "desired_goal": gym.spaces.Box(state_low.copy(), state_high.copy(), dtype=np.float32),
+                "achieved_goal": gym.spaces.Box(
+                    state_low.copy(), state_high.copy(), dtype=np.float32
+                ),
+                "desired_goal": gym.spaces.Box(
+                    state_low.copy(), state_high.copy(), dtype=np.float32
+                ),
             }
         )
 
@@ -560,7 +584,13 @@ class FetchOnlineGoalWrapper(gym.Wrapper):
     def step(self, action):
         obs, reward, terminated, truncated, info = self.env.step(action)
         online_obs = self._online_obs(obs)
-        return online_obs, reward, terminated, truncated, self._online_info(info, obs, online_obs)
+        return (
+            online_obs,
+            reward,
+            terminated,
+            truncated,
+            self._online_info(info, obs, online_obs),
+        )
 
     def compute_reward(self, achieved_goal, desired_goal, info=None):
         achieved_goal = self._extract_fetch_goal(achieved_goal)
@@ -569,7 +599,9 @@ class FetchOnlineGoalWrapper(gym.Wrapper):
 
     def _online_obs(self, obs):
         state = np.asarray(obs["observation"], dtype=np.float32).reshape(-1)
-        desired_position = np.asarray(obs["desired_goal"], dtype=np.float32).reshape(-1)[:3]
+        desired_position = np.asarray(obs["desired_goal"], dtype=np.float32).reshape(
+            -1
+        )[:3]
         desired_state = np.zeros_like(state, dtype=np.float32)
         if self.goal_start > 0:
             desired_state[: self.goal_start] = desired_position
@@ -582,17 +614,29 @@ class FetchOnlineGoalWrapper(gym.Wrapper):
 
     def _online_info(self, info, obs, online_obs):
         info = dict(info)
-        fetch_achieved_goal = np.asarray(obs["achieved_goal"], dtype=np.float32).reshape(-1)[:3]
-        fetch_desired_goal = np.asarray(obs["desired_goal"], dtype=np.float32).reshape(-1)[:3]
+        fetch_achieved_goal = np.asarray(
+            obs["achieved_goal"], dtype=np.float32
+        ).reshape(-1)[:3]
+        fetch_desired_goal = np.asarray(obs["desired_goal"], dtype=np.float32).reshape(
+            -1
+        )[:3]
         distance = float(np.linalg.norm(fetch_achieved_goal - fetch_desired_goal))
         success = distance <= self.success_threshold
         info["is_success"] = np.float32(success)
         info["success"] = bool(success)
         info["goal_distance"] = distance
-        info["fetch_achieved_goal"] = np.array(fetch_achieved_goal, dtype=np.float32, copy=True)
-        info["fetch_desired_goal"] = np.array(fetch_desired_goal, dtype=np.float32, copy=True)
-        info["achieved_goal"] = np.array(online_obs["achieved_goal"], dtype=np.float32, copy=True)
-        info["desired_goal"] = np.array(online_obs["desired_goal"], dtype=np.float32, copy=True)
+        info["fetch_achieved_goal"] = np.array(
+            fetch_achieved_goal, dtype=np.float32, copy=True
+        )
+        info["fetch_desired_goal"] = np.array(
+            fetch_desired_goal, dtype=np.float32, copy=True
+        )
+        info["achieved_goal"] = np.array(
+            online_obs["achieved_goal"], dtype=np.float32, copy=True
+        )
+        info["desired_goal"] = np.array(
+            online_obs["desired_goal"], dtype=np.float32, copy=True
+        )
         return info
 
     def _extract_fetch_goal(self, goal):
@@ -600,7 +644,9 @@ class FetchOnlineGoalWrapper(gym.Wrapper):
         if goal.shape[-1] == 3:
             return goal
         if goal.shape[-1] != self.state_dim:
-            raise ValueError(f"Fetch goal has dim {goal.shape[-1]}, expected 3 or {self.state_dim}.")
+            raise ValueError(
+                f"Fetch goal has dim {goal.shape[-1]}, expected 3 or {self.state_dim}."
+            )
         return goal[..., self.goal_start : self.goal_end]
 
 
@@ -609,8 +655,14 @@ class FetchFlatObservationWrapper(gym.Wrapper):
         super().__init__(env)
         self.keys = tuple(keys)
         spaces = env.observation_space.spaces
-        lows = [np.asarray(spaces[key].low, dtype=np.float32).reshape(-1) for key in self.keys]
-        highs = [np.asarray(spaces[key].high, dtype=np.float32).reshape(-1) for key in self.keys]
+        lows = [
+            np.asarray(spaces[key].low, dtype=np.float32).reshape(-1)
+            for key in self.keys
+        ]
+        highs = [
+            np.asarray(spaces[key].high, dtype=np.float32).reshape(-1)
+            for key in self.keys
+        ]
         self.observation_space = gym.spaces.Box(
             np.concatenate(lows),
             np.concatenate(highs),
@@ -629,9 +681,9 @@ class FetchFlatObservationWrapper(gym.Wrapper):
         return self.env.compute_reward(achieved_goal, desired_goal, info)
 
     def _flatten(self, obs):
-        return np.concatenate([np.asarray(obs[key], dtype=np.float32).reshape(-1) for key in self.keys]).astype(
-            np.float32
-        )
+        return np.concatenate(
+            [np.asarray(obs[key], dtype=np.float32).reshape(-1) for key in self.keys]
+        ).astype(np.float32)
 
 
 class SuccessCounter(gym.Wrapper):
@@ -699,9 +751,7 @@ class FetchGoalEnvSequence:
         if not 0.0 < self.slide_goal_scale <= 1.0:
             raise ValueError("slide_goal_scale must be in (0, 1].")
         self.eval_goal_outer_range = (
-            None
-            if eval_goal_outer_range is None
-            else float(eval_goal_outer_range)
+            None if eval_goal_outer_range is None else float(eval_goal_outer_range)
         )
         self.eval_initial_state_outer_range = (
             None
@@ -724,12 +774,19 @@ class FetchGoalEnvSequence:
                 "eval_initial_position and eval_initial_state_outer_range are "
                 "mutually exclusive."
             )
-        if self.eval_goal_position is not None and self.eval_goal_outer_range is not None:
+        if (
+            self.eval_goal_position is not None
+            and self.eval_goal_outer_range is not None
+        ):
             raise ValueError(
                 "eval_goal_position and eval_goal_outer_range are mutually exclusive."
             )
-        self.episode_length = None if max_episode_steps is None else int(max_episode_steps)
-        self.fetch_observation_dim = max(FETCH_OBSERVATION_DIMS[task_name] for task_name in self.env_list)
+        self.episode_length = (
+            None if max_episode_steps is None else int(max_episode_steps)
+        )
+        self.fetch_observation_dim = max(
+            FETCH_OBSERVATION_DIMS[task_name] for task_name in self.env_list
+        )
         self.normalize_obs = normalize_obs
         self.normalize_avg_coef = normalize_avg_coef
         self.reset_obs_stats = reset_obs_stats
@@ -769,9 +826,13 @@ class FetchGoalEnvSequence:
 
     def make_task(self):
         self.task_counter += 1
-        self.base_task_name = self.env_list[(self.task_counter - 1) % len(self.env_list)]
+        self.base_task_name = self.env_list[
+            (self.task_counter - 1) % len(self.env_list)
+        ]
         self._replace_env(self.base_task_name)
-        print(f"TASK {self.task_counter} {self.current_seed} {self.base_task_name} ({self.current_env_id})")
+        print(
+            f"TASK {self.task_counter} {self.current_seed} {self.base_task_name} ({self.current_env_id})"
+        )
 
     def set_task(self, task_name):
         self.base_task_name = normalize_fetch_task_name(task_name)
@@ -790,8 +851,10 @@ class FetchGoalEnvSequence:
 
         if self.obs_mean is None or self.reset_obs_stats:
             self.obs_mean = np.zeros(self._obs_statistics_shape(), dtype=np.float32)
-            self.obs_var = np.zeros(self._obs_statistics_shape(), dtype=np.float32) if self.bias_correction else np.ones(
-                self._obs_statistics_shape(), dtype=np.float32
+            self.obs_var = (
+                np.zeros(self._obs_statistics_shape(), dtype=np.float32)
+                if self.bias_correction
+                else np.ones(self._obs_statistics_shape(), dtype=np.float32)
             )
             self.obs_count = 1e-4
 
@@ -877,7 +940,9 @@ class FetchGoalEnvSequence:
     def evaluate_agent(self, agent, num_eval_episodes=10, reseed_each_episode=True):
         test_env = self._wrap_env(self.base_task_name, eval_mode=True)
         try:
-            reset_kwargs = {"seed": self.current_seed} if self.current_seed is not None else {}
+            reset_kwargs = (
+                {"seed": self.current_seed} if self.current_seed is not None else {}
+            )
             subsequent_reset_kwargs = reset_kwargs if reseed_each_episode else {}
             obs, _ = test_env.reset(**reset_kwargs)
             if self._uses_obs_normalization():
@@ -898,7 +963,9 @@ class FetchGoalEnvSequence:
                 next_obs, _, terminated, truncated, info = test_env.step(action)
 
                 if "is_success" in info:
-                    current_goal_success = current_goal_success or bool(info["is_success"])
+                    current_goal_success = current_goal_success or bool(
+                        info["is_success"]
+                    )
                 if "goal_distance" in info:
                     current_goal_distances.append(float(info["goal_distance"]))
 
@@ -911,7 +978,9 @@ class FetchGoalEnvSequence:
                         goal_successes.append(current_goal_success)
                         final_goal_distances.append(current_goal_distances[-1])
                         min_goal_distances.append(float(np.min(current_goal_distances)))
-                        mean_goal_distances.append(float(np.mean(current_goal_distances)))
+                        mean_goal_distances.append(
+                            float(np.mean(current_goal_distances))
+                        )
                     current_goal_success = False
                     current_goal_distances = []
 
@@ -942,8 +1011,13 @@ class FetchGoalEnvSequence:
             act_parameters = inspect.signature(agent.act).parameters
             expected_goal_dim = getattr(agent, "actor_critic_goal_dim", None)
             desired_goal = obs.get("desired_goal")
-            if desired_goal is not None and "goal_obs" in act_parameters and (
-                expected_goal_dim is None or desired_goal.shape[-1] == expected_goal_dim
+            if (
+                desired_goal is not None
+                and "goal_obs" in act_parameters
+                and (
+                    expected_goal_dim is None
+                    or desired_goal.shape[-1] == expected_goal_dim
+                )
             ):
                 return agent.act(obs_vector, goal_obs=desired_goal)
             return agent.act(obs_vector)
@@ -956,7 +1030,9 @@ class FetchGoalEnvSequence:
             if compute_reward is not None:
                 return compute_reward(achieved_goal, desired_goal, info)
             env = getattr(env, "env", None)
-        raise AttributeError("compute_reward is only available for goal-conditioned Fetch observations.")
+        raise AttributeError(
+            "compute_reward is only available for goal-conditioned Fetch observations."
+        )
 
     def close(self):
         if self.env is not None:
@@ -986,10 +1062,12 @@ class FetchGoalEnvSequence:
     def _update_obs_statistics(self, obs):
         obs = np.asarray(self._normalizable_obs(obs), dtype=np.float32)
         if self.normalize_obs.lower() == "ema":
-            self.obs_mean = (1 - self.normalize_avg_coef) * self.obs_mean + self.normalize_avg_coef * obs
-            self.obs_var = (1 - self.normalize_avg_coef) * self.obs_var + self.normalize_avg_coef * (
-                obs - self.obs_mean
-            ) ** 2
+            self.obs_mean = (
+                1 - self.normalize_avg_coef
+            ) * self.obs_mean + self.normalize_avg_coef * obs
+            self.obs_var = (
+                1 - self.normalize_avg_coef
+            ) * self.obs_var + self.normalize_avg_coef * (obs - self.obs_mean) ** 2
         elif self.normalize_obs.lower() == "straight":
             mean = self.obs_mean
             var = self.obs_var
@@ -997,7 +1075,7 @@ class FetchGoalEnvSequence:
             delta = obs - mean
             total_count = count + 1
             self.obs_mean = mean + delta / total_count
-            self.obs_var = var * count / total_count + delta ** 2 * count / total_count ** 2
+            self.obs_var = var * count / total_count + delta**2 * count / total_count**2
             self.obs_count = total_count
 
     def _normalize_obs(self, obs):
@@ -1016,7 +1094,10 @@ class FetchGoalEnvSequence:
         return self._replace_normalizable_obs(obs, normalized_obs)
 
     def _check_solved_task(self):
-        return len(self.eval_success_history) >= 5 and np.min(self.eval_success_history[-5:]) >= 0.799
+        return (
+            len(self.eval_success_history) >= 5
+            and np.min(self.eval_success_history[-5:]) >= 0.799
+        )
 
 
 if __name__ == "__main__":
@@ -1025,5 +1106,3 @@ if __name__ == "__main__":
     print(env.env_list)
     print(env.base_task_name, env.current_env_id)
     print({key: value.shape for key, value in obs.items()}, info.get("success"))
-
-

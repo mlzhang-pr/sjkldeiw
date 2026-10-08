@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 import numpy as np
 import torch
 from scipy.special import ndtr as reference_ndtr
@@ -20,27 +12,24 @@ _LOGNDTR_FLOAT64_UPPER = torch.tensor(8, dtype=torch.float64)
 _LOGNDTR_FLOAT32_UPPER = torch.tensor(5, dtype=torch.float32)
 
 
-
 DBL_FAC = [1, 1, 2, 3, 8, 15, 48, 105, 384, 945]
 HALF_SQRT2 = np.sqrt(2) / 2
 LOG2PI = np.log(2 * np.pi)
 
 
 def _nrm_logpdf(x):
-    return -(LOG2PI + (x ** 2)) / 2
+    return -(LOG2PI + (x**2)) / 2
 
 
 def _ndtr(x):
 
-
-
     w = x * HALF_SQRT2
     z = torch.abs(w)
-    y = torch.where(torch.lt(z, HALF_SQRT2),
-                   torch.erf(w) + 1,
-                   torch.where(torch.gt(w, 0),
-                               -torch.erfc(z) + 2,
-                               torch.erfc(z)))
+    y = torch.where(
+        torch.lt(z, HALF_SQRT2),
+        torch.erf(w) + 1,
+        torch.where(torch.gt(w, 0), -torch.erfc(z) + 2, torch.erfc(z)),
+    )
     ndtr = y / 2
 
     return ndtr
@@ -49,7 +38,7 @@ def _ndtr(x):
 def _log_ndtr_lower(x, series_order):
     """Asymptotic expansion version of `Log[cdf(x)]`, appropriate for `x<<-1`."""
     x_2 = x.square()
-    log_scale = -(x_2 / 2) - torch.log(-x) - 0.5 * np.log(2. * np.pi)
+    log_scale = -(x_2 / 2) - torch.log(-x) - 0.5 * np.log(2.0 * np.pi)
     return log_scale + torch.log(_log_ndtr_asymptotic_series(x, series_order))
 
 
@@ -87,37 +76,18 @@ def _log_ndtr(x, series_order=3):
         lower_segment = _LOGNDTR_FLOAT32_LOWER
         upper_segment = _LOGNDTR_FLOAT32_UPPER
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     return torch.where(
         torch.gt(x, upper_segment),
         -_ndtr(-x),
         torch.where(
             torch.gt(x, lower_segment),
             torch.log(_ndtr(torch.maximum(x, lower_segment))),
-            _log_ndtr_lower(torch.minimum(x, lower_segment), series_order)
-        )
+            _log_ndtr_lower(torch.minimum(x, lower_segment), series_order),
+        ),
     )
 
 
 class LogNdtr(Function):
-
     @staticmethod
     def forward(ctx, x):
         with torch.no_grad():
@@ -134,19 +104,20 @@ class LogNdtr(Function):
 
 log_ndtr = LogNdtr.apply
 
+
 def log_ndtr_general(x: torch.Tensor, mean: torch.Tensor, scale: torch.Tensor):
     return log_ndtr((x - mean) / scale)
 
 
 def test_gradcheck():
     from torch.autograd import gradcheck
+
     x = 200 * torch.rand(100, dtype=torch.double) - 100
     x.requires_grad_()
     assert gradcheck(log_ndtr, x)
 
 
 def main():
-
 
     x = torch.tensor([-100, -21, -19, -11, -9], dtype=torch.float64, requires_grad=True)
 
@@ -164,6 +135,5 @@ def main():
     test_gradcheck()
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

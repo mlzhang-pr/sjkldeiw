@@ -3,6 +3,7 @@ Adapted from
 https://github.com/jannerm/diffuser/blob/2c496e055c0c036a66f653752e96a0f7c66fdcda/diffuser/datasets/d4rl.py
 https://github.com/jannerm/diffuser/blob/2c496e055c0c036a66f653752e96a0f7c66fdcda/diffuser/datasets/preprocessing.py
 """
+
 from typing import *
 
 import os
@@ -22,13 +23,14 @@ from contextlib import (
     redirect_stdout,
 )
 
+
 @contextmanager
 def suppress_output():
     """
-        A context manager that redirects stdout and stderr to devnull
-        https://stackoverflow.com/a/52442331
+    A context manager that redirects stdout and stderr to devnull
+    https://stackoverflow.com/a/52442331
     """
-    with open(os.devnull, 'w') as fnull:
+    with open(os.devnull, "w") as fnull:
         with redirect_stderr(fnull) as err, redirect_stdout(fnull) as out:
             yield (err, out)
 
@@ -36,17 +38,16 @@ def suppress_output():
 d4rl = None
 OfflineEnv = None
 
+
 def lazy_init_d4rl():
-
-
 
     global d4rl, OfflineEnv
 
     if d4rl is None:
         import importlib
-        with suppress_output():
 
-            d4rl = __import__('d4rl')
+        with suppress_output():
+            d4rl = __import__("d4rl")
         OfflineEnv = d4rl.offline_env.OfflineEnv
 
 
@@ -60,18 +61,13 @@ if TYPE_CHECKING:
         max_episode_steps: int
 
 
-
-
-
-
-def load_environment(name: Union[str, gym.Env]) -> 'OfflineEnv':
+def load_environment(name: Union[str, gym.Env]) -> "OfflineEnv":
     lazy_init_d4rl()
     if type(name) != str:
-
         return name
     with suppress_output():
         wrapped_env: gym.Wrapper = gym.make(name)
-    env: 'OfflineEnv' = wrapped_env.unwrapped
+    env: "OfflineEnv" = wrapped_env.unwrapped
     env.max_episode_steps = wrapped_env._max_episode_steps
     env.name = name
     env.reset()
@@ -80,7 +76,9 @@ def load_environment(name: Union[str, gym.Env]) -> 'OfflineEnv':
     return env
 
 
-def sequence_dataset(env: 'OfflineEnv', dataset: Mapping[str, np.ndarray]) -> Generator[Mapping[str, np.ndarray], None, None]:
+def sequence_dataset(
+    env: "OfflineEnv", dataset: Mapping[str, np.ndarray]
+) -> Generator[Mapping[str, np.ndarray], None, None]:
     """
     Returns an *ordered* iterator through trajectories.
     Args:
@@ -103,23 +101,22 @@ def sequence_dataset(env: 'OfflineEnv', dataset: Mapping[str, np.ndarray]) -> Ge
             ...
     """
 
-    N = dataset['rewards'].shape[0]
+    N = dataset["rewards"].shape[0]
     data_ = collections.defaultdict(list)
 
-
-
-    use_timeouts = 'timeouts' in dataset
+    use_timeouts = "timeouts" in dataset
 
     episode_step = 0
     for i in tqdm(range(N), desc=f"{env.name} dataset timesteps"):
-        done_bool = bool(dataset['terminals'][i])
+        done_bool = bool(dataset["terminals"][i])
         if use_timeouts:
-            final_timestep = dataset['timeouts'][i]
+            final_timestep = dataset["timeouts"][i]
         else:
-            final_timestep = (episode_step == env.max_episode_steps - 1)
+            final_timestep = episode_step == env.max_episode_steps - 1
 
         for k in dataset:
-            if 'metadata' in k: continue
+            if "metadata" in k:
+                continue
             data_[k].append(dataset[k][i])
 
         if done_bool or final_timestep or i == N - 1:
@@ -127,9 +124,11 @@ def sequence_dataset(env: 'OfflineEnv', dataset: Mapping[str, np.ndarray]) -> Ge
             episode_data = {}
             for k in data_:
                 episode_data[k] = np.array(data_[k])
-            assert 'all_observations' not in episode_data
-            episode_data['all_observations'] = np.concatenate(
-                [episode_data['observations'], episode_data['next_observations'][-1:]], axis=0)
+            assert "all_observations" not in episode_data
+            episode_data["all_observations"] = np.concatenate(
+                [episode_data["observations"], episode_data["next_observations"][-1:]],
+                axis=0,
+            )
             yield episode_data
             data_ = collections.defaultdict(list)
 
@@ -139,29 +138,36 @@ def sequence_dataset(env: 'OfflineEnv', dataset: Mapping[str, np.ndarray]) -> Ge
 from ..base import EpisodeData
 
 
-def convert_dict_to_EpisodeData_iter(sequence_dataset_episodes: Iterator[Mapping[str, np.ndarray]]):
+def convert_dict_to_EpisodeData_iter(
+    sequence_dataset_episodes: Iterator[Mapping[str, np.ndarray]],
+):
     for episode in sequence_dataset_episodes:
         episode_dict = dict(
-            episode_lengths=torch.as_tensor([len(episode['all_observations']) - 1], dtype=torch.int64),
-            all_observations=torch.as_tensor(episode['all_observations'], dtype=torch.float32),
-            actions=torch.as_tensor(episode['actions'], dtype=torch.float32),
-            rewards=torch.as_tensor(episode['rewards'], dtype=torch.float32),
-            terminals=torch.as_tensor(episode['terminals'], dtype=torch.bool),
+            episode_lengths=torch.as_tensor(
+                [len(episode["all_observations"]) - 1], dtype=torch.int64
+            ),
+            all_observations=torch.as_tensor(
+                episode["all_observations"], dtype=torch.float32
+            ),
+            actions=torch.as_tensor(episode["actions"], dtype=torch.float32),
+            rewards=torch.as_tensor(episode["rewards"], dtype=torch.float32),
+            terminals=torch.as_tensor(episode["terminals"], dtype=torch.bool),
             timeouts=(
-                torch.as_tensor(episode['timeouts'], dtype=torch.bool) if 'timeouts' in episode else
-                torch.zeros(episode['terminals'].shape, dtype=torch.bool)
+                torch.as_tensor(episode["timeouts"], dtype=torch.bool)
+                if "timeouts" in episode
+                else torch.zeros(episode["terminals"].shape, dtype=torch.bool)
             ),
             observation_infos={},
             transition_infos={},
         )
         for k, v in episode.items():
-            if k.startswith('observation_infos/'):
-                episode_dict['observation_infos'][k.split('/', 1)[1]] = v
-            elif k.startswith('transition_infos/'):
-                episode_dict['transition_infos'][k.split('/', 1)[1]] = v
+            if k.startswith("observation_infos/"):
+                episode_dict["observation_infos"][k.split("/", 1)[1]] = v
+            elif k.startswith("transition_infos/"):
+                episode_dict["transition_infos"][k.split("/", 1)[1]] = v
         yield EpisodeData(**episode_dict)
 
 
 from . import maze2d
 
-__all__ = ['D4RLDataset']
+__all__ = ["D4RLDataset"]

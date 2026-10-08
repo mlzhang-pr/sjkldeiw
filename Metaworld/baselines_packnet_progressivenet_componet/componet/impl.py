@@ -77,27 +77,20 @@ class CompoNet(nn.Module):
         self.ret_probs = ret_probs
         self.internal_policy = internal_policy
         self.encoder = encoder if encoder is not None else Identity()
-        self.att_temp = np.sqrt(
-            hidden_dim
-        )
-
-
+        self.att_temp = np.sqrt(hidden_dim)
 
         self.is_prev = False
-
 
         self.headout_wq = att_heads_init(
             nn.Linear(input_dim, hidden_dim, bias=proj_bias)
         )
         self.headout_wk = att_heads_init(nn.Linear(out_dim, hidden_dim, bias=proj_bias))
 
-
         self.headin_wq = att_heads_init(
             nn.Linear(input_dim, hidden_dim, bias=proj_bias)
         )
         self.headin_wk = att_heads_init(nn.Linear(out_dim, hidden_dim, bias=proj_bias))
         self.headin_wv = att_heads_init(nn.Linear(out_dim, hidden_dim, bias=proj_bias))
-
 
         n_prev = len(previous_units)
         pe1 = torch.tensor(
@@ -107,15 +100,12 @@ class CompoNet(nn.Module):
         )
         self.pe1 = pe1[None, :, :]
 
-
         if n_prev >= 2:
             self.pe0 = self.pe1[:, :-1, :]
         else:
             self.pe0 = None
 
-
         for unit in previous_units:
-
             if hasattr(unit, "previous_units"):
                 del unit.previous_units
             unit.is_prev = True
@@ -134,23 +124,17 @@ class CompoNet(nn.Module):
         phi  -- The matrix with the results of the previous modules.
         """
 
-
         query = self.headout_wq(s)
 
         keys = self.headout_wk(phi + self.pe0 if self.pe0 is not None else phi)
         values = phi
 
-
         w = torch.matmul(
-
             query[:, None, :],
-
             keys.permute(0, 2, 1),
         )
 
-
         att = F.softmax(w / self.att_temp, dim=-1)
-
 
         att_dot_val = torch.matmul(att, values)
 
@@ -165,26 +149,19 @@ class CompoNet(nn.Module):
                 and the result of the output attention head.
         """
 
-
         query = self.headin_wq(s)
         values = self.headin_wv(phi)
         keys = self.headin_wk(phi + self.pe1)
 
-
         w = torch.matmul(
-
             query[:, None, :],
-
             keys.permute(0, 2, 1),
         )
 
-
         att = F.softmax(w / self.att_temp, dim=-1)
-
 
         att_dot_val = torch.matmul(att, values)
         att_dot_val = att_dot_val[:, 0, :]
-
 
         policy_in = torch.hstack([att_dot_val, s])
 
@@ -251,13 +228,9 @@ class CompoNet(nn.Module):
 
         if not self.is_prev:
             with torch.no_grad():
-
                 phi, _s = self.previous_units(s)
 
-
-
                 if prevs_to_noise > 0:
-
                     if self.ret_probs:
                         m = torch.distributions.Dirichlet(
                             torch.tensor([1 / self.out_dim] * self.out_dim)
@@ -272,23 +245,16 @@ class CompoNet(nn.Module):
 
         hs = self.encoder(s)
 
-
         out_head, att_head_out = self._forward_headout(hs, phi)
 
-
-        int_pol_phi = torch.cat(
-            [phi, out_head], dim=1
-        )
+        int_pol_phi = torch.cat([phi, out_head], dim=1)
         logits, att_head_in = self._get_internal_policy(hs, int_pol_phi)
-
 
         out_head = out_head[:, 0, :]
         out = out_head + logits
 
-
         if self.ret_probs:
             out = logit2prob(out)
-
 
         out = out[:, None, :]
         phi = torch.cat([phi, out], dim=1)
@@ -297,7 +263,6 @@ class CompoNet(nn.Module):
             return phi, s
 
         out = out[:, 0, :]
-
 
         ret_vals = [out, phi]
         if ret_encoder_out:
@@ -365,8 +330,6 @@ class FirstModuleWrapper(nn.Module):
 
 
 if __name__ == "__main__":
-
-
     input_dim = 128
     hidden_dim = 512
     out_dim = 6

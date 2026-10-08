@@ -7,45 +7,51 @@ import torch.distributions
 import torch.distributions.constraints
 
 
-
-
-
-
-
-
 class AcmeTanhTransformedDistribution(torch.distributions.TransformedDistribution):
-    def __init__(self, dist: torch.distributions.Distribution, threshold=.999, validate_args: bool = True):
-        super().__init__(dist, torch.distributions.TanhTransform(), validate_args=validate_args)
-
-
-
+    def __init__(
+        self,
+        dist: torch.distributions.Distribution,
+        threshold=0.999,
+        validate_args: bool = True,
+    ):
+        super().__init__(
+            dist, torch.distributions.TanhTransform(), validate_args=validate_args
+        )
 
         self._threshold = threshold
         inverse_threshold = torch.atanh(torch.as_tensor(threshold))
 
-
-        log_epsilon = np.log(1. - threshold)
-
-
+        log_epsilon = np.log(1.0 - threshold)
 
         from .log_ndtr import log_ndtr_general
+
         assert isinstance(self.base_dist, torch.distributions.Normal)
-        self._log_prob_left = log_ndtr_general(-inverse_threshold, self.base_dist.mean, self.base_dist.scale) - log_epsilon
-        self._log_prob_right = log_ndtr_general(2 * self.base_dist.mean - inverse_threshold, self.base_dist.mean, self.base_dist.scale) - log_epsilon
+        self._log_prob_left = (
+            log_ndtr_general(
+                -inverse_threshold, self.base_dist.mean, self.base_dist.scale
+            )
+            - log_epsilon
+        )
+        self._log_prob_right = (
+            log_ndtr_general(
+                2 * self.base_dist.mean - inverse_threshold,
+                self.base_dist.mean,
+                self.base_dist.scale,
+            )
+            - log_epsilon
+        )
 
     def log_prob(self, event):
 
-
         event = torch.clamp(event, -self._threshold, self._threshold)
-
 
         return torch.where(
             event <= -self._threshold,
             self._log_prob_left,
-            torch.where(event >= self._threshold,
-                        self._log_prob_right,
-                        super().log_prob(event)))
-
+            torch.where(
+                event >= self._threshold, self._log_prob_right, super().log_prob(event)
+            ),
+        )
 
 
 class SampleDist(torch.distributions.Distribution):
@@ -74,7 +80,11 @@ class SampleDist(torch.distributions.Distribution):
         assert logprob.ndim == 2
         batch_size = sample.size(1)
         feature_size = sample.size(2)
-        indices = torch.argmax(logprob, dim=0).reshape(1, batch_size, 1).expand(1, batch_size, feature_size)
+        indices = (
+            torch.argmax(logprob, dim=0)
+            .reshape(1, batch_size, 1)
+            .expand(1, batch_size, feature_size)
+        )
         return torch.gather(sample, 0, indices).squeeze(0)
 
     def entropy(self):

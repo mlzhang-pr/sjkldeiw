@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import sys
 import os
 import logging
@@ -11,8 +5,7 @@ import tqdm
 import contextlib
 
 
-__all__ = ['logger', 'configure', 'disable']
-
+__all__ = ["logger", "configure", "disable"]
 
 
 logger = logging.getLogger()
@@ -34,9 +27,8 @@ class TqdmLoggingHandler(logging.Handler):
 
 
 class MultiLineFormatter(logging.Formatter):
-
-    def __init__(self, fmt=None, datefmt=None, style='%'):
-        assert style == '%'
+    def __init__(self, fmt=None, datefmt=None, style="%"):
+        assert style == "%"
         super(MultiLineFormatter, self).__init__(fmt, datefmt, style)
         self.multiline_fmt = fmt
 
@@ -49,10 +41,10 @@ class MultiLineFormatter(logging.Formatter):
         record.message = record.getMessage()
         if self.usesTime():
             record.asctime = self.formatTime(record, self.datefmt)
-        if '\n' in record.message:
+        if "\n" in record.message:
             splitted = record.message.splitlines()
             output = self._fmt % dict(record.__dict__, message=splitted.pop(0))
-            output += ' \n' + '\n'.join(
+            output += " \n" + "\n".join(
                 self.multiline_fmt % dict(record.__dict__, message=line)
                 for line in splitted
             )
@@ -60,26 +52,25 @@ class MultiLineFormatter(logging.Formatter):
             output = self._fmt % record.__dict__
 
         if record.exc_info:
-
-
             if not record.exc_text:
                 record.exc_text = self.formatException(record.exc_info)
         if record.exc_text:
-            output += ' \n'
+            output += " \n"
             try:
-                output += '\n'.join(
+                output += "\n".join(
                     self.multiline_fmt % dict(record.__dict__, message=line)
                     for index, line in enumerate(record.exc_text.splitlines())
                 )
             except UnicodeError:
-                output += '\n'.join(
+                output += "\n".join(
                     self.multiline_fmt % dict(record.__dict__, message=line)
-                    for index, line
-                    in enumerate(record.exc_text.decode(sys.getfilesystemencoding(), 'replace').splitlines())
+                    for index, line in enumerate(
+                        record.exc_text.decode(
+                            sys.getfilesystemencoding(), "replace"
+                        ).splitlines()
+                    )
                 )
         return output
-
-
 
 
 def handle_exception(exc_type, exc_value, exc_traceback):
@@ -91,7 +82,13 @@ def handle_exception(exc_type, exc_value, exc_traceback):
     logging.shutdown()
 
 
-def configure(logging_file, log_level=logging.INFO, level_prefix='', prefix='', write_to_stdout=True):
+def configure(
+    logging_file,
+    log_level=logging.INFO,
+    level_prefix="",
+    prefix="",
+    write_to_stdout=True,
+):
     logger.setLevel(logging.INFO)
 
     sys.excepthook = handle_exception
@@ -104,20 +101,23 @@ def configure(logging_file, log_level=logging.INFO, level_prefix='', prefix='', 
     delayed_logging = []
 
     if logging_file is not None:
-        delayed_logging.append((logging.info, 'Logging to {}'.format(logging_file)))
+        delayed_logging.append((logging.info, "Logging to {}".format(logging_file)))
         if os.path.isfile(logging_file):
-            delayed_logging.append((logging.warning, "Log file already exists, will append"))
+            delayed_logging.append(
+                (logging.warning, "Log file already exists, will append")
+            )
         handlers.append(logging.FileHandler(logging_file))
 
-    formatter = MultiLineFormatter("{}%(asctime)s [{}%(levelname)-5s]  %(message)s".format(prefix, level_prefix),
-                                   "%Y-%m-%d %H:%M:%S")
+    formatter = MultiLineFormatter(
+        "{}%(asctime)s [{}%(levelname)-5s]  %(message)s".format(prefix, level_prefix),
+        "%Y-%m-%d %H:%M:%S",
+    )
     logger.handlers = []
     for h in handlers:
         h.setFormatter(formatter)
         logger.addHandler(h)
 
     logger.setLevel(log_level)
-
 
     for fn, msg in delayed_logging:
         fn(msg)

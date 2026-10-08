@@ -1,4 +1,3 @@
-
 import gym
 from gym import spaces
 from gym.envs import register
@@ -9,7 +8,16 @@ from environment import *
 class BaseEnv(gym.Env):
     metadata = {"render.modes": ["human", "array"]}
 
-    def __init__(self, game, display_time=50, use_minimal_action_set=True, use_minimal_observation=True, sticky_action_prob = 0.1, seed=None, **kwargs):
+    def __init__(
+        self,
+        game,
+        display_time=50,
+        use_minimal_action_set=True,
+        use_minimal_observation=True,
+        sticky_action_prob=0.1,
+        seed=None,
+        **kwargs,
+    ):
         self.game_name = game
         self.sticky_action_prob = sticky_action_prob
         self.display_time = display_time
@@ -34,13 +42,13 @@ class BaseEnv(gym.Env):
         return self.game.state(), reward, done, False
 
     def reset(self, seed=None, options=None):
-        if(seed is not None):
+        if seed is not None:
             self.game = Environment(
                 env_name=self.game_name,
                 random_seed=seed,
-                sticky_action_prob = self.sticky_action_prob,
+                sticky_action_prob=self.sticky_action_prob,
                 use_minimal_observation=self.use_minimal_observation,
-                **self.game_kwargs
+                **self.game_kwargs,
             )
         self.game.reset()
         return self.game.state()
@@ -49,9 +57,9 @@ class BaseEnv(gym.Env):
         self.game = Environment(
             env_name=self.game_name,
             random_seed=seed,
-            sticky_action_prob = self.sticky_action_prob,
+            sticky_action_prob=self.sticky_action_prob,
             use_minimal_observation=self.use_minimal_observation,
-            **self.game_kwargs
+            **self.game_kwargs,
         )
         return seed
 

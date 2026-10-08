@@ -124,9 +124,15 @@ class SACAgent(Agent):
         if self.goal_encoder is not None and self.encode_actor_critic_goal:
             critic_parameters.extend(self.goal_encoder.parameters())
 
-        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=actor_lr, betas=actor_betas)
-        self.critic_optimizer = torch.optim.Adam(critic_parameters, lr=critic_lr, betas=critic_betas)
-        self.log_alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=alpha_lr, betas=alpha_betas)
+        self.actor_optimizer = torch.optim.Adam(
+            self.actor.parameters(), lr=actor_lr, betas=actor_betas
+        )
+        self.critic_optimizer = torch.optim.Adam(
+            critic_parameters, lr=critic_lr, betas=critic_betas
+        )
+        self.log_alpha_optimizer = torch.optim.Adam(
+            [self.log_alpha], lr=alpha_lr, betas=alpha_betas
+        )
 
         self.train()
         self.critic_target.train()
@@ -161,11 +167,15 @@ class SACAgent(Agent):
             return self.goal_encoder(goal_obs)
         if goal_obs.shape[-1] == self.rep_dim:
             return goal_obs
-        raise NotImplementedError("Goal encoding is undefined. Provide a goal encoder or override encode_goal().")
+        raise NotImplementedError(
+            "Goal encoding is undefined. Provide a goal encoder or override encode_goal()."
+        )
 
     def _goal_input_from_obs(self, goal_obs):
         goal_obs = self._to_goal_tensor(goal_obs)
-        goal_input = self.encode_goal(goal_obs) if self.encode_actor_critic_goal else goal_obs
+        goal_input = (
+            self.encode_goal(goal_obs) if self.encode_actor_critic_goal else goal_obs
+        )
         if goal_input.shape[-1] != self.actor_critic_goal_dim:
             raise ValueError(
                 f"Goal input has dim {goal_input.shape[-1]}, expected {self.actor_critic_goal_dim}."
@@ -198,7 +208,9 @@ class SACAgent(Agent):
 
     def act(self, obs, sample=False, goal_obs=None, goal_rep=None):
         obs = torch.as_tensor(obs, device=self.device).float().unsqueeze(0)
-        goal_rep = self._prepare_goal_rep(obs.shape[0], goal_obs=goal_obs, goal_rep=goal_rep, detach=True)
+        goal_rep = self._prepare_goal_rep(
+            obs.shape[0], goal_obs=goal_obs, goal_rep=goal_rep, detach=True
+        )
         dist = self.actor(self._augment_obs(obs, goal_rep))
         action = dist.sample() if sample else dist.mean
         action = action.clamp(*self.action_range)
@@ -212,13 +224,17 @@ class SACAgent(Agent):
         dist = self.actor(self._augment_obs(next_obs, target_goal_rep))
         next_action = dist.rsample()
         log_prob = dist.log_prob(next_action).sum(-1, keepdim=True)
-        target_Q1, target_Q2 = self.critic_target(next_obs, next_action, target_goal_rep)
+        target_Q1, target_Q2 = self.critic_target(
+            next_obs, next_action, target_goal_rep
+        )
         target_V = torch.min(target_Q1, target_Q2) - self.alpha.detach() * log_prob
         target_Q = reward + not_done * self.discount * target_V
         target_Q = target_Q.detach()
 
         current_Q1, current_Q2 = self.critic(obs, action, goal_rep)
-        critic_loss = 0.5 * (F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q))
+        critic_loss = 0.5 * (
+            F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q)
+        )
 
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
@@ -226,7 +242,9 @@ class SACAgent(Agent):
         return critic_loss
 
     def compute_target_q(self, reward, next_obs, not_done, goal_rep=None):
-        goal_rep = self._prepare_goal_rep(next_obs.shape[0], goal_rep=goal_rep, detach=True)
+        goal_rep = self._prepare_goal_rep(
+            next_obs.shape[0], goal_rep=goal_rep, detach=True
+        )
         dist = self.actor(self._augment_obs(next_obs, goal_rep))
         next_action = dist.rsample()
         log_prob = dist.log_prob(next_action).sum(-1, keepdim=True)
@@ -237,7 +255,9 @@ class SACAgent(Agent):
     def update_with_target_q(self, obs, action, target_Q, step, goal_rep=None):
         goal_rep = self._prepare_goal_rep(obs.shape[0], goal_rep=goal_rep, detach=True)
         current_Q1, current_Q2 = self.critic(obs, action, goal_rep)
-        critic_loss = 0.5 * (F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q))
+        critic_loss = 0.5 * (
+            F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q)
+        )
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
         self.critic_optimizer.step()
@@ -251,7 +271,9 @@ class SACAgent(Agent):
             utils.soft_update_params(self.critic, self.critic_target, self.critic_tau)
 
         return {
-            "alpha": float(alpha_loss.item()) if alpha_loss is not None else float(self.alpha.item()),
+            "alpha": float(alpha_loss.item())
+            if alpha_loss is not None
+            else float(self.alpha.item()),
             "actor": float(actor_loss.item()) if actor_loss is not None else 0.0,
             "critic": float(critic_loss.item()),
         }
@@ -261,19 +283,33 @@ class SACAgent(Agent):
             os.makedirs(model_dir)
         torch.save(self.actor.state_dict(), f"{model_dir}/{model_name}_actor.pt")
         torch.save(self.critic.state_dict(), f"{model_dir}/{model_name}_critic.pt")
-        torch.save(self.critic_target.state_dict(), f"{model_dir}/{model_name}_critic_target.pt")
+        torch.save(
+            self.critic_target.state_dict(),
+            f"{model_dir}/{model_name}_critic_target.pt",
+        )
         if self.goal_encoder is not None:
-            torch.save(self.goal_encoder.state_dict(), f"{model_dir}/{model_name}_goal_encoder.pt")
+            torch.save(
+                self.goal_encoder.state_dict(),
+                f"{model_dir}/{model_name}_goal_encoder.pt",
+            )
 
     def load(self, model_dir, model_name):
-        self.actor.load_state_dict(torch.load(f"{model_dir}/{model_name}_actor.pt", map_location=self.device))
-        self.critic.load_state_dict(torch.load(f"{model_dir}/{model_name}_critic.pt", map_location=self.device))
+        self.actor.load_state_dict(
+            torch.load(f"{model_dir}/{model_name}_actor.pt", map_location=self.device)
+        )
+        self.critic.load_state_dict(
+            torch.load(f"{model_dir}/{model_name}_critic.pt", map_location=self.device)
+        )
         self.critic_target.load_state_dict(
-            torch.load(f"{model_dir}/{model_name}_critic_target.pt", map_location=self.device)
+            torch.load(
+                f"{model_dir}/{model_name}_critic_target.pt", map_location=self.device
+            )
         )
         goal_encoder_path = f"{model_dir}/{model_name}_goal_encoder.pt"
         if self.goal_encoder is not None and os.path.exists(goal_encoder_path):
-            self.goal_encoder.load_state_dict(torch.load(goal_encoder_path, map_location=self.device))
+            self.goal_encoder.load_state_dict(
+                torch.load(goal_encoder_path, map_location=self.device)
+            )
 
     def update_actor_and_alpha(self, obs, goal_rep):
         dist = self.actor(self._augment_obs(obs, goal_rep))
@@ -290,7 +326,9 @@ class SACAgent(Agent):
         alpha_loss = torch.zeros((), device=self.device)
         if self.learnable_temperature:
             self.log_alpha_optimizer.zero_grad()
-            alpha_loss = (self.alpha * (-log_prob - self.target_entropy).detach()).mean()
+            alpha_loss = (
+                self.alpha * (-log_prob - self.target_entropy).detach()
+            ).mean()
             alpha_loss.backward()
             self.log_alpha_optimizer.step()
 
@@ -298,19 +336,25 @@ class SACAgent(Agent):
 
     def _batch_to_torch(self, batch):
         return {
-            key: value.to(self.device).float() if torch.is_tensor(value) else torch.as_tensor(value, device=self.device).float()
+            key: value.to(self.device).float()
+            if torch.is_tensor(value)
+            else torch.as_tensor(value, device=self.device).float()
             for key, value in batch.items()
         }
 
     def _default_metric_batch(self, replay_buffer):
-        obs, action, reward, success, next_obs, not_done_no_max = replay_buffer.sample(self.batch_size)
-        obs, action, reward, success, next_obs, not_done_no_max = replay_buffer.as_torch(
-            obs,
-            action,
-            reward,
-            success,
-            next_obs,
-            not_done_no_max,
+        obs, action, reward, success, next_obs, not_done_no_max = replay_buffer.sample(
+            self.batch_size
+        )
+        obs, action, reward, success, next_obs, not_done_no_max = (
+            replay_buffer.as_torch(
+                obs,
+                action,
+                reward,
+                success,
+                next_obs,
+                not_done_no_max,
+            )
         )
         ones = torch.ones_like(reward)
         return {
@@ -352,7 +396,11 @@ class SACAgent(Agent):
                 success_only=self.behavior_goal_success_only,
             )
 
-        if goal_obs is None and batch.get("goals") is not None and batch["goals"].shape[0] > 0:
+        if (
+            goal_obs is None
+            and batch.get("goals") is not None
+            and batch["goals"].shape[0] > 0
+        ):
             goal_idx = 0
             if "goal_reached" in batch:
                 goal_idx = int(torch.argmax(batch["goal_reached"].reshape(-1)).item())
@@ -365,7 +413,9 @@ class SACAgent(Agent):
         obs = batch["obses"]
         action = batch["actions"]
         next_obs = batch["next_obses"]
-        goal_rep = self._prepare_goal_rep(obs.shape[0], goal_obs=batch.get("goals"), detach=False)
+        goal_rep = self._prepare_goal_rep(
+            obs.shape[0], goal_obs=batch.get("goals"), detach=False
+        )
 
         metrics = {
             "env_reward": float(batch["env_rewards"].mean().item()),
@@ -377,10 +427,15 @@ class SACAgent(Agent):
         if use_env_reward_only is not None and torch.any(use_env_reward_only > 0.5):
             reward = batch["env_rewards"]
         else:
-            reward = self.task_reward_scale * batch["env_rewards"] + self.goal_reward_scale * batch["goal_rewards"]
+            reward = (
+                self.task_reward_scale * batch["env_rewards"]
+                + self.goal_reward_scale * batch["goal_rewards"]
+            )
         reward = self.shape_reward(reward, obs, action, next_obs, metrics)
 
-        critic_loss = self.update_critic(obs, action, reward, next_obs, batch["goal_not_dones"], goal_rep)
+        critic_loss = self.update_critic(
+            obs, action, reward, next_obs, batch["goal_not_dones"], goal_rep
+        )
 
         actor_loss = None
         alpha_loss = None
@@ -393,7 +448,9 @@ class SACAgent(Agent):
         self._refresh_behavior_goal(replay_buffer, batch)
         metrics.update(
             {
-                "alpha": float(alpha_loss.item()) if alpha_loss is not None else float(self.alpha.item()),
+                "alpha": float(alpha_loss.item())
+                if alpha_loss is not None
+                else float(self.alpha.item()),
                 "actor": float(actor_loss.item()) if actor_loss is not None else 0.0,
                 "critic": float(critic_loss.item()),
                 "behavior_goal_ready": float(self.behavior_goal is not None),
@@ -401,7 +458,7 @@ class SACAgent(Agent):
         )
         return metrics
 
-    def actor_nll(self, replay_buffer,update_num):
+    def actor_nll(self, replay_buffer, update_num):
         print_interval = max(update_num // 5, 1)
 
         for i in range(update_num):
@@ -409,14 +466,18 @@ class SACAgent(Agent):
             obs = batch["obses"]
             action = batch["actions"]
             goal_obs = batch.get("actor_goals", batch.get("goals"))
-            goal_rep = self._prepare_goal_rep(obs.shape[0], goal_obs=goal_obs, detach=True)
+            goal_rep = self._prepare_goal_rep(
+                obs.shape[0], goal_obs=goal_obs, detach=True
+            )
             eps = 1e-6
             action = torch.clamp(action, min=-1.0 + eps, max=1.0 - eps)
-            assert not torch.isnan(obs).any(), f'obs nan: {obs}'
+            assert not torch.isnan(obs).any(), f"obs nan: {obs}"
             dist = self.actor(self._augment_obs(obs, goal_rep))
-            assert not torch.isnan(dist.loc).any(), f'dist: {dist.loc}'
-            assert torch.all(action > -1) and torch.all(action < 1), f'action out of range: {action}'
-            assert not torch.isnan(action).any(), f'action nan: {action}'
+            assert not torch.isnan(dist.loc).any(), f"dist: {dist.loc}"
+            assert torch.all(action > -1) and torch.all(action < 1), (
+                f"action out of range: {action}"
+            )
+            assert not torch.isnan(action).any(), f"action nan: {action}"
             log_prob = dist.log_prob(action).sum(-1, keepdim=True)
             actor_loss = -log_prob.mean()
 
@@ -424,7 +485,7 @@ class SACAgent(Agent):
             actor_loss.backward()
             self.actor_optimizer.step()
             if i % print_interval == 0:
-                print('actor_loss:',i, actor_loss)
+                print("actor_loss:", i, actor_loss)
         return actor_loss.item()
 
     def update(self, replay_buffer, step):
@@ -436,6 +497,3 @@ class SACAgent(Agent):
 
 
 MetricSACAgent = SACAgent
-
-
-

@@ -10,8 +10,6 @@ import numpy as np
 
 
 class _AlertTracker(object):
-
-
     def __init__(self, keys):
         self._keys = set(keys)
         self._store = {k: None for k in self._keys}
@@ -28,7 +26,7 @@ class _AlertTracker(object):
         if k in self._store:
             v = self._store[k]
             if v is None:
-                raise RuntimeError(f'Getting {k} twice before updating')
+                raise RuntimeError(f"Getting {k} twice before updating")
             self._store[k] = None
             return v
         raise AttributeError()
@@ -36,7 +34,6 @@ class _AlertTracker(object):
 
 class StepsCounter(object):
     def __init__(self, *, alert_intervals: Dict[str, int]):
-
 
         self.alert_intervals = dict(alert_intervals)
         self.reset()
@@ -48,7 +45,6 @@ class StepsCounter(object):
         self._record_alerts()
 
     def _record_alerts(self):
-
 
         self.alerts._clear()
         for k, interval in self.alert_intervals.items():

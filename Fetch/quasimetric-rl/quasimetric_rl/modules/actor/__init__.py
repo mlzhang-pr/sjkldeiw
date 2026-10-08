@@ -10,14 +10,16 @@ from ...data import EnvSpec
 
 @attrs.define(kw_only=True)
 class ActorConf:
-
-
     model: Actor.Conf = Actor.Conf()
     losses: ActorLosses.Conf = ActorLosses.Conf()
 
-    def make(self, *, env_spec: EnvSpec, total_optim_steps: int) -> Tuple[Actor, ActorLosses]:
+    def make(
+        self, *, env_spec: EnvSpec, total_optim_steps: int
+    ) -> Tuple[Actor, ActorLosses]:
         actor = self.model.make(env_spec=env_spec)
-        return actor, self.losses.make(actor, total_optim_steps=total_optim_steps, env_spec=env_spec)
+        return actor, self.losses.make(
+            actor, total_optim_steps=total_optim_steps, env_spec=env_spec
+        )
 
 
-__all__ = ['Actor', 'ActorLosses', 'ActorConf']
+__all__ = ["Actor", "ActorLosses", "ActorConf"]

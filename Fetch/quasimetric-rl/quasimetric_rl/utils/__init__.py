@@ -1,9 +1,3 @@
-
-
-
-
-
-
 from typing import *
 
 import os
@@ -12,10 +6,12 @@ import functools
 import numpy as np
 
 from tqdm.auto import tqdm
+
 tqdm = functools.partial(tqdm, dynamic_ncols=True)
 
 
-T = TypeVar('T')
+T = TypeVar("T")
+
 
 def singleton(cls: Type[T]) -> Type[T]:
     instance = None
@@ -26,7 +22,7 @@ def singleton(cls: Type[T]) -> Type[T]:
             instance = super(cls, subcls).__new__(subcls, *args, **kwargs)
         return instance
 
-    return type(cls.__name__, (cls,), {'__new__': __new__})
+    return type(cls.__name__, (cls,), {"__new__": __new__})
 
 
 def mkdir(path):
@@ -51,7 +47,7 @@ def rm_if_exists(filename, maybe_dir=False) -> bool:
     return False
 
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class lazy_property(Generic[T]):
@@ -77,17 +73,21 @@ class lazy_property(Generic[T]):
         return value
 
 
-def as_SeedSequence(seed: Union[np.random.SeedSequence, int, None]) -> np.random.SeedSequence:
+def as_SeedSequence(
+    seed: Union[np.random.SeedSequence, int, None],
+) -> np.random.SeedSequence:
     if isinstance(seed, int) or seed is None:
         seed = np.random.SeedSequence(seed)
     return seed
 
 
-def split_seed(seed: Union[np.random.SeedSequence, int, None], n) -> List[np.random.SeedSequence]:
+def split_seed(
+    seed: Union[np.random.SeedSequence, int, None], n
+) -> List[np.random.SeedSequence]:
     return as_SeedSequence(seed).spawn(n)
 
 
 from . import logging
 
 
-__all__ = ['mkdir', 'tqdm', 'rm_if_exists', 'lazy_property', 'logging', 'split_seed']
+__all__ = ["mkdir", "tqdm", "rm_if_exists", "lazy_property", "logging", "split_seed"]

@@ -14,11 +14,6 @@ from ..data.utils import NestedMapping
 LatentTensor = torch.Tensor
 
 
-
-
-
-
-
 InfoT = NestedMapping[Union[float, torch.Tensor]]
 
 
@@ -29,7 +24,6 @@ class LossResult:
 
     def __attrs_post_init__(self):
         assert isinstance(self.loss, (int, float)) or self.loss.numel() == 1
-
 
         def detach(d: InfoT) -> InfoT:
             if isinstance(d, torch.Tensor):
@@ -42,7 +36,7 @@ class LossResult:
         object.__setattr__(self, "info", detach(self.info))
 
     @classmethod
-    def combine(cls, results: Mapping[str, 'LossResult']) -> 'LossResult':
+    def combine(cls, results: Mapping[str, "LossResult"]) -> "LossResult":
         return LossResult(
             loss=sum(r.loss for r in results.values()),
             info={k: r.info for k, r in results.items()},
@@ -54,14 +48,8 @@ class LossBase(nn.Module, metaclass=abc.ABCMeta):
     def forward(self, *args, **kwargs) -> LossResult:
         pass
 
-
     def __call__(self, *args, **kwargs) -> LossResult:
         return super().__call__(*args, **kwargs)
-
-
-
-
-
 
 
 class MLP(nn.Module):
@@ -70,13 +58,15 @@ class MLP(nn.Module):
     zero_init_last_fc: bool
     module: nn.Sequential
 
-    def __init__(self,
-                 input_size: int,
-                 output_size: int,
-                 *,
-                 hidden_sizes: Collection[int],
-                 activation_fn: Type[nn.Module] = nn.ReLU,
-                 zero_init_last_fc: bool = False):
+    def __init__(
+        self,
+        input_size: int,
+        output_size: int,
+        *,
+        hidden_sizes: Collection[int],
+        activation_fn: Type[nn.Module] = nn.ReLU,
+        zero_init_last_fc: bool = False,
+    ):
         super().__init__()
         self.input_size = input_size
         self.output_size = output_size
@@ -85,22 +75,25 @@ class MLP(nn.Module):
         layer_in_size = input_size
         modules: List[nn.Module] = []
         for sz in hidden_sizes:
-            modules.extend([
-                nn.Linear(layer_in_size, sz),
-                activation_fn(),
-            ])
+            modules.extend(
+                [
+                    nn.Linear(layer_in_size, sz),
+                    activation_fn(),
+                ]
+            )
             layer_in_size = sz
         modules.append(
             nn.Linear(layer_in_size, output_size),
         )
 
-
         with torch.no_grad():
+
             def init_(m: nn.Module):
                 if isinstance(m, (nn.Linear, nn.Conv2d)):
                     nn.init.xavier_uniform_(m.weight)
                     if m.bias is not None:
                         nn.init.zeros_(m.bias)
+
             for m in modules:
                 m.apply(init_)
             if zero_init_last_fc:
@@ -113,7 +106,6 @@ class MLP(nn.Module):
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         return self.module(input)
 
-
     def __call__(self, input: torch.Tensor) -> torch.Tensor:
         return super().__call__(input)
 
@@ -121,14 +113,6 @@ class MLP(nn.Module):
         return "zero_init_last_fc={}".format(
             self.zero_init_last_fc,
         )
-
-
-
-
-
-
-
-
 
 
 class Module(nn.Module):
@@ -154,23 +138,12 @@ class Module(nn.Module):
         module.train(orig)
 
 
-
-
-
-
-
 def softplus_inv_float(y: float) -> float:
-    threshold: float = 20.
+    threshold: float = 20.0
     if y > threshold:
         return y
     else:
         return np.log(np.expm1(y))
-
-
-
-
-
-
 
 
 class GradMul(torch.autograd.Function):
@@ -187,7 +160,7 @@ class GradMul(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_output: torch.Tensor):
         if ctx.mult_is_tensor:
-            mult, = ctx.saved_tensors
+            (mult,) = ctx.saved_tensors
         else:
             mult = ctx.mult
         return grad_output * mult, None

@@ -42,10 +42,10 @@ class WandbLogger:
         if self.wandb_run is None:
             return
         self._flush_wandb()
-        summary_key = tag.replace('/', '_')
+        summary_key = tag.replace("/", "_")
         self.wandb_run.summary[summary_key] = text_string
         if global_step is not None:
-            self.wandb_run.summary[f'{summary_key}_step'] = global_step
+            self.wandb_run.summary[f"{summary_key}_step"] = global_step
 
     def flush(self):
         self._flush_wandb()
@@ -55,6 +55,7 @@ class WandbLogger:
         if self.wandb_run is not None:
             self.wandb_run.finish()
             self.wandb_run = None
+
 
 class Logger(object):
     def __init__(self, filename):
@@ -73,21 +74,23 @@ class Logger(object):
     def __del__(self):
         self.log.close()
 
+
 def set_seed_everywhere(seed_value):
     seed_value = int(seed_value)
     random.seed(seed_value)
     np.random.seed(seed_value)
     torch.manual_seed(seed_value)
-    os.environ['PYTHONHASHSEED'] = str(seed_value)
+    os.environ["PYTHONHASHSEED"] = str(seed_value)
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed_value)
         torch.cuda.manual_seed_all(seed_value)
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = True
 
+
 class ConfigDictConverter:
     def __init__(self, config_dict):
-        '''
+        """
         This class takes a config_dict which contains all the variables needed to do one run
         and converts it into the variables needed to run the RL experiments
         We assume that the config file has certain variables and is organized in the proper way
@@ -98,55 +101,65 @@ class ConfigDictConverter:
         Attributes:
         agent_dict:
         env_dict:
-        '''
-
-
-
-
+        """
 
         self.config_dict = config_dict.copy()
 
-
-        if 'num_repeats' in self.config_dict.keys():
-            del self.config_dict['num_repeats']
-        if 'num_runs_per_group' in self.config_dict.keys():
-            del self.config_dict['num_runs_per_group']
+        if "num_repeats" in self.config_dict.keys():
+            del self.config_dict["num_repeats"]
+        if "num_runs_per_group" in self.config_dict.keys():
+            del self.config_dict["num_runs_per_group"]
 
         self.agent_dict = self.config_dict.copy()
         self.env_dict = self.config_dict.copy()
 
-
-        self.repeat_idx = config_dict['repeat_idx']
-
-
+        self.repeat_idx = config_dict["repeat_idx"]
 
         import envs.metaworld_env
+
         self.env_class = envs.metaworld_env.MetaWorldSingleEnvSequence
 
-        env_key_lst = ['env', 'base_task_name', 'seed', 'goal_hidden', 'normalize_obs', 'normalize_rewards',
-                       'capture_video', 'save_name', 'change_freq', 'env_sequence',
-                       'obs_drift_mean', 'obs_drift_std', 'obs_scale_drift', 'obs_noise_std', 'normalize_avg_coef',
-                       'reset_obs_stats', 'change_when_solved', 'freeze_rand_vec',
-                       'goal_conditioned', 'gc_reward_type', 'gc_success_threshold', 'gc_achieved_goal']
-        env = config_dict['env'].lower()
+        env_key_lst = [
+            "env",
+            "base_task_name",
+            "seed",
+            "goal_hidden",
+            "normalize_obs",
+            "normalize_rewards",
+            "capture_video",
+            "save_name",
+            "change_freq",
+            "env_sequence",
+            "obs_drift_mean",
+            "obs_drift_std",
+            "obs_scale_drift",
+            "obs_noise_std",
+            "normalize_avg_coef",
+            "reset_obs_stats",
+            "change_when_solved",
+            "freeze_rand_vec",
+            "goal_conditioned",
+            "gc_reward_type",
+            "gc_success_threshold",
+            "gc_achieved_goal",
+        ]
+        env = config_dict["env"].lower()
 
-        if env[0:19] == 'metaworld_sequence_':
-            if env[19:22] == 'set':
-                self.env_dict['env_sequence'] = env[19:]
+        if env[0:19] == "metaworld_sequence_":
+            if env[19:22] == "set":
+                self.env_dict["env_sequence"] = env[19:]
             else:
-                self.env_dict['base_task_name'] = f'{env[19:]}-v2'
+                self.env_dict["base_task_name"] = f"{env[19:]}-v2"
 
         self.env_dict = {k: v for k, v in self.env_dict.items() if k in env_key_lst}
-        self.env_dict['env_type'] = 'rl'
+        self.env_dict["env_type"] = "rl"
 
-        print('env_dict keys', self.env_dict.keys())
-        print('env_dict', self.env_dict)
+        print("env_dict keys", self.env_dict.keys())
+        print("env_dict", self.env_dict)
 
+        self.agent_dict["device"] = "cuda" if torch.cuda.is_available() else "cpu"
 
-        self.agent_dict['device'] = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-
-        self.env_dict['seed'] += self.repeat_idx * 1
+        self.env_dict["seed"] += self.repeat_idx * 1
 
 
 def str2none(value):
@@ -163,12 +176,14 @@ def normalize_log_backends(backends):
     normalized = []
     for backend in backends:
         backend = backend.lower()
-        if backend == 'none':
+        if backend == "none":
             if len(backends) != 1:
-                raise ValueError("'none' cannot be combined with other logging backends")
+                raise ValueError(
+                    "'none' cannot be combined with other logging backends"
+                )
             return []
-        if backend != 'wandb':
-            raise ValueError(f'Unsupported logging backend: {backend}')
+        if backend != "wandb":
+            raise ValueError(f"Unsupported logging backend: {backend}")
         if backend not in normalized:
             normalized.append(backend)
     return normalized
@@ -176,7 +191,7 @@ def normalize_log_backends(backends):
 
 def load_wandb_module():
     try:
-        return importlib.import_module('wandb')
+        return importlib.import_module("wandb")
     except ImportError:
         return None
 
@@ -187,10 +202,12 @@ def create_experiment_logger(args, log_name):
     wandb_url = None
     active_backends = []
 
-    if 'wandb' in args.log_backends:
+    if "wandb" in args.log_backends:
         wandb_module = load_wandb_module()
         if wandb_module is None:
-            print("W&B is unavailable. Install 'wandb' to enable Weights & Biases logging.")
+            print(
+                "W&B is unavailable. Install 'wandb' to enable Weights & Biases logging."
+            )
         else:
             os.makedirs(args.save_path, exist_ok=True)
             try:
@@ -203,25 +220,25 @@ def create_experiment_logger(args, log_name):
                     dir=args.save_path,
                     mode=args.wandb_mode,
                 )
-                wandb_path = os.path.join(args.save_path, 'wandb')
-                wandb_url = getattr(wandb_run, 'url', None)
-                active_backends.append('wandb')
+                wandb_path = os.path.join(args.save_path, "wandb")
+                wandb_url = getattr(wandb_run, "url", None)
+                active_backends.append("wandb")
             except Exception as error:
-                print(f'W&B initialization failed: {error}')
+                print(f"W&B initialization failed: {error}")
 
     logger = None
     if wandb_run is not None:
         logger = WandbLogger(wandb_run=wandb_run)
         logger.add_text(
-            'config/args',
-            '\n'.join(f'{key}: {value}' for key, value in sorted(vars(args).items())),
+            "config/args",
+            "\n".join(f"{key}: {value}" for key, value in sorted(vars(args).items())),
             0,
         )
 
     return logger, {
-        'active_backends': active_backends,
-        'wandb_path': wandb_path,
-        'wandb_url': wandb_url,
+        "active_backends": active_backends,
+        "wandb_path": wandb_path,
+        "wandb_url": wandb_url,
     }
 
 
@@ -245,7 +262,7 @@ def log_metric_dict(writer, prefix, metrics, step):
         return
 
     for key, value in metrics.items():
-        log_scalar(writer, f'{prefix}/{key}', value, step)
+        log_scalar(writer, f"{prefix}/{key}", value, step)
 
 
 def mean_std(values):
@@ -256,53 +273,103 @@ def mean_std(values):
 
 
 def summarize_eval_results(eval_results):
-    return_mean, return_std = mean_std(eval_results['episodic_returns'])
-    metaworld_success_mean, metaworld_success_std = mean_std(eval_results['successes'])
-    gc_success_mean, gc_success_std = mean_std(eval_results.get('goal_successes', []))
-    gc_final_distance_mean, gc_final_distance_std = mean_std(eval_results.get('final_goal_distances', []))
-    gc_min_distance_mean, gc_min_distance_std = mean_std(eval_results.get('min_goal_distances', []))
-    gc_mean_distance_mean, gc_mean_distance_std = mean_std(eval_results.get('mean_goal_distances', []))
+    return_mean, return_std = mean_std(eval_results["episodic_returns"])
+    metaworld_success_mean, metaworld_success_std = mean_std(eval_results["successes"])
+    gc_success_mean, gc_success_std = mean_std(eval_results.get("goal_successes", []))
+    gc_final_distance_mean, gc_final_distance_std = mean_std(
+        eval_results.get("final_goal_distances", [])
+    )
+    gc_min_distance_mean, gc_min_distance_std = mean_std(
+        eval_results.get("min_goal_distances", [])
+    )
+    gc_mean_distance_mean, gc_mean_distance_std = mean_std(
+        eval_results.get("mean_goal_distances", [])
+    )
     return {
-        'return_mean': return_mean,
-        'return_std': return_std,
-        'metaworld_success_mean': metaworld_success_mean,
-        'metaworld_success_std': metaworld_success_std,
-        'gc_success_mean': gc_success_mean,
-        'gc_success_std': gc_success_std,
-        'gc_final_goal_distance_mean': gc_final_distance_mean,
-        'gc_final_goal_distance_std': gc_final_distance_std,
-        'gc_min_goal_distance_mean': gc_min_distance_mean,
-        'gc_min_goal_distance_std': gc_min_distance_std,
-        'gc_mean_goal_distance_mean': gc_mean_distance_mean,
-        'gc_mean_goal_distance_std': gc_mean_distance_std,
+        "return_mean": return_mean,
+        "return_std": return_std,
+        "metaworld_success_mean": metaworld_success_mean,
+        "metaworld_success_std": metaworld_success_std,
+        "gc_success_mean": gc_success_mean,
+        "gc_success_std": gc_success_std,
+        "gc_final_goal_distance_mean": gc_final_distance_mean,
+        "gc_final_goal_distance_std": gc_final_distance_std,
+        "gc_min_goal_distance_mean": gc_min_distance_mean,
+        "gc_min_goal_distance_std": gc_min_distance_std,
+        "gc_mean_goal_distance_mean": gc_mean_distance_mean,
+        "gc_mean_goal_distance_std": gc_mean_distance_std,
     }
 
 
 def append_eval_stats(stats, eval_metrics):
-    stats['mean_return'].append(eval_metrics['return_mean'])
-    stats['mean_success'].append(eval_metrics['metaworld_success_mean'])
-    stats['metaworld_success'].append(eval_metrics['metaworld_success_mean'])
-    stats['gc_success'].append(eval_metrics['gc_success_mean'])
-    stats['gc_final_goal_distance'].append(eval_metrics['gc_final_goal_distance_mean'])
-    stats['gc_min_goal_distance'].append(eval_metrics['gc_min_goal_distance_mean'])
-    stats['gc_mean_goal_distance'].append(eval_metrics['gc_mean_goal_distance_mean'])
+    stats["mean_return"].append(eval_metrics["return_mean"])
+    stats["mean_success"].append(eval_metrics["metaworld_success_mean"])
+    stats["metaworld_success"].append(eval_metrics["metaworld_success_mean"])
+    stats["gc_success"].append(eval_metrics["gc_success_mean"])
+    stats["gc_final_goal_distance"].append(eval_metrics["gc_final_goal_distance_mean"])
+    stats["gc_min_goal_distance"].append(eval_metrics["gc_min_goal_distance_mean"])
+    stats["gc_mean_goal_distance"].append(eval_metrics["gc_mean_goal_distance_mean"])
 
 
 def log_eval_metrics(writer, prefix, eval_metrics, step):
-    log_scalar(writer, f'{prefix}/mean_return', eval_metrics['return_mean'], step)
-    log_scalar(writer, f'{prefix}/return_std', eval_metrics['return_std'], step)
-    log_scalar(writer, f'{prefix}/mean_success', eval_metrics['metaworld_success_mean'], step)
-    log_scalar(writer, f'{prefix}/success_std', eval_metrics['metaworld_success_std'], step)
-    log_scalar(writer, f'{prefix}/metaworld_success', eval_metrics['metaworld_success_mean'], step)
-    log_scalar(writer, f'{prefix}/metaworld_success_std', eval_metrics['metaworld_success_std'], step)
-    log_scalar(writer, f'{prefix}/gc_success', eval_metrics['gc_success_mean'], step)
-    log_scalar(writer, f'{prefix}/gc_success_std', eval_metrics['gc_success_std'], step)
-    log_scalar(writer, f'{prefix}/gc_final_goal_distance', eval_metrics['gc_final_goal_distance_mean'], step)
-    log_scalar(writer, f'{prefix}/gc_final_goal_distance_std', eval_metrics['gc_final_goal_distance_std'], step)
-    log_scalar(writer, f'{prefix}/gc_min_goal_distance', eval_metrics['gc_min_goal_distance_mean'], step)
-    log_scalar(writer, f'{prefix}/gc_min_goal_distance_std', eval_metrics['gc_min_goal_distance_std'], step)
-    log_scalar(writer, f'{prefix}/gc_mean_goal_distance', eval_metrics['gc_mean_goal_distance_mean'], step)
-    log_scalar(writer, f'{prefix}/gc_mean_goal_distance_std', eval_metrics['gc_mean_goal_distance_std'], step)
+    log_scalar(writer, f"{prefix}/mean_return", eval_metrics["return_mean"], step)
+    log_scalar(writer, f"{prefix}/return_std", eval_metrics["return_std"], step)
+    log_scalar(
+        writer, f"{prefix}/mean_success", eval_metrics["metaworld_success_mean"], step
+    )
+    log_scalar(
+        writer, f"{prefix}/success_std", eval_metrics["metaworld_success_std"], step
+    )
+    log_scalar(
+        writer,
+        f"{prefix}/metaworld_success",
+        eval_metrics["metaworld_success_mean"],
+        step,
+    )
+    log_scalar(
+        writer,
+        f"{prefix}/metaworld_success_std",
+        eval_metrics["metaworld_success_std"],
+        step,
+    )
+    log_scalar(writer, f"{prefix}/gc_success", eval_metrics["gc_success_mean"], step)
+    log_scalar(writer, f"{prefix}/gc_success_std", eval_metrics["gc_success_std"], step)
+    log_scalar(
+        writer,
+        f"{prefix}/gc_final_goal_distance",
+        eval_metrics["gc_final_goal_distance_mean"],
+        step,
+    )
+    log_scalar(
+        writer,
+        f"{prefix}/gc_final_goal_distance_std",
+        eval_metrics["gc_final_goal_distance_std"],
+        step,
+    )
+    log_scalar(
+        writer,
+        f"{prefix}/gc_min_goal_distance",
+        eval_metrics["gc_min_goal_distance_mean"],
+        step,
+    )
+    log_scalar(
+        writer,
+        f"{prefix}/gc_min_goal_distance_std",
+        eval_metrics["gc_min_goal_distance_std"],
+        step,
+    )
+    log_scalar(
+        writer,
+        f"{prefix}/gc_mean_goal_distance",
+        eval_metrics["gc_mean_goal_distance_mean"],
+        step,
+    )
+    log_scalar(
+        writer,
+        f"{prefix}/gc_mean_goal_distance_std",
+        eval_metrics["gc_mean_goal_distance_std"],
+        step,
+    )
 
 
 def vector_observation_space(observation_space):
@@ -383,12 +450,12 @@ def distill_meta_actor_to_agent(agent, meta_agent, replay_buffer, update_num):
         agent.actor_optimizer.step()
 
         last_metrics = {
-            'actor_distill_loss': float(actor_loss.item()),
-            'teacher_action': float(teacher_action.mean().item()),
-            'student_action': float(student_action.mean().item()),
+            "actor_distill_loss": float(actor_loss.item()),
+            "teacher_action": float(teacher_action.mean().item()),
+            "student_action": float(student_action.mean().item()),
         }
         if update_index % print_interval == 0:
-            print('actor_distill:', update_index, last_metrics)
+            print("actor_distill:", update_index, last_metrics)
     return last_metrics
 
 
@@ -403,10 +470,10 @@ def initialize_new_task_agent(
     distill_update_num,
 ):
     replay_buffer.reset()
-    if init_mode == 'copy':
+    if init_mode == "copy":
         agent.actor.load_state_dict(meta_agent.actor.state_dict())
         distill_metrics = {}
-    elif init_mode == 'warmup':
+    elif init_mode == "warmup":
         collector.initial_agent_collect(random_steps, [agent], num_eval_runs)
         distill_metrics = distill_meta_actor_to_agent(
             agent,
@@ -416,54 +483,68 @@ def initialize_new_task_agent(
         )
         replay_buffer.reset()
     else:
-        raise ValueError(f'Unsupported new-task initialization mode: {init_mode}')
+        raise ValueError(f"Unsupported new-task initialization mode: {init_mode}")
 
     collector.initial_agent_collect(random_steps, [agent], num_eval_runs)
     return (
         {
-            'actor_transferred': int(init_mode == 'copy'),
-            'meta_warmup': int(init_mode == 'warmup'),
+            "actor_transferred": int(init_mode == "copy"),
+            "meta_warmup": int(init_mode == "warmup"),
         },
         distill_metrics,
     )
 
 
-
 def main():
-    parser = argparse.ArgumentParser(description='Run RL experiments')
+    parser = argparse.ArgumentParser(description="Run RL experiments")
 
-
-
-
-
-
-
-
-
-
-
-
-
-    parser.add_argument('--method', type=str, default='independent', help='Method to use for multitask learning')
-    parser.add_argument('--store_traj_num', type=int, default=10, help='Number of trajectories to store in the buffer for each task, only for buffer method')
-    parser.add_argument('--meta_updates_per_traj', type=int, default=100, help='Number of joint meta updates per stored trajectory')
-    parser.add_argument('--meta_update_steps', type=int, default=None, help='Fixed number of joint meta updates at each task boundary; overrides --meta_updates_per_traj')
-    parser.add_argument('--use_ttest', type=int, default=0, help='Whether to use t-test for agent selection (0: False, 1: True)')
     parser.add_argument(
-        '--new_task_init',
-        choices=('copy', 'warmup'),
-        default='warmup',
-        help='Initialize a new task by copying the meta actor or distilling it into the SAC actor',
+        "--method",
+        type=str,
+        default="independent",
+        help="Method to use for multitask learning",
     )
     parser.add_argument(
-        '--warmup_distill_steps',
+        "--store_traj_num",
+        type=int,
+        default=10,
+        help="Number of trajectories to store in the buffer for each task, only for buffer method",
+    )
+    parser.add_argument(
+        "--meta_updates_per_traj",
+        type=int,
+        default=100,
+        help="Number of joint meta updates per stored trajectory",
+    )
+    parser.add_argument(
+        "--meta_update_steps",
         type=int,
         default=None,
-        help='Actor distillation updates in warmup mode; defaults to store_traj_num * task_counter * meta_updates_per_traj',
+        help="Fixed number of joint meta updates at each task boundary; overrides --meta_updates_per_traj",
     )
-   
+    parser.add_argument(
+        "--use_ttest",
+        type=int,
+        default=0,
+        help="Whether to use t-test for agent selection (0: False, 1: True)",
+    )
+    parser.add_argument(
+        "--new_task_init",
+        choices=("copy", "warmup"),
+        default="warmup",
+        help="Initialize a new task by copying the meta actor or distilling it into the SAC actor",
+    )
+    parser.add_argument(
+        "--warmup_distill_steps",
+        type=int,
+        default=None,
+        help="Actor distillation updates in warmup mode; defaults to store_traj_num * task_counter * meta_updates_per_traj",
+    )
+
     parser.add_argument("--repeat_idx", type=int, default=0, help="Index of the repeat")
-    parser.add_argument("--env", type=str, default="metaworld_sequence_set6", help="Environment to run")
+    parser.add_argument(
+        "--env", type=str, default="metaworld_sequence_set6", help="Environment to run"
+    )
     parser.add_argument(
         "--change_freq",
         type=int,
@@ -518,11 +599,27 @@ def main():
         help="Source for the achieved_goal vector in goal-conditioned observations",
     )
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
-    parser.add_argument("--save_path", type=str, default="results/", help="Path prefix for logs and models")
-    parser.add_argument("--save_freq", type=int, default=25000, help="Evaluation frequency")
-    parser.add_argument("--save_model_freq", type=int, default=-1, help="Model save frequency")
-    parser.add_argument("--gpu", type=str, default="0", help="Comma separated list of GPU IDs")
-    parser.add_argument("--random_steps", type=int, default=10000, help="Random warmup steps for each task")
+    parser.add_argument(
+        "--save_path",
+        type=str,
+        default="results/",
+        help="Path prefix for logs and models",
+    )
+    parser.add_argument(
+        "--save_freq", type=int, default=25000, help="Evaluation frequency"
+    )
+    parser.add_argument(
+        "--save_model_freq", type=int, default=-1, help="Model save frequency"
+    )
+    parser.add_argument(
+        "--gpu", type=str, default="0", help="Comma separated list of GPU IDs"
+    )
+    parser.add_argument(
+        "--random_steps",
+        type=int,
+        default=10000,
+        help="Random warmup steps for each task",
+    )
     parser.add_argument(
         "--log_backends",
         type=str.lower,
@@ -559,19 +656,36 @@ def main():
 
     parser.add_argument("--batch_size", type=int, default=256, help="SAC batch size")
     parser.add_argument("--discount", type=float, default=0.99, help="SAC discount")
-    parser.add_argument("--init_temperature", type=float, default=0.1, help="Initial SAC temperature")
-    parser.add_argument("--actor_lr", type=float, default=1e-4, help="Actor learning rate")
-    parser.add_argument("--awr_beta", type=float, default=1.0, help="Quasimetric advantage temperature")
-    parser.add_argument("--awr_weight_clip", type=float, default=20.0, help="Maximum quasimetric AWR weight")
+    parser.add_argument(
+        "--init_temperature", type=float, default=0.1, help="Initial SAC temperature"
+    )
+    parser.add_argument(
+        "--actor_lr", type=float, default=1e-4, help="Actor learning rate"
+    )
+    parser.add_argument(
+        "--awr_beta", type=float, default=1.0, help="Quasimetric advantage temperature"
+    )
+    parser.add_argument(
+        "--awr_weight_clip",
+        type=float,
+        default=20.0,
+        help="Maximum quasimetric AWR weight",
+    )
     parser.add_argument(
         "--awr_num_goals",
         type=int,
         default=4,
         help="Number of successful terminal goals sampled per transition",
     )
-    parser.add_argument("--critic_lr", type=float, default=1e-4, help="Critic learning rate")
-    parser.add_argument("--alpha_lr", type=float, default=1e-4, help="Temperature learning rate")
-    parser.add_argument("--critic_tau", type=float, default=0.005, help="Target critic tau")
+    parser.add_argument(
+        "--critic_lr", type=float, default=1e-4, help="Critic learning rate"
+    )
+    parser.add_argument(
+        "--alpha_lr", type=float, default=1e-4, help="Temperature learning rate"
+    )
+    parser.add_argument(
+        "--critic_tau", type=float, default=0.005, help="Target critic tau"
+    )
     parser.add_argument(
         "--actor_update_frequency",
         type=int,
@@ -585,7 +699,9 @@ def main():
         help="Critic target update frequency",
     )
 
-    parser.add_argument("--qm_latent_dim", type=int, default=256, help="Quasimetric latent dim")
+    parser.add_argument(
+        "--qm_latent_dim", type=int, default=256, help="Quasimetric latent dim"
+    )
     parser.add_argument(
         "--qm_transition_input",
         "--qm-transition-input",
@@ -593,10 +709,16 @@ def main():
         default="state",
         help="Use raw observations (T(s,a)) or latent states (T(z,a)).",
     )
-    parser.add_argument("--qm_hidden_dim", type=int, default=256, help="Quasimetric hidden dim")
-    parser.add_argument("--qm_hidden_depth", type=int, default=2, help="Quasimetric MLP depth")
+    parser.add_argument(
+        "--qm_hidden_dim", type=int, default=256, help="Quasimetric hidden dim"
+    )
+    parser.add_argument(
+        "--qm_hidden_depth", type=int, default=2, help="Quasimetric MLP depth"
+    )
     parser.add_argument("--qm_components", type=int, default=8, help="MRN components")
-    parser.add_argument("--qm_batch_size", type=int, default=256, help="Structure learner batch size")
+    parser.add_argument(
+        "--qm_batch_size", type=int, default=256, help="Structure learner batch size"
+    )
     parser.add_argument(
         "--qm_share_sac_batch",
         type=int,
@@ -609,11 +731,24 @@ def main():
         default=None,
         help="Optional shared batch size used when SAC and quasimetric reuse the same batch",
     )
-    parser.add_argument("--qm_lr", type=float, default=1e-4, help="Structure learner lr")
-    parser.add_argument("--qm_discount", type=float, default=0.995, help="Goal sampling discount")
-    parser.add_argument("--qm_lambda", type=float, default=0.95, help="Intermediate goal sampling ratio")
-    parser.add_argument("--qm_next_state_sample", type=float, default=0.2, help="Probability of one-step backup")
-    parser.add_argument("--qm_backup_clip", type=float, default=5.0, help="LINEX backup clip")
+    parser.add_argument(
+        "--qm_lr", type=float, default=1e-4, help="Structure learner lr"
+    )
+    parser.add_argument(
+        "--qm_discount", type=float, default=0.995, help="Goal sampling discount"
+    )
+    parser.add_argument(
+        "--qm_lambda", type=float, default=0.95, help="Intermediate goal sampling ratio"
+    )
+    parser.add_argument(
+        "--qm_next_state_sample",
+        type=float,
+        default=0.2,
+        help="Probability of one-step backup",
+    )
+    parser.add_argument(
+        "--qm_backup_clip", type=float, default=5.0, help="LINEX backup clip"
+    )
     parser.add_argument(
         "--qm_action_invariance_coef",
         type=float,
@@ -635,10 +770,12 @@ def main():
     parser.add_argument(
         "--qm_nce_mode",
         choices=("forward_nce", "backward_nce"),
-        default="forward_nce",
+        default="backward_nce",
         help="Direction used by the contrastive NCE objective",
     )
-    parser.add_argument("--qm_target_tau", type=float, default=0.01, help="Target encoder tau")
+    parser.add_argument(
+        "--qm_target_tau", type=float, default=0.01, help="Target encoder tau"
+    )
     parser.add_argument(
         "--qm_current_batch_ratio",
         type=float,
@@ -660,9 +797,9 @@ def main():
 
     parser.add_argument(
         "--structure_update_frequency",
-        type = int,
-        default = 1,
-        help = "How often to update the slow quasimetric structure",
+        type=int,
+        default=1,
+        help="How often to update the slow quasimetric structure",
     )
 
     parser.add_argument(
@@ -677,7 +814,9 @@ def main():
         default=0.0,
         help="Reward shaping coefficient from quasimetric structure bonus",
     )
-    parser.add_argument("--bc_alpha", type=float, default=0.1, help="Behavior-cloning loss coefficient")
+    parser.add_argument(
+        "--bc_alpha", type=float, default=0.1, help="Behavior-cloning loss coefficient"
+    )
     parser.add_argument(
         "--memory_max_tasks",
         type=int,
@@ -718,7 +857,7 @@ def main():
     parser.add_argument(
         "--encode_actor_critic_goal",
         type=int,
-        default = 0,
+        default=0,
         help="Whether to encode goal observations before feeding actor and critic",
     )
     parser.add_argument(
@@ -729,29 +868,28 @@ def main():
         help="Metric replay buffer mode: HER reward relabeling or future-goal conditioning without HER rewards",
     )
 
-
     args = parser.parse_args()
     try:
         args.log_backends = normalize_log_backends(args.log_backends)
     except ValueError as error:
         parser.error(str(error))
     if args.meta_update_steps is not None and args.meta_update_steps < 0:
-        parser.error('--meta_update_steps cannot be negative')
+        parser.error("--meta_update_steps cannot be negative")
     if args.awr_beta <= 0:
-        parser.error('--awr_beta must be positive')
+        parser.error("--awr_beta must be positive")
     if args.awr_weight_clip < 1:
-        parser.error('--awr_weight_clip must be at least 1')
+        parser.error("--awr_weight_clip must be at least 1")
     if args.awr_num_goals <= 0:
-        parser.error('--awr_num_goals must be positive')
+        parser.error("--awr_num_goals must be positive")
     if args.random_steps <= 0:
-        parser.error('--random_steps must be positive')
+        parser.error("--random_steps must be positive")
     if args.warmup_distill_steps is not None and args.warmup_distill_steps <= 0:
-        parser.error('--warmup_distill_steps must be positive')
+        parser.error("--warmup_distill_steps must be positive")
 
-    model_dir = os.path.join(args.save_path, 'model')
-    distilled_model_dir = os.path.join(args.save_path, 'model_distilledagent')
-    print('model_save_path:', os.path.abspath(model_dir))
-    print('distilled_model_save_path:', os.path.abspath(distilled_model_dir))
+    model_dir = os.path.join(args.save_path, "model")
+    distilled_model_dir = os.path.join(args.save_path, "model_distilledagent")
+    print("model_save_path:", os.path.abspath(model_dir))
+    print("distilled_model_save_path:", os.path.abspath(distilled_model_dir))
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 
@@ -760,91 +898,81 @@ def main():
 
     env = config_obj.env_class(**env_parameters)
     eval_env = copy.deepcopy(env)
-    print('env_list:',env.env_list)
-
+    print("env_list:", env.env_list)
 
     num_steps_per_run = len(env.env_list) * args.change_freq
-
 
     num_eval_runs = 10
     set_seed_everywhere(args.seed)
 
     method = args.method
-    log_path = 'log/' + args.env + '/'
-    gc_log_suffix = f'_gc-{args.gc_reward_type}' if bool(args.goal_conditioned) else ''
-    log_name = 'sac_' + args.env + '_' + str(args.seed) + '_' + method + gc_log_suffix
-    csv_log_name = f'sac_{args.env}_main3-2-awr_seed{args.seed}_traj{args.store_traj_num}_{method}{gc_log_suffix}'
+    log_path = "log/" + args.env + "/"
+    gc_log_suffix = f"_gc-{args.gc_reward_type}" if bool(args.goal_conditioned) else ""
+    log_name = "sac_" + args.env + "_" + str(args.seed) + "_" + method + gc_log_suffix
+    csv_log_name = f"sac_{args.env}_main3-2-awr_seed{args.seed}_traj{args.store_traj_num}_{method}{gc_log_suffix}"
     writer, log_info = create_experiment_logger(args, log_name)
-    if log_info['active_backends']:
-        print('log_backends:', ', '.join(log_info['active_backends']))
+    if log_info["active_backends"]:
+        print("log_backends:", ", ".join(log_info["active_backends"]))
     else:
-        print('log_backends: disabled')
-    if log_info['wandb_path'] is not None:
-        print('wandb_path:', log_info['wandb_path'])
-    if log_info['wandb_url'] is not None:
-        print('wandb_url:', log_info['wandb_url'])
-
-
-
+        print("log_backends: disabled")
+    if log_info["wandb_path"] is not None:
+        print("wandb_path:", log_info["wandb_path"])
+    if log_info["wandb_url"] is not None:
+        print("wandb_url:", log_info["wandb_url"])
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     start_time = time.perf_counter()
 
-
-
-
-
-
-
     random_steps = args.random_steps
     replay_buffer_capacity = args.change_freq
     obs_space = vector_observation_space(env.env.observation_space)
-    log_scalar(writer, 'config/goal_conditioned', int(bool(args.goal_conditioned)), 0)
-    log_scalar(writer, 'config/obs_dim', obs_space.shape[0], 0)
-    log_scalar(writer, 'config/gc_success_threshold', args.gc_success_threshold, 0)
+    log_scalar(writer, "config/goal_conditioned", int(bool(args.goal_conditioned)), 0)
+    log_scalar(writer, "config/obs_dim", obs_space.shape[0], 0)
+    log_scalar(writer, "config/gc_success_threshold", args.gc_success_threshold, 0)
 
     replay_buffer = ReplayBuffer(
         obs_space.shape,
         env.env.action_space.shape,
         int(replay_buffer_capacity) + random_steps,
-        device)
+        device,
+    )
 
     agent_list = []
     for i in range(len(env.env_list)):
         if i == 0:
-            agent_list.append(SACAgent(obs_dim=obs_space.shape[0],
-                         action_dim=env.env.action_space.shape[0],
-                         action_range=[-1., 1.],
-                         device=device, ))
+            agent_list.append(
+                SACAgent(
+                    obs_dim=obs_space.shape[0],
+                    action_dim=env.env.action_space.shape[0],
+                    action_range=[-1.0, 1.0],
+                    device=device,
+                )
+            )
         else:
+            agent_list.append(
+                SACAgent(
+                    obs_dim=obs_space.shape[0],
+                    action_dim=env.env.action_space.shape[0],
+                    action_range=[-1.0, 1.0],
+                    device=device,
+                )
+            )
 
-
-
-
-            agent_list.append(SACAgent(obs_dim=obs_space.shape[0],
-                         action_dim=env.env.action_space.shape[0],
-                         action_range=[-1., 1.],
-                         device=device, ))
-
-    if method == 'buffer' or method == 'buffer_wd':
+    if method == "buffer" or method == "buffer_wd":
         meta_agent = build_meta_agent(
             obs_dim=obs_space.shape[0],
             action_dim=env.env.action_space.shape[0],
             device=device,
             args=args,
         )
-        
-
-
-
-
 
         quasimetric_buffer = ReplayBufferMetric(
             obs_space.shape,
             env.env.action_space.shape,
             int(replay_buffer_capacity) + random_steps,
-            device)
+            device,
+        )
 
         from_meta = False
 
@@ -853,7 +981,7 @@ def main():
     obs, _ = env.reset()
 
     task_counter = env.task_counter
-    agent = agent_list[task_counter-1]
+    agent = agent_list[task_counter - 1]
     collector.initial_collect(random_steps)
 
     intermediate_stats = defaultdict(list)
@@ -867,93 +995,140 @@ def main():
         if task_counter != env.task_counter:
             task_counter = env.task_counter
             task_start_step = i_step
-            log_scalar(writer, 'task/task_idx', task_counter, i_step)
+            log_scalar(writer, "task/task_idx", task_counter, i_step)
 
-            if method == 'buffer' or method == 'buffer_wd':
-                assert replay_buffer.full == True, f"Replay buffer not full! Current idx: {replay_buffer.idx}"
+            if method == "buffer" or method == "buffer_wd":
+                assert replay_buffer.full == True, (
+                    f"Replay buffer not full! Current idx: {replay_buffer.idx}"
+                )
                 completed_task_idx = task_counter - 1
                 quasimetric_buffer.start_new_task(completed_task_idx)
-                done_indices = np.where(replay_buffer.not_dones == 0)[0][-args.store_traj_num-1:]
+                done_indices = np.where(replay_buffer.not_dones == 0)[0][
+                    -args.store_traj_num - 1 :
+                ]
                 count_success = 0
-                for i in range(len(done_indices)-1):
-                    if np.sum(replay_buffer.successes[done_indices[i]+1:done_indices[i+1]+1]) > 0:
+                for i in range(len(done_indices) - 1):
+                    if (
+                        np.sum(
+                            replay_buffer.successes[
+                                done_indices[i] + 1 : done_indices[i + 1] + 1
+                            ]
+                        )
+                        > 0
+                    ):
                         count_success += 1
-                done_ind = done_indices[0]+1
+                done_ind = done_indices[0] + 1
 
-    
-                while done_ind < replay_buffer.capacity:   
-                    quasimetric_buffer.add(replay_buffer.obses[done_ind],
-                                    replay_buffer.actions[done_ind],
-                                    replay_buffer.rewards[done_ind],
-                                    replay_buffer.successes[done_ind],
-                                    replay_buffer.next_obses[done_ind],
-                                    not replay_buffer.not_dones[done_ind],
-                                    not replay_buffer.not_dones_no_max[done_ind])
+                while done_ind < replay_buffer.capacity:
+                    quasimetric_buffer.add(
+                        replay_buffer.obses[done_ind],
+                        replay_buffer.actions[done_ind],
+                        replay_buffer.rewards[done_ind],
+                        replay_buffer.successes[done_ind],
+                        replay_buffer.next_obses[done_ind],
+                        not replay_buffer.not_dones[done_ind],
+                        not replay_buffer.not_dones_no_max[done_ind],
+                    )
                     done_ind += 1
-                print('quasimetric_buffer idx:', quasimetric_buffer.idx, 'count_success:', count_success)
+                print(
+                    "quasimetric_buffer idx:",
+                    quasimetric_buffer.idx,
+                    "count_success:",
+                    count_success,
+                )
                 completed_task_name = str(
                     env.env_list[(completed_task_idx - 1) % len(env.env_list)]
-                ).replace('/', '_')
+                ).replace("/", "_")
                 quasimetric_buffer_path = os.path.join(
                     args.save_path,
-                    'quasimetric_buffers',
+                    "quasimetric_buffers",
                     log_name,
-                    f'task_{completed_task_idx:02d}_{completed_task_name}',
+                    f"task_{completed_task_idx:02d}_{completed_task_name}",
                 )
                 quasimetric_buffer.save_data(quasimetric_buffer_path)
-                log_scalar(writer, 'meta/buffer_size', quasimetric_buffer.idx, i_step)
-                log_scalar(writer, 'meta/count_success', count_success, i_step)
+                log_scalar(writer, "meta/buffer_size", quasimetric_buffer.idx, i_step)
+                log_scalar(writer, "meta/count_success", count_success, i_step)
 
                 update_num = resolve_meta_update_num(args, completed_task_idx)
-                if method == 'buffer':
-                    print(f"---- updating quasimetric structure and AWR metapolicy ({update_num} steps) ----")
+                if method == "buffer":
+                    print(
+                        f"---- updating quasimetric structure and AWR metapolicy ({update_num} steps) ----"
+                    )
                     structure_metrics = {}
                     awr_metrics = {}
                     meta_agent.train()
                     for _ in range(update_num):
-                        structure_metrics, awr_metrics = meta_agent.update_structure_and_actor(
-                            quasimetric_buffer
+                        structure_metrics, awr_metrics = (
+                            meta_agent.update_structure_and_actor(quasimetric_buffer)
                         )
 
-                    log_metric_dict(writer, 'metric_structure', structure_metrics, i_step)
-                    log_metric_dict(writer, 'meta_awr', awr_metrics, i_step)
+                    log_metric_dict(
+                        writer, "metric_structure", structure_metrics, i_step
+                    )
+                    log_metric_dict(writer, "meta_awr", awr_metrics, i_step)
 
-                eval_env.set_task(env.env_list[(task_counter-1-1)%len(env.env_list)])
+                eval_env.set_task(
+                    env.env_list[(task_counter - 1 - 1) % len(env.env_list)]
+                )
                 eval_results = eval_env.evaluate_agent(
                     meta_agent,
                     num_eval_runs,
                     reseed_each_episode=bool(args.reseed_each_episode),
                 )
                 eval_metrics = summarize_eval_results(eval_results)
-                print(f"meta_agent: task {eval_env.base_task_name}, success {round(eval_metrics['metaworld_success_mean'], 3)} +/- {round(eval_metrics['metaworld_success_std'], 3)}, "
-                      f"return {round(eval_metrics['return_mean'], 3)} +/- {round(eval_metrics['return_std'], 3)}")
-                log_eval_metrics(writer, 'meta_eval', eval_metrics, i_step)
+                print(
+                    f"meta_agent: task {eval_env.base_task_name}, success {round(eval_metrics['metaworld_success_mean'], 3)} +/- {round(eval_metrics['metaworld_success_std'], 3)}, "
+                    f"return {round(eval_metrics['return_mean'], 3)} +/- {round(eval_metrics['return_std'], 3)}"
+                )
+                log_eval_metrics(writer, "meta_eval", eval_metrics, i_step)
 
-                agent.save(model_dir, log_name + '_' + str(task_counter-1-1))
-                meta_agent.save(model_dir, log_name + '_' + str(task_counter-1-1) + '_meta')
+                agent.save(model_dir, log_name + "_" + str(task_counter - 1 - 1))
+                meta_agent.save(
+                    model_dir, log_name + "_" + str(task_counter - 1 - 1) + "_meta"
+                )
 
             if i_step == num_steps_per_run:
                 break
 
             replay_buffer.reset()
 
-            if method == 'continue':
-                agent_list[(task_counter-1)%len(env.env_list)].critic.load_state_dict(agent.critic.state_dict())
-                agent_list[(task_counter-1)%len(env.env_list)].critic_target.load_state_dict(agent.critic_target.state_dict())
-                agent_list[(task_counter-1)%len(env.env_list)].actor.load_state_dict(agent.actor.state_dict())
-                agent_list[(task_counter-1)%len(env.env_list)].log_alpha = agent.log_alpha
-                agent_list[(task_counter-1)%len(env.env_list)].critic_optimizer.load_state_dict(agent.critic_optimizer.state_dict())
-                agent_list[(task_counter-1)%len(env.env_list)].actor_optimizer.load_state_dict(agent.actor_optimizer.state_dict())
-                agent_list[(task_counter-1)%len(env.env_list)].log_alpha_optimizer.load_state_dict(agent.log_alpha_optimizer.state_dict())
+            if method == "continue":
+                agent_list[
+                    (task_counter - 1) % len(env.env_list)
+                ].critic.load_state_dict(agent.critic.state_dict())
+                agent_list[
+                    (task_counter - 1) % len(env.env_list)
+                ].critic_target.load_state_dict(agent.critic_target.state_dict())
+                agent_list[
+                    (task_counter - 1) % len(env.env_list)
+                ].actor.load_state_dict(agent.actor.state_dict())
+                agent_list[
+                    (task_counter - 1) % len(env.env_list)
+                ].log_alpha = agent.log_alpha
+                agent_list[
+                    (task_counter - 1) % len(env.env_list)
+                ].critic_optimizer.load_state_dict(agent.critic_optimizer.state_dict())
+                agent_list[
+                    (task_counter - 1) % len(env.env_list)
+                ].actor_optimizer.load_state_dict(agent.actor_optimizer.state_dict())
+                agent_list[
+                    (task_counter - 1) % len(env.env_list)
+                ].log_alpha_optimizer.load_state_dict(
+                    agent.log_alpha_optimizer.state_dict()
+                )
 
-            if method == 'buffer' or method == 'buffer_wd':
+            if method == "buffer" or method == "buffer_wd":
                 agent = agent_list[(task_counter - 1) % len(env.env_list)]
-                if hasattr(agent, 'set_task_start_step'):
+                if hasattr(agent, "set_task_start_step"):
                     agent.set_task_start_step(task_start_step)
-                if args.new_task_init == 'copy':
-                    print("---- copy observation-only AWR metapolicy to task actor ----")
+                if args.new_task_init == "copy":
+                    print(
+                        "---- copy observation-only AWR metapolicy to task actor ----"
+                    )
                 else:
-                    print("---- distill observation-only AWR metapolicy into task actor ----")
+                    print(
+                        "---- distill observation-only AWR metapolicy into task actor ----"
+                    )
                 distill_update_num = resolve_warmup_distill_num(args, task_counter)
                 init_metrics, distill_metrics = initialize_new_task_agent(
                     agent,
@@ -966,72 +1141,96 @@ def main():
                     distill_update_num,
                 )
                 from_meta = True
-                log_scalar(writer, 'meta/init_copy', init_metrics['actor_transferred'], i_step)
-                log_scalar(writer, 'meta/init_warmup', init_metrics['meta_warmup'], i_step)
-                log_scalar(writer, 'meta/actor_transferred', init_metrics['actor_transferred'], i_step)
-                log_scalar(writer, 'meta/distill_updates', distill_update_num if distill_metrics else 0, i_step)
-                log_metric_dict(writer, 'meta_distill', distill_metrics, i_step)
-                agent.save(distilled_model_dir, log_name + '_' + str(task_counter-1-1))
+                log_scalar(
+                    writer, "meta/init_copy", init_metrics["actor_transferred"], i_step
+                )
+                log_scalar(
+                    writer, "meta/init_warmup", init_metrics["meta_warmup"], i_step
+                )
+                log_scalar(
+                    writer,
+                    "meta/actor_transferred",
+                    init_metrics["actor_transferred"],
+                    i_step,
+                )
+                log_scalar(
+                    writer,
+                    "meta/distill_updates",
+                    distill_update_num if distill_metrics else 0,
+                    i_step,
+                )
+                log_metric_dict(writer, "meta_distill", distill_metrics, i_step)
+                agent.save(
+                    distilled_model_dir, log_name + "_" + str(task_counter - 1 - 1)
+                )
                 print("---------new-task initialization done")
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                log_scalar(writer, 'meta/from_meta', int(from_meta), i_step)
+                log_scalar(writer, "meta/from_meta", int(from_meta), i_step)
             else:
-                agent = agent_list[(task_counter-1)%len(env.env_list)]
+                agent = agent_list[(task_counter - 1) % len(env.env_list)]
                 collector.initial_collect(random_steps)
 
         train_metrics = {}
-        if method == 'independent' or method == 'continue' or method == 'buffer' or method == 'buffer_wd':
-            train_metrics = agent.sac_update(replay_buffer,i_step)
+        if (
+            method == "independent"
+            or method == "continue"
+            or method == "buffer"
+            or method == "buffer_wd"
+        ):
+            train_metrics = agent.sac_update(replay_buffer, i_step)
 
-
-        elif method == 'average':
-            obs, action, reward, success, next_obs, not_done_no_max = replay_buffer.sample(agent.batch_size)
-            obs, action, reward, success, next_obs, not_done_no_max = replay_buffer.as_torch(obs, action, reward, success, next_obs, not_done_no_max)
+        elif method == "average":
+            obs, action, reward, success, next_obs, not_done_no_max = (
+                replay_buffer.sample(agent.batch_size)
+            )
+            obs, action, reward, success, next_obs, not_done_no_max = (
+                replay_buffer.as_torch(
+                    obs, action, reward, success, next_obs, not_done_no_max
+                )
+            )
             if task_counter >= len(env.env_list):
                 agent_num = len(env.env_list)
             else:
                 agent_num = task_counter
             q_target = agent.compute_target_q(reward, next_obs, not_done_no_max)
             q_target /= agent_num
-            for agent_idx in range(agent_num-1):
-                q_target += agent_list[agent_idx].compute_target_q(reward, next_obs, not_done_no_max) / agent_num
+            for agent_idx in range(agent_num - 1):
+                q_target += (
+                    agent_list[agent_idx].compute_target_q(
+                        reward, next_obs, not_done_no_max
+                    )
+                    / agent_num
+                )
             train_metrics = agent.update_with_target_q(obs, action, q_target, i_step)
-            log_scalar(writer, 'train/average_agent_num', agent_num, i_step)
+            log_scalar(writer, "train/average_agent_num", agent_num, i_step)
 
         collector.run_one_step(i_step, agent)
-        log_metric_dict(writer, 'train', train_metrics, i_step)
-        log_scalar(writer, 'train/task_idx', task_counter, i_step)
-        log_scalar(writer, 'train/agent_idx', (task_counter-1)%len(env.env_list), i_step)
-        log_scalar(writer, 'train/replay_buffer_size', len(replay_buffer), i_step)
+        log_metric_dict(writer, "train", train_metrics, i_step)
+        log_scalar(writer, "train/task_idx", task_counter, i_step)
+        log_scalar(
+            writer, "train/agent_idx", (task_counter - 1) % len(env.env_list), i_step
+        )
+        log_scalar(writer, "train/replay_buffer_size", len(replay_buffer), i_step)
 
         if i_step % args.save_freq == 0:
             elapsed = time.perf_counter() - start_time
             sps = int(i_step / elapsed) if elapsed > 0 else 0
-            print('step:',i_step, 'time:', round(elapsed / 60, 3), "SPS:", sps,
-                  'task_counter', (task_counter,env.base_task_name), 'agent', (task_counter-1)%len(env.env_list), 'method', method, 'seed', args.seed)
+            print(
+                "step:",
+                i_step,
+                "time:",
+                round(elapsed / 60, 3),
+                "SPS:",
+                sps,
+                "task_counter",
+                (task_counter, env.base_task_name),
+                "agent",
+                (task_counter - 1) % len(env.env_list),
+                "method",
+                method,
+                "seed",
+                args.seed,
+            )
 
             eval_results = env.evaluate_agent(
                 agent,
@@ -1041,42 +1240,59 @@ def main():
             eval_metrics = summarize_eval_results(eval_results)
 
             append_eval_stats(intermediate_stats, eval_metrics)
-            intermediate_stats['steps'].append(i_step)
-            intermediate_stats['task'].append(env.base_task_name)
-            intermediate_stats['seed'].append(args.seed)
-            intermediate_stats['task_idx'].append(task_counter)
-            intermediate_stats['method'].append(method)
-            intermediate_stats['time'].append(round(elapsed / 3600, 3))
-            if method == 'buffer' or method == 'buffer_wd':
-                intermediate_stats['from_meta'].append(from_meta)
-            if -1 in intermediate_stats['count_success']:
-                intermediate_stats['count_success'][intermediate_stats['count_success'].index(-1)] = count_success
+            intermediate_stats["steps"].append(i_step)
+            intermediate_stats["task"].append(env.base_task_name)
+            intermediate_stats["seed"].append(args.seed)
+            intermediate_stats["task_idx"].append(task_counter)
+            intermediate_stats["method"].append(method)
+            intermediate_stats["time"].append(round(elapsed / 3600, 3))
+            if method == "buffer" or method == "buffer_wd":
+                intermediate_stats["from_meta"].append(from_meta)
+            if -1 in intermediate_stats["count_success"]:
+                intermediate_stats["count_success"][
+                    intermediate_stats["count_success"].index(-1)
+                ] = count_success
             else:
-                intermediate_stats['count_success'].append(count_success)
+                intermediate_stats["count_success"].append(count_success)
 
-            log_scalar(writer, 'charts/SPS', sps, i_step)
-            log_eval_metrics(writer, 'eval', eval_metrics, i_step)
-            log_scalar(writer, 'eval/task_idx', task_counter, i_step)
-            log_scalar(writer, 'eval/agent_idx', (task_counter-1)%len(env.env_list), i_step)
-            log_scalar(writer, 'eval/count_success', count_success, i_step)
-            if method == 'buffer' or method == 'buffer_wd':
-                log_scalar(writer, 'eval/from_meta', int(from_meta), i_step)
-            print(f"success {round(eval_metrics['metaworld_success_mean'], 3)} +/- {round(eval_metrics['metaworld_success_std'], 3)},",
-                  f"gc_success {round(eval_metrics['gc_success_mean'], 3)} +/- {round(eval_metrics['gc_success_std'], 3)},",
-                  f"eval return {round(eval_metrics['return_mean'], 3)} +/- {round(eval_metrics['return_std'], 3)}")
+            log_scalar(writer, "charts/SPS", sps, i_step)
+            log_eval_metrics(writer, "eval", eval_metrics, i_step)
+            log_scalar(writer, "eval/task_idx", task_counter, i_step)
+            log_scalar(
+                writer, "eval/agent_idx", (task_counter - 1) % len(env.env_list), i_step
+            )
+            log_scalar(writer, "eval/count_success", count_success, i_step)
+            if method == "buffer" or method == "buffer_wd":
+                log_scalar(writer, "eval/from_meta", int(from_meta), i_step)
+            print(
+                f"success {round(eval_metrics['metaworld_success_mean'], 3)} +/- {round(eval_metrics['metaworld_success_std'], 3)},",
+                f"gc_success {round(eval_metrics['gc_success_mean'], 3)} +/- {round(eval_metrics['gc_success_std'], 3)},",
+                f"eval return {round(eval_metrics['return_mean'], 3)} +/- {round(eval_metrics['return_std'], 3)}",
+            )
             if writer is not None:
                 writer.flush()
         i_step += 1
 
     if not os.path.exists(log_path):
         os.makedirs(log_path)
-    print('len:',len(intermediate_stats['count_success']), len(intermediate_stats['mean_return']), len(intermediate_stats['mean_success']))
-    intermediate_stats['count_success'].extend([count_success] * (len(intermediate_stats['mean_return']) - len(intermediate_stats['count_success'])))
+    print(
+        "len:",
+        len(intermediate_stats["count_success"]),
+        len(intermediate_stats["mean_return"]),
+        len(intermediate_stats["mean_success"]),
+    )
+    intermediate_stats["count_success"].extend(
+        [count_success]
+        * (
+            len(intermediate_stats["mean_return"])
+            - len(intermediate_stats["count_success"])
+        )
+    )
     intermediate_stats = pd.DataFrame(intermediate_stats)
     intermediate_stats.to_csv(log_path + "/" + csv_log_name + ".csv", index=False)
 
-    print('---')
-    if method == 'buffer' or method == 'buffer_wd':
+    print("---")
+    if method == "buffer" or method == "buffer_wd":
         eval_agent_specs = [(-1, meta_agent, range(len(env.env_list)))]
     else:
         eval_agent_specs = [
@@ -1094,46 +1310,29 @@ def main():
             )
             eval_metrics = summarize_eval_results(eval_results)
 
-
-            print(f"Final task {env.env_list[i]} success {round(eval_metrics['metaworld_success_mean'], 3)} "
-                  f"gc_success {round(eval_metrics['gc_success_mean'], 3)} "
-                  f"return {round(eval_metrics['return_mean'], 3)}")
+            print(
+                f"Final task {env.env_list[i]} success {round(eval_metrics['metaworld_success_mean'], 3)} "
+                f"gc_success {round(eval_metrics['gc_success_mean'], 3)} "
+                f"return {round(eval_metrics['return_mean'], 3)}"
+            )
 
             append_eval_stats(final_stats, eval_metrics)
-            final_stats['task'].append(env.base_task_name)
-            final_stats['task_idx'].append(i + 1)
-            final_stats['seed'].append(args.seed)
-            final_stats['method'].append(method)
-            final_stats['agent_idx'].append(agent_idx)
-            task_tag = str(env.base_task_name).replace(' ', '_')
-            agent_tag = 'meta' if agent_idx == -1 else f'agent_{agent_idx}'
+            final_stats["task"].append(env.base_task_name)
+            final_stats["task_idx"].append(i + 1)
+            final_stats["seed"].append(args.seed)
+            final_stats["method"].append(method)
+            final_stats["agent_idx"].append(agent_idx)
+            task_tag = str(env.base_task_name).replace(" ", "_")
+            agent_tag = "meta" if agent_idx == -1 else f"agent_{agent_idx}"
             final_step += 1
-            log_eval_metrics(writer, f'final/{task_tag}/{agent_tag}', eval_metrics, final_step)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            log_eval_metrics(
+                writer, f"final/{task_tag}/{agent_tag}", eval_metrics, final_step
+            )
 
     final_stats = pd.DataFrame(final_stats)
     final_stats.to_csv(log_path + "/" + csv_log_name + "_final.csv", index=False)
     if writer is not None:
         writer.close()
-
 
 
 if __name__ == "__main__":

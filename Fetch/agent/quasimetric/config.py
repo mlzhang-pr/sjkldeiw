@@ -22,7 +22,7 @@ class QuasimetricConfig:
     contrastive_coef: float = 0.05
     ranking_coef: float = 0.0
     ranking_margin: float = 0.1
-    nce_mode: str = "forward_nce"
+    nce_mode: str = "backward_nce"
     target_tau: float = 0.01
     current_batch_ratio: float = 0.5
     max_grad_norm: Optional[float] = None

@@ -30,30 +30,6 @@ class CompoNetAgent(nn.Module):
 
         self.net_logstd = net(obs_dim, act_dim)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         prev_units = [
             FirstModuleWrapper(
                 model=torch.load(

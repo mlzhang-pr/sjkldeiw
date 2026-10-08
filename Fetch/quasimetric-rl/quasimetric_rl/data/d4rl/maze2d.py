@@ -17,69 +17,47 @@ if TYPE_CHECKING:
     import d4rl.pointmaze
 
 
+def preprocess_maze2d_fix(
+    env: "d4rl.pointmaze.MazeEnv", dataset: Mapping[str, np.ndarray]
+):
 
-def preprocess_maze2d_fix(env: 'd4rl.pointmaze.MazeEnv', dataset: Mapping[str, np.ndarray]):
+    assert not np.any(dataset["terminals"])
+    dataset["next_observations"] = dataset["observations"][1:]
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    assert not np.any(dataset['terminals'])
-    dataset['next_observations'] = dataset['observations'][1:]
-
-    goal_diff = np.abs(dataset['infos/goal'][:-1] - dataset['infos/goal'][1:]).sum(-1)
+    goal_diff = np.abs(dataset["infos/goal"][:-1] - dataset["infos/goal"][1:]).sum(-1)
     timeouts = goal_diff > 1e-5
 
     timeout_steps = np.where(timeouts)[0]
     path_lengths = timeout_steps[1:] - timeout_steps[:-1]
 
     logging.info(
-        f'[ preprocess_maze2d_fix ] Segmented {env.name} | {len(path_lengths)} paths | '
-        f'min length: {path_lengths.min()} | max length: {path_lengths.max()}'
+        f"[ preprocess_maze2d_fix ] Segmented {env.name} | {len(path_lengths)} paths | "
+        f"min length: {path_lengths.min()} | max length: {path_lengths.max()}"
     )
 
-    dataset['timeouts'] = timeouts
+    dataset["timeouts"] = timeouts
 
-    logging.info('[ preprocess_maze2d_fix ] Fixed terminals and timeouts')
-
+    logging.info("[ preprocess_maze2d_fix ] Fixed terminals and timeouts")
 
     assert len(env.goal_locations) == 1
     rewards = cast(
         np.ndarray,
         np.linalg.norm(
-            dataset['next_observations'][:, :2] - env.get_target(),
+            dataset["next_observations"][:, :2] - env.get_target(),
             axis=-1,
-        ) <= 0.5
-    ).astype(dataset['rewards'].dtype)
+        )
+        <= 0.5,
+    ).astype(dataset["rewards"].dtype)
 
-    assert (rewards == dataset['rewards'][1:]).all()
-    dataset['rewards'] = rewards
-    logging.info('[ preprocess_maze2d_fix ] Fixed rewards')
-
+    assert (rewards == dataset["rewards"][1:]).all()
+    dataset["rewards"] = rewards
+    logging.info("[ preprocess_maze2d_fix ] Fixed rewards")
 
     dataset = dict(dataset)
     for k in dataset:
-        if dataset[k].shape[0] != dataset['next_observations'].shape[0]:
+        if dataset[k].shape[0] != dataset["next_observations"].shape[0]:
             dataset[k] = dataset[k][:-1]
     return dataset
-
 
 
 def load_episodes_maze2d(name):
@@ -95,11 +73,10 @@ def load_episodes_maze2d(name):
     )
 
 
-for name in ['maze2d-umaze-v1', 'maze2d-medium-v1', 'maze2d-large-v1']:
+for name in ["maze2d-umaze-v1", "maze2d-medium-v1", "maze2d-large-v1"]:
     register_offline_env(
-        'd4rl', name,
+        "d4rl",
+        name,
         create_env_fn=functools.partial(load_environment, name),
         load_episodes_fn=functools.partial(load_episodes_maze2d, name),
     )
-
-

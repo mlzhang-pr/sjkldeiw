@@ -18,7 +18,7 @@ class QuasimetricConfig:
     action_invariance_coef: float = 0.0
     transition_consistency_coef: float = 1.0
     contrastive_coef: float = 0.05
-    nce_mode: str = "forward_nce"
+    nce_mode: str = "backward_nce"
     target_tau: float = 0.01
     current_batch_ratio: float = 0.5
     max_grad_norm: Optional[float] = None

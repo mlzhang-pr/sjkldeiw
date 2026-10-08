@@ -26,34 +26,6 @@ class StateEncoder(nn.Module):
         return z
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
 class TransitionEncoder(nn.Module):
     def __init__(
         self,
@@ -70,16 +42,13 @@ class TransitionEncoder(nn.Module):
         self.trunk = utils.mlp(input_dim, hidden_dim, latent_dim, hidden_depth)
         self.apply(utils.weight_init)
 
-    def forward(
-        self,
-        obs: torch.Tensor,
-        action: torch.Tensor
-    ) -> torch.Tensor:
+    def forward(self, obs: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         z = self.trunk(torch.cat([obs, action], dim=-1))
         if self.normalize_output:
             z = F.normalize(z, dim=-1)
         return z
-    
+
+
 class LatentTransitionEncoder(nn.Module):
     def __init__(
         self,
@@ -100,12 +69,9 @@ class LatentTransitionEncoder(nn.Module):
         self,
         obs: torch.Tensor,
         action: torch.Tensor,
-
     ) -> torch.Tensor:
 
         z = self.trunk(torch.cat([obs, action], dim=-1))
         if self.normalize_output:
             z = F.normalize(z, dim=-1)
         return z
-
-

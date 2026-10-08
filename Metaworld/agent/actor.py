@@ -28,15 +28,11 @@ class TanhTransform(pyd.transforms.Transform):
 
     def _inverse(self, y):
 
-
-
-
         return self.atanh(y)
 
     def log_abs_det_jacobian(self, x, y):
 
-
-        return 2. * (math.log(2.) - x - F.softplus(-2. * x))
+        return 2.0 * (math.log(2.0) - x - F.softplus(-2.0 * x))
 
 
 class SquashedNormal(pyd.transformed_distribution.TransformedDistribution):
@@ -65,32 +61,26 @@ class DiagGaussianActor(nn.Module):
         self.log_std_bounds = log_std_bounds
         self.trunk = utils.mlp(obs_dim, hidden_dim, 2 * action_dim, hidden_depth)
 
-
-
         self.outputs = dict()
         self.apply(utils.weight_init)
 
     def forward(self, obs):
         mu, log_std = self.trunk(obs).chunk(2, dim=-1)
 
-
-
         log_std = torch.tanh(log_std)
         log_std_min, log_std_max = self.log_std_bounds
         log_std = log_std_min + 0.5 * (log_std_max - log_std_min) * (log_std + 1)
 
-
-
         std = log_std.exp()
-        assert not torch.isnan(std).any(), f'std is nan, log_std: {log_std}, mu: {mu}'
-        assert not torch.isinf(std).any(), f'std is inf, log_std: {log_std}, mu: {mu}'
+        assert not torch.isnan(std).any(), f"std is nan, log_std: {log_std}, mu: {mu}"
+        assert not torch.isinf(std).any(), f"std is inf, log_std: {log_std}, mu: {mu}"
 
-        self.outputs['mu'] = mu
-        self.outputs['std'] = std
-
+        self.outputs["mu"] = mu
+        self.outputs["std"] = std
 
         dist = SquashedNormal(mu, std)
         return dist
+
 
 class DiagGaussianActor(nn.Module):
     """torch.distributions implementation of an diagonal Gaussian policy."""
@@ -101,29 +91,22 @@ class DiagGaussianActor(nn.Module):
         self.log_std_bounds = log_std_bounds
         self.trunk = utils.mlp(obs_dim, hidden_dim, 2 * action_dim, hidden_depth)
 
-
-
         self.outputs = dict()
         self.apply(utils.weight_init)
 
     def forward(self, obs):
         mu, log_std = self.trunk(obs).chunk(2, dim=-1)
 
-
-
         log_std = torch.tanh(log_std)
         log_std_min, log_std_max = self.log_std_bounds
         log_std = log_std_min + 0.5 * (log_std_max - log_std_min) * (log_std + 1)
 
-
-
         std = log_std.exp()
-        assert not torch.isnan(std).any(), f'std is nan, log_std: {log_std}, mu: {mu}'
-        assert not torch.isinf(std).any(), f'std is inf, log_std: {log_std}, mu: {mu}'
+        assert not torch.isnan(std).any(), f"std is nan, log_std: {log_std}, mu: {mu}"
+        assert not torch.isinf(std).any(), f"std is inf, log_std: {log_std}, mu: {mu}"
 
-        self.outputs['mu'] = mu
-        self.outputs['std'] = std
-
+        self.outputs["mu"] = mu
+        self.outputs["std"] = std
 
         dist = SquashedNormal(mu, std)
         return dist
@@ -132,13 +115,15 @@ class DiagGaussianActor(nn.Module):
 class DiagGaussianActor_metrtic(nn.Module):
     """torch.distributions implementation of an diagonal Gaussian policy."""
 
-    def __init__(self, obs_dim, action_dim, rep_dim, hidden_dim, hidden_depth, log_std_bounds):
+    def __init__(
+        self, obs_dim, action_dim, rep_dim, hidden_dim, hidden_depth, log_std_bounds
+    ):
         super().__init__()
 
         self.log_std_bounds = log_std_bounds
-        self.trunk = utils.mlp(obs_dim+rep_dim, hidden_dim, 2 * action_dim, hidden_depth)
-
-
+        self.trunk = utils.mlp(
+            obs_dim + rep_dim, hidden_dim, 2 * action_dim, hidden_depth
+        )
 
         self.outputs = dict()
         self.apply(utils.weight_init)
@@ -146,22 +131,16 @@ class DiagGaussianActor_metrtic(nn.Module):
     def forward(self, obs, rep):
         mu, log_std = self.trunk(torch.cat([obs, rep], dim=-1)).chunk(2, dim=-1)
 
-
-
         log_std = torch.tanh(log_std)
         log_std_min, log_std_max = self.log_std_bounds
         log_std = log_std_min + 0.5 * (log_std_max - log_std_min) * (log_std + 1)
 
-
-
         std = log_std.exp()
-        assert not torch.isnan(std).any(), f'std is nan, log_std: {log_std}, mu: {mu}'
-        assert not torch.isinf(std).any(), f'std is inf, log_std: {log_std}, mu: {mu}'
+        assert not torch.isnan(std).any(), f"std is nan, log_std: {log_std}, mu: {mu}"
+        assert not torch.isinf(std).any(), f"std is inf, log_std: {log_std}, mu: {mu}"
 
-        self.outputs['mu'] = mu
-        self.outputs['std'] = std
-
+        self.outputs["mu"] = mu
+        self.outputs["std"] = std
 
         dist = SquashedNormal(mu, std)
         return dist
-

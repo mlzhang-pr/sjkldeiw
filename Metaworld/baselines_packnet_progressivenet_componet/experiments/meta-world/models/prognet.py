@@ -22,7 +22,6 @@ class ProgressiveNetAgent(nn.Module):
             previous_models=prevs,
         )
 
-
         self.fc_mean = None
         self.fc_logstd = None
         self.reset_heads()
@@ -77,7 +76,6 @@ class ProgressiveNet(nn.Module):
 
         self.a = nn.ReLU()
 
-
         for m in previous_models:
             if hasattr(m, "previous_models"):
                 del m.previous_models
@@ -94,9 +92,9 @@ class ProgressiveNet(nn.Module):
     def forward_other(self, x, fc1s):
         fc1 = self.a(self.fc1(x))
 
-        assert len(fc1s) == len(
-            self.u2
-        ), "The number of previous layer outputs does not match the number of adapters"
+        assert len(fc1s) == len(self.u2), (
+            "The number of previous layer outputs does not match the number of adapters"
+        )
         h2 = [u(fc1s[i]) for i, u in enumerate(self.u2)]
         fc2 = sum([self.fc2(fc1), *h2])
         out = self.a(fc2)
@@ -106,7 +104,6 @@ class ProgressiveNet(nn.Module):
     def forward(self, x, prev_hs=dict(fc1s=[])):
         if len(self.previous_models) == 0:
             return self.forward_first(x)[0]
-
 
         _, fc1 = self.forward_first(x)
 

@@ -93,10 +93,7 @@ class PackNet(nn.Module):
         self.prune_percentage = 1 / self.total_task_num
 
         self.view = None
-        self.handled_layers = (
-            []
-        )
-
+        self.handled_layers = []
 
         self.masks = []
         for name, param in self.model.named_parameters():
@@ -106,7 +103,6 @@ class PackNet(nn.Module):
                 )
             else:
                 self.masks.append(None)
-
 
         if not is_first_task:
             for name, param in self.model.named_parameters():
@@ -127,16 +123,10 @@ class PackNet(nn.Module):
             if mask is None:
                 continue
 
-
             masked = p * (mask == 0)
             flat = masked.flatten()
-            _sorted, indices = torch.sort(
-                flat.abs(), descending=True
-            )
-            n_prune = int(
-                self.prune_percentage * flat.size(0)
-            )
-
+            _sorted, indices = torch.sort(flat.abs(), descending=True)
+            n_prune = int(self.prune_percentage * flat.size(0))
 
             mask.flatten()[indices[:n_prune]] = self.task_id
 
@@ -146,15 +136,12 @@ class PackNet(nn.Module):
     @torch.no_grad()
     def set_view(self, task_id):
         if task_id is None and self.view is not None:
-
             for param_copy, param, mask in zip(
                 self.handled_layers, self.model.parameters(), self.masks
             ):
                 if param_copy is None:
                     continue
-                m = torch.logical_and(
-                    mask <= self.view, mask > 0
-                )
+                m = torch.logical_and(mask <= self.view, mask > 0)
                 param.data += param_copy.data * torch.logical_not(m)
 
             self.handled_layers = []
@@ -162,13 +149,11 @@ class PackNet(nn.Module):
             return
 
         if len(self.handled_layers) == 0:
-
             for param, mask in zip(self.model.parameters(), self.masks):
                 if mask is not None:
                     self.handled_layers.append(copy.deepcopy(param))
                 else:
                     self.handled_layers.append(None)
-
 
         for p, mask in zip(self.model.parameters(), self.masks):
             if mask is None:

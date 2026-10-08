@@ -55,15 +55,11 @@ def parse_args():
     )
     parser.add_argument("--episodes", type=positive_int, default=20)
     parser.add_argument("--eval-seed", type=int, default=0)
-    parser.add_argument(
-        "--reseed-each-episode", type=int, choices=(0, 1), default=0
-    )
+    parser.add_argument("--reseed-each-episode", type=int, choices=(0, 1), default=0)
     parser.add_argument("--sample-action", action="store_true")
     parser.add_argument("--permutations", type=nonnegative_int, default=10000)
     parser.add_argument("--permutation-seed", type=int, default=0)
-    parser.add_argument(
-        "--device", choices=("auto", "cpu", "cuda"), default="auto"
-    )
+    parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     return parser.parse_args()
 
 
@@ -76,13 +72,17 @@ def discover_student_checkpoints(model_dir, prefix, task_count):
             continue
         stage = int(match.group("stage"))
         if stage in checkpoints:
-            raise ValueError(f"Multiple student actor checkpoints found for stage {stage}")
+            raise ValueError(
+                f"Multiple student actor checkpoints found for stage {stage}"
+            )
         checkpoints[stage] = path
 
     expected = set(range(task_count))
     missing = sorted(expected.difference(checkpoints))
     if missing:
-        raise FileNotFoundError(f"Missing student actor checkpoints for stages {missing}")
+        raise FileNotFoundError(
+            f"Missing student actor checkpoints for stages {missing}"
+        )
     extra = sorted(set(checkpoints).difference(expected))
     if extra:
         raise ValueError(f"Unexpected student actor checkpoint stages {extra}")
@@ -137,9 +137,7 @@ def evaluate_students(args, device):
         obs_space = evaluator.vector_observation_space(env.env.observation_space)
         action_dim = int(env.env.action_space.shape[0])
         prefix = evaluator.expected_log_name(config)
-        checkpoints = discover_student_checkpoints(
-            model_dir, prefix, len(task_names)
-        )
+        checkpoints = discover_student_checkpoints(model_dir, prefix, len(task_names))
 
         pair_rows = []
         episode_rows = []
@@ -159,8 +157,6 @@ def evaluate_students(args, device):
                 target_task_idx = target_stage + 1
                 if target_task_idx == source_task_idx:
                     continue
-
-
 
                 evaluator.set_seed_everywhere(args.eval_seed + target_task_idx)
                 env.set_task(target_task)
@@ -236,19 +232,25 @@ def evaluate_students(args, device):
     episodes = pd.DataFrame(episode_rows)
     expected_pairs = len(task_names) * (len(task_names) - 1)
     if len(pairs) != expected_pairs:
-        raise RuntimeError(f"Expected {expected_pairs} cross-task pairs, got {len(pairs)}")
+        raise RuntimeError(
+            f"Expected {expected_pairs} cross-task pairs, got {len(pairs)}"
+        )
     return pairs, episodes, task_names, model_dir, config_path
 
 
 def rollout_sampled_student(env, student, episodes, reseed_each_episode):
     test_env = env._wrap_env(env._make_base_env(), eval_mode=True)
-    initial_reset_kwargs = {"seed": env.current_seed} if env.current_seed is not None else {}
+    initial_reset_kwargs = (
+        {"seed": env.current_seed} if env.current_seed is not None else {}
+    )
     subsequent_reset_kwargs = initial_reset_kwargs if reseed_each_episode else {}
     returns = []
     student.eval()
     try:
         for episode_idx in range(episodes):
-            reset_kwargs = initial_reset_kwargs if episode_idx == 0 else subsequent_reset_kwargs
+            reset_kwargs = (
+                initial_reset_kwargs if episode_idx == 0 else subsequent_reset_kwargs
+            )
             observation, _ = test_env.reset(**reset_kwargs)
             if env._uses_obs_normalization():
                 observation = env._normalize_obs(observation)
@@ -260,7 +262,9 @@ def rollout_sampled_student(env, student, episodes, reseed_each_episode):
                     actor_observation = observation
                 with torch.inference_mode():
                     action = student.act(actor_observation, sample=True)
-                next_observation, reward, terminated, truncated, _ = test_env.step(action)
+                next_observation, reward, terminated, truncated, _ = test_env.step(
+                    action
+                )
                 if env._uses_obs_normalization():
                     next_observation = env._normalize_obs(next_observation)
                 episode_return += float(reward)
@@ -282,7 +286,9 @@ def two_way_fixed_effect_design(source_ids, target_ids):
     design_columns = [np.ones(source_ids.size, dtype=float)]
     for ids in (source_ids, target_ids):
         categories = np.unique(ids)
-        design_columns.extend((ids == category).astype(float) for category in categories[1:])
+        design_columns.extend(
+            (ids == category).astype(float) for category in categories[1:]
+        )
     return np.column_stack(design_columns)
 
 
@@ -321,26 +327,22 @@ def pearson_correlation(left, right):
     return float(np.dot(left, right) / (left_norm * right_norm))
 
 
-def two_way_fixed_effect_partial_spearman(
-    left, right, source_ids, target_ids
-):
+def two_way_fixed_effect_partial_spearman(left, right, source_ids, target_ids):
     design = two_way_fixed_effect_design(source_ids, target_ids)
     design_pseudoinverse = np.linalg.pinv(design)
-    left_residual = fixed_effect_rank_residual(
-        left, design, design_pseudoinverse
-    )
-    right_residual = fixed_effect_rank_residual(
-        right, design, design_pseudoinverse
-    )
+    left_residual = fixed_effect_rank_residual(left, design, design_pseudoinverse)
+    right_residual = fixed_effect_rank_residual(right, design, design_pseudoinverse)
     return pearson_correlation(left_residual, right_residual)
 
 
 def fixed_effect_rank_z_score(values, source_ids, target_ids):
-    residual = two_way_fixed_effect_rank_residual(
-        values, source_ids, target_ids
-    )
+    residual = two_way_fixed_effect_rank_residual(values, source_ids, target_ids)
     residual_std = residual.std(ddof=0)
-    return residual / residual_std if residual_std > 0.0 else np.full_like(residual, np.nan)
+    return (
+        residual / residual_std
+        if residual_std > 0.0
+        else np.full_like(residual, np.nan)
+    )
 
 
 def add_target_normalized_returns(pairs):
@@ -348,9 +350,9 @@ def add_target_normalized_returns(pairs):
     grouped = pairs.groupby("target_task_idx")["return_mean"]
     target_mean = grouped.transform("mean")
     target_std = grouped.transform(lambda values: values.std(ddof=0))
-    pairs["target_z_return"] = (pairs["return_mean"] - target_mean) / target_std.replace(
-        0.0, np.nan
-    )
+    pairs["target_z_return"] = (
+        pairs["return_mean"] - target_mean
+    ) / target_std.replace(0.0, np.nan)
     pairs["target_rank_return"] = grouped.rank(method="average", pct=True)
     pairs["source_target_fe_rank_z_return"] = fixed_effect_rank_z_score(
         pairs["return_mean"],
@@ -367,12 +369,10 @@ def add_fixed_effect_normalized_overlaps(merged):
         "soft_directed_coverage",
         "symmetric_overlap_same_encoder",
     ):
-        merged[f"source_target_fe_rank_z_{overlap_metric}"] = (
-            fixed_effect_rank_z_score(
-                merged[overlap_metric],
-                merged["source_task_idx"],
-                merged["target_task_idx"],
-            )
+        merged[f"source_target_fe_rank_z_{overlap_metric}"] = fixed_effect_rank_z_score(
+            merged[overlap_metric],
+            merged["source_task_idx"],
+            merged["target_task_idx"],
         )
     return merged
 
@@ -422,9 +422,7 @@ def load_return_pairs(path):
         if source != target
     }
     actual_pairs = set(
-        pairs[["source_task_idx", "target_task_idx"]].itertuples(
-            index=False, name=None
-        )
+        pairs[["source_task_idx", "target_task_idx"]].itertuples(index=False, name=None)
     )
     if actual_pairs != expected_pairs:
         raise ValueError(
@@ -459,7 +457,9 @@ def load_overlap_pairs(path, task_count):
     return frame
 
 
-def qap_test(frame, overlap_frame, overlap_metric, outcome, task_ids, permutations, seed):
+def qap_test(
+    frame, overlap_frame, overlap_metric, outcome, task_ids, permutations, seed
+):
     available = frame.dropna(subset=[overlap_metric, outcome]).copy()
     observed = spearman_correlation(available[overlap_metric], available[outcome])
     fixed_effect_design = two_way_fixed_effect_design(
@@ -496,7 +496,9 @@ def qap_test(frame, overlap_frame, overlap_metric, outcome, task_ids, permutatio
     for source, target, value in overlap_frame[
         ["source_task_idx", "target_task_idx", overlap_metric]
     ].itertuples(index=False, name=None):
-        matrix[task_to_position[int(source)], task_to_position[int(target)]] = float(value)
+        matrix[task_to_position[int(source)], task_to_position[int(target)]] = float(
+            value
+        )
     source_positions = available["source_task_idx"].map(task_to_position).to_numpy()
     target_positions = available["target_task_idx"].map(task_to_position).to_numpy()
     outcome_values = available[outcome].to_numpy(dtype=float)
@@ -526,9 +528,7 @@ def qap_test(frame, overlap_frame, overlap_metric, outcome, task_ids, permutatio
     null_values = np.asarray(null_values, dtype=float)
     fixed_effect_null_values = np.asarray(fixed_effect_null_values, dtype=float)
     result["valid_qap_permutations"] = int(null_values.size)
-    result["valid_two_way_fe_qap_permutations"] = int(
-        fixed_effect_null_values.size
-    )
+    result["valid_two_way_fe_qap_permutations"] = int(fixed_effect_null_values.size)
     if np.isfinite(observed) and null_values.size:
         result.update(
             {
@@ -620,8 +620,7 @@ def plot_return_matrix(
         index="source_task_idx", columns="target_task_idx", values=value_column
     ).reindex(index=task_ids, columns=task_ids)
     labels = [
-        f"{task_id}. {clean_task_name(task_names[task_id - 1])}"
-        for task_id in task_ids
+        f"{task_id}. {clean_task_name(task_names[task_id - 1])}" for task_id in task_ids
     ]
     matrix.index = labels
     matrix.columns = labels
@@ -747,9 +746,7 @@ def main():
             if args.model_dir
             else Path(args.run_dir).expanduser().resolve() / "model"
         )
-        config_path = (
-            Path(args.config).expanduser().resolve() if args.config else None
-        )
+        config_path = Path(args.config).expanduser().resolve() if args.config else None
     else:
         pairs, episodes, task_names, model_dir, config_path = evaluate_students(
             args, device

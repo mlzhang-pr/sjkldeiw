@@ -28,9 +28,7 @@ class MultistepQuasimetricLearner(nn.Module):
         if self.config.nce_mode not in ("forward_nce", "backward_nce"):
             raise ValueError(f"Unsupported NCE mode: {self.config.nce_mode}")
         if self.config.transition_input not in ("state", "latent"):
-            raise ValueError(
-                "transition_input must be either 'state' or 'latent'."
-            )
+            raise ValueError("transition_input must be either 'state' or 'latent'.")
         if self.config.backup_coef < 0:
             raise ValueError("backup_coef must be non-negative.")
         if not 0.0 <= self.config.diag_backup <= 1.0:
@@ -53,12 +51,6 @@ class MultistepQuasimetricLearner(nn.Module):
             hidden_depth=self.config.hidden_depth,
         )
 
-
-
-
-
-
-
         transition_state_dim = (
             obs_dim
             if self.config.transition_input == "state"
@@ -78,13 +70,9 @@ class MultistepQuasimetricLearner(nn.Module):
         for parameter in self.target_state_encoder.parameters():
             parameter.requires_grad_(False)
 
-
-
-
         self._trainable_parameters = list(self.state_encoder.parameters()) + list(
             self.latent_transition_encoder.parameters()
         )
-
 
         self.optimizer = torch.optim.Adam(self._trainable_parameters, lr=self.config.lr)
 
@@ -147,9 +135,7 @@ class MultistepQuasimetricLearner(nn.Module):
 
         margin = self.config.ranking_margin
         ranking_loss = F.relu(near_dist - far_dist + margin)[valid].mean()
-        ranking_accuracy = (
-            near_dist[valid] + margin <= far_dist[valid]
-        ).float().mean()
+        ranking_accuracy = (near_dist[valid] + margin <= far_dist[valid]).float().mean()
         return ranking_loss, ranking_accuracy, valid.float().mean()
 
     def _backup_loss(
@@ -192,9 +178,8 @@ class MultistepQuasimetricLearner(nn.Module):
         if self.config.diag_backup < 1.0:
             diagonal_backup = torch.diagonal(backup).unsqueeze(1)
             backup = (
-                (1.0 - self.config.diag_backup) * backup
-                + self.config.diag_backup * diagonal_backup
-            )
+                1.0 - self.config.diag_backup
+            ) * backup + self.config.diag_backup * diagonal_backup
         return backup.mean(), dist, dist_next
 
     def checkpoint(self):
@@ -222,10 +207,7 @@ class MultistepQuasimetricLearner(nn.Module):
 
         device = next(iter(batch.values())).device
         indices = torch.randperm(available, device=device)[:batch_size]
-        return {
-            key: value.index_select(0, indices)
-            for key, value in batch.items()
-        }
+        return {key: value.index_select(0, indices) for key, value in batch.items()}
 
     def _current_structure_batch(
         self,
@@ -276,7 +258,6 @@ class MultistepQuasimetricLearner(nn.Module):
         action = torch.as_tensor(action, device=self.device).float()
         next_obs = torch.as_tensor(next_obs, device=self.device).float()
 
-
         transition_rep = self.transition_representation(obs, action)
         next_rep = self.target_state_encoder(next_obs)
         return alignment_score(
@@ -293,8 +274,6 @@ class MultistepQuasimetricLearner(nn.Module):
         dones = batch["dones"].reshape(-1)
         offsets = batch["intermediate_value_goals_offsets"].reshape(-1)
 
-
-
         state_rep = self.state_encoder(obses)
 
         goal_rep = self.state_encoder(goals)
@@ -302,7 +281,9 @@ class MultistepQuasimetricLearner(nn.Module):
 
         with torch.no_grad():
             next_rep_target = self.target_state_encoder(next_obses)
-            intermediate_goal_rep = self.target_state_encoder(batch["intermediate_value_goals"])
+            intermediate_goal_rep = self.target_state_encoder(
+                batch["intermediate_value_goals"]
+            )
             goal_rep_target = self.target_state_encoder(goals)
 
         backup_loss, dist, dist_next = self._backup_loss(
@@ -313,10 +294,6 @@ class MultistepQuasimetricLearner(nn.Module):
             dones,
             offsets,
         )
-
-
-
-
 
         action_dist = self.distance(transition_rep, state_rep)
         action_invariance_loss = ((torch.exp(-action_dist) - 1.0) ** 2).mean()
@@ -349,7 +326,6 @@ class MultistepQuasimetricLearner(nn.Module):
         total_loss = (
             self.config.backup_coef * backup_loss
             + self.config.action_invariance_coef * action_invariance_loss
-
             + self.config.contrastive_coef * contrastive_loss
             + self.config.ranking_coef * ranking_loss
         )
@@ -359,7 +335,6 @@ class MultistepQuasimetricLearner(nn.Module):
             "backup_loss": backup_loss,
             "weighted_backup_loss": self.config.backup_coef * backup_loss,
             "action_invariance_loss": action_invariance_loss,
-
             "contrastive_loss": contrastive_loss,
             "ranking_loss": ranking_loss,
             "ranking_accuracy": ranking_accuracy,
@@ -390,8 +365,6 @@ class MultistepQuasimetricLearner(nn.Module):
         dones = batch["dones"].reshape(-1)
         offsets = batch["intermediate_value_goals_offsets"].reshape(-1)
 
-
-
         state_rep = self.state_encoder(obses)
 
         goal_rep = self.state_encoder(goals)
@@ -399,7 +372,9 @@ class MultistepQuasimetricLearner(nn.Module):
 
         with torch.no_grad():
             next_rep_target = self.target_state_encoder(next_obses)
-            intermediate_goal_rep = self.target_state_encoder(batch["intermediate_value_goals"])
+            intermediate_goal_rep = self.target_state_encoder(
+                batch["intermediate_value_goals"]
+            )
             goal_rep_target = self.target_state_encoder(goals)
 
         backup_loss, dist, dist_next = self._backup_loss(
@@ -410,10 +385,6 @@ class MultistepQuasimetricLearner(nn.Module):
             dones,
             offsets,
         )
-
-
-
-
 
         action_dist = self.distance(transition_rep, state_rep)
         action_invariance_loss = ((torch.exp(-action_dist) - 1.0) ** 2).mean()
@@ -430,7 +401,6 @@ class MultistepQuasimetricLearner(nn.Module):
         total_loss = (
             self.config.backup_coef * backup_loss
             + self.config.action_invariance_coef * action_invariance_loss
-
             + self.config.contrastive_coef * contrastive_loss
         )
 
@@ -439,7 +409,6 @@ class MultistepQuasimetricLearner(nn.Module):
             "backup_loss": backup_loss,
             "weighted_backup_loss": self.config.backup_coef * backup_loss,
             "action_invariance_loss": action_invariance_loss,
-
             "contrastive_loss": contrastive_loss,
             "dist": dist.mean(),
             "dist_next": dist_next.mean(),
@@ -459,8 +428,6 @@ class MultistepQuasimetricLearner(nn.Module):
             )
         return total_loss, metrics
 
-    
-
     def update(self, batch: Dict[str, torch.Tensor]):
         self.optimizer.zero_grad()
         loss, metrics = self.compute_loss(batch)
@@ -478,8 +445,7 @@ class MultistepQuasimetricLearner(nn.Module):
         )
 
         return {
-            key: float(value.detach().cpu().item())
-            for key, value in metrics.items()
+            key: float(value.detach().cpu().item()) for key, value in metrics.items()
         }
 
     def _build_batch(
@@ -510,14 +476,20 @@ class MultistepQuasimetricLearner(nn.Module):
                 self.config.next_state_sample,
             )
 
-        current_batch_size = max(1, int(self.config.batch_size * self.config.current_batch_ratio))
+        current_batch_size = max(
+            1, int(self.config.batch_size * self.config.current_batch_ratio)
+        )
         memory_batch_size = max(0, self.config.batch_size - current_batch_size)
 
         batches = []
-        shared_current_batch = self._current_structure_batch(current_batch, batch_size=current_batch_size)
+        shared_current_batch = self._current_structure_batch(
+            current_batch, batch_size=current_batch_size
+        )
         if shared_current_batch is not None:
             batches.append(shared_current_batch)
-            memory_batch_size = max(0, self.config.batch_size - self._batch_size(shared_current_batch))
+            memory_batch_size = max(
+                0, self.config.batch_size - self._batch_size(shared_current_batch)
+            )
         else:
             current_view = ReplayBufferView.from_replay_buffer(
                 replay_buffer,

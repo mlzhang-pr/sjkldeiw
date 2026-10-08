@@ -22,15 +22,31 @@ METHOD_NAMES = {
 def parse_args():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--runs-dir", default="runs_all", type=str,
-        help="directory where the tensorboard data is stored")
-    parser.add_argument("--no-cache", default=False, action="store_true",
-        help="wheter to disable the cache option. If not provided and `--save-dir` exists, skips processing tensorboard files")
-    parser.add_argument("--save-csv", default="data/agg_results.csv", type=str,
-        help="filename of the CSV to store the processed tensorboard results. Once processed, can be used as cache.")
+    parser.add_argument(
+        "--runs-dir",
+        default="runs_all",
+        type=str,
+        help="directory where the tensorboard data is stored",
+    )
+    parser.add_argument(
+        "--no-cache",
+        default=False,
+        action="store_true",
+        help="wheter to disable the cache option. If not provided and `--save-dir` exists, skips processing tensorboard files",
+    )
+    parser.add_argument(
+        "--save-csv",
+        default="data/agg_results.csv",
+        type=str,
+        help="filename of the CSV to store the processed tensorboard results. Once processed, can be used as cache.",
+    )
     parser.add_argument("--smoothing-window", type=int, default=100)
-    parser.add_argument("--eval-csv", type=str, default="data/eval_results.csv",
-        help="path to the CSV where the results of evaluations are stored. If the file doesn't exist, forgetting is not computed.")
+    parser.add_argument(
+        "--eval-csv",
+        type=str,
+        default="data/eval_results.csv",
+        help="path to the CSV where the results of evaluations are stored. If the file doesn't exist, forgetting is not computed.",
+    )
     parser.add_argument("--no-plots", default=False, action="store_true")
 
     return parser.parse_args()
@@ -39,7 +55,6 @@ def parse_args():
 def parse_metadata(ea):
     md = ea.Tensors("hyperparameters/text_summary")[0]
     md_bytes = md.tensor_proto.SerializeToString()
-
 
     start = md_bytes.index(b"|")
     md_str = md_bytes[start:].decode("ascii")
@@ -68,13 +83,9 @@ def parse_tensorboard(path, scalars, single_pts=[]):
     )
     _absorb_print = ea.Reload()
 
-
     if sum([s not in ea.Tags()["scalars"] for s in scalars]) > 0:
         print(f"** Scalar not found. Skipping file {path}")
         return None
-
-
-
 
     md = parse_metadata(ea)
 
@@ -102,9 +113,9 @@ def areas_up_down(method_x, method_y, baseline_x, baseline_y):
     up_idx = method_y > baseline_y
     down_idx = method_y < baseline_y
 
-    assert (
-        method_x == baseline_x
-    ).all(), "The X axis of the baseline and method must be equal."
+    assert (method_x == baseline_x).all(), (
+        "The X axis of the baseline and method must be equal."
+    )
     x = method_x
 
     area_up = np.trapz(y=method_y[up_idx], x=x[up_idx]) - np.trapz(
@@ -128,7 +139,6 @@ def compute_forward_transfer(df, methods, smoothing_window):
     table = []
     results = {}
     for task_id in range(20):
-
         if task_id == 0:
             table.append([0] + [None] * len(methods))
             continue
@@ -136,7 +146,6 @@ def compute_forward_transfer(df, methods, smoothing_window):
         baseline = df[
             (df["model_type"] == "simple") & (df["task_id"] == (task_id % 10))
         ]
-
 
         x_baseline, y_baseline, _ = smooth_avg(
             baseline, xkey="step", ykey="value", w=smoothing_window
@@ -153,7 +162,6 @@ def compute_forward_transfer(df, methods, smoothing_window):
                 method, xkey="step", ykey="value", w=smoothing_window
             )
             x_method, y_method = remove_nan(x_method, y_method)
-
 
             if len(x_baseline) > len(x_method):
                 table_row.append(None)
@@ -281,7 +289,7 @@ def count(df, methods):
     s = sum(all_vals)
     total = len(methods) * 20 * 10 - (12 * 10)
     print(f"\n\n-----------------------------------")
-    print(f" Total percentage: {round(100*s/total, 3)}% [{s}/{total}]")
+    print(f" Total percentage: {round(100 * s / total, 3)}% [{s}/{total}]")
     print(f"-----------------------------------\n\n")
 
     print(
@@ -342,7 +350,6 @@ if __name__ == "__main__":
 
     args = parse_args()
 
-
     scalar = "charts/success"
     final_success = "charts/test_success"
     total_timesteps = 1e6
@@ -350,14 +357,10 @@ if __name__ == "__main__":
     fancy_names = ["Baseline", "CompoNet", "FT", "ProgressiveNet", "PackNet"]
     method_colors = ["darkgray", "tab:blue", "tab:orange", "tab:green", "tab:purple"]
 
-
-
-
     exists = os.path.exists(args.save_csv)
     if args.no_cache or (not exists and not args.no_cache):
         dfs = []
         for path in tqdm(list(pathlib.Path(args.runs_dir).rglob("*events.out*"))):
-
             res = parse_tensorboard(str(path), [scalar], [final_success])
             if res is not None:
                 dic, md = res
@@ -381,9 +384,6 @@ if __name__ == "__main__":
         print(f"\n\nReloading cache data from: {args.save_csv}")
         df = pd.read_csv(args.save_csv)
 
-
-
-
     count(df, methods)
 
     data_perf = compute_performance(df, methods)
@@ -392,9 +392,6 @@ if __name__ == "__main__":
         eval_perf, eval_forg = process_eval(pd.read_csv(args.eval_csv), data_perf)
 
     ft_data = compute_forward_transfer(df, methods, args.smoothing_window)
-
-
-
 
     fname = f"summary_data_mw.csv"
     with open(fname, "w") as f:
@@ -421,27 +418,19 @@ if __name__ == "__main__":
     if args.no_plots:
         quit()
 
-
-
-
-    assert len(methods) == len(
-        method_colors
-    ), "Number of colors must match number of methods"
+    assert len(methods) == len(method_colors), (
+        "Number of colors must match number of methods"
+    )
 
     fig, axes = plt.subplots(nrows=len(methods) + 1, figsize=(10, 8))
 
-
-
-
     ax = axes[0]
     for env in range(20):
-
         for method, color in zip(methods, method_colors):
             task_id = env if method != "simple" else env % 10
             s = df[(df["model_type"] == method) & (df["task_id"] == task_id)]
 
             offset = env * total_timesteps
-
 
             if s.empty:
                 ax.plot([offset], [0], c="white")
@@ -469,10 +458,6 @@ if __name__ == "__main__":
 
     style(fig, ax=ax, legend=False, grid=False, ax_math_ticklabels=False)
 
-
-
-
-
     for i, (method, color) in enumerate(zip(methods, method_colors)):
         ax = axes[i + 1]
         ax.vlines(
@@ -499,7 +484,6 @@ if __name__ == "__main__":
 
             offset = env * total_timesteps
 
-
             if s.empty:
                 if method == "simple":
                     print(f"Empty in simple: task={task_id}")
@@ -520,7 +504,6 @@ if __name__ == "__main__":
             )
 
         style(fig, ax=ax, legend=False, grid=False, ax_math_ticklabels=False)
-
 
     ax.set_xlabel("Task ID")
 

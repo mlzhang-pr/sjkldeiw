@@ -72,7 +72,9 @@ class ContinualQuasimetricSACAgent(SACAgent):
             return reward
 
         with torch.no_grad():
-            bonus = self.quasimetric.structure_bonus(obs, action, next_obs).unsqueeze(-1)
+            bonus = self.quasimetric.structure_bonus(obs, action, next_obs).unsqueeze(
+                -1
+            )
         metrics["structure_bonus"] = float(bonus.mean().item())
         return reward + coef * bonus
 
@@ -85,7 +87,9 @@ class ContinualQuasimetricSACAgent(SACAgent):
         return int(shared_batch_size)
 
     def _sample_shared_batch(self, replay_buffer, batch_size=None):
-        shared_batch_size = self._shared_batch_size() if batch_size is None else int(batch_size)
+        shared_batch_size = (
+            self._shared_batch_size() if batch_size is None else int(batch_size)
+        )
         if hasattr(replay_buffer, "sample_metric_batch"):
             batch = replay_buffer.sample_metric_batch(
                 batch_size=shared_batch_size,
@@ -105,30 +109,44 @@ class ContinualQuasimetricSACAgent(SACAgent):
                 "dones": 1.0 - batch["not_dones_no_max"],
                 "value_goals": batch["goals"],
                 "intermediate_value_goals": batch["next_obses"],
-                "intermediate_value_goals_offsets": torch.ones_like(batch["goal_steps"]),
+                "intermediate_value_goals_offsets": torch.ones_like(
+                    batch["goal_steps"]
+                ),
             }
         )
         return shared_batch
 
-    def _update_actor_offline_from_batch(self, batch, bc_alpha=0.1, normalize_q_loss=True):
-        bc_alpha = self.alpha.detach() if bc_alpha is None else torch.as_tensor(bc_alpha, device=self.device).float()
+    def _update_actor_offline_from_batch(
+        self, batch, bc_alpha=0.1, normalize_q_loss=True
+    ):
+        bc_alpha = (
+            self.alpha.detach()
+            if bc_alpha is None
+            else torch.as_tensor(bc_alpha, device=self.device).float()
+        )
 
         obs = batch["obses"]
         action = batch["actions"]
-        goal_obs = batch.get("actor_goals", batch.get("value_goals", batch.get("goals")))
+        goal_obs = batch.get(
+            "actor_goals", batch.get("value_goals", batch.get("goals"))
+        )
         goal_rep = self._prepare_goal_rep(obs.shape[0], goal_obs=goal_obs, detach=True)
 
         eps = 1e-6
         action = torch.clamp(action, min=-1.0 + eps, max=1.0 - eps)
-        assert not torch.isnan(obs).any(), f'obs nan: {obs}'
-        assert not torch.isnan(action).any(), f'action nan: {action}'
-        assert torch.all(action > -1) and torch.all(action < 1), f'action out of range: {action}'
+        assert not torch.isnan(obs).any(), f"obs nan: {obs}"
+        assert not torch.isnan(action).any(), f"action nan: {action}"
+        assert torch.all(action > -1) and torch.all(action < 1), (
+            f"action out of range: {action}"
+        )
 
         dist = self.actor(self._augment_obs(obs, goal_rep))
-        assert not torch.isnan(dist.loc).any(), f'dist: {dist.loc}'
+        assert not torch.isnan(dist.loc).any(), f"dist: {dist.loc}"
 
         q_action = dist.mean.clamp(*self.action_range)
-        quasimetric_requires_grad = [param.requires_grad for param in self.quasimetric.parameters()]
+        quasimetric_requires_grad = [
+            param.requires_grad for param in self.quasimetric.parameters()
+        ]
         try:
             for param in self.quasimetric.parameters():
                 param.requires_grad_(False)
@@ -148,7 +166,9 @@ class ContinualQuasimetricSACAgent(SACAgent):
                 qm_goal_rep = self.encode_goal(goal_obs)
             qm_distance = self.quasimetric.distance(transition_rep, qm_goal_rep)
         finally:
-            for param, requires_grad in zip(self.quasimetric.parameters(), quasimetric_requires_grad):
+            for param, requires_grad in zip(
+                self.quasimetric.parameters(), quasimetric_requires_grad
+            ):
                 param.requires_grad_(requires_grad)
         actor_Q = -qm_distance
         if normalize_q_loss:
@@ -176,7 +196,9 @@ class ContinualQuasimetricSACAgent(SACAgent):
             "std": float(dist.scale.mean().item()),
         }
 
-    def actor_offline(self, replay_buffer, update_num=1, bc_alpha=None, normalize_q_loss=True):
+    def actor_offline(
+        self, replay_buffer, update_num=1, bc_alpha=None, normalize_q_loss=True
+    ):
         bc_alpha = self.continual_cfg.bc_alpha if bc_alpha is None else bc_alpha
         print_interval = max(update_num // 5, 1)
         last_metrics = None
@@ -188,11 +210,13 @@ class ContinualQuasimetricSACAgent(SACAgent):
                 normalize_q_loss=normalize_q_loss,
             )
             if update_num > 1 and i % print_interval == 0:
-                print('actor_offline:', i, last_metrics)
+                print("actor_offline:", i, last_metrics)
 
         return last_metrics
 
-    def update_structure_and_actor(self, replay_buffer, bc_alpha=None, normalize_q_loss=True):
+    def update_structure_and_actor(
+        self, replay_buffer, bc_alpha=None, normalize_q_loss=True
+    ):
         if len(replay_buffer) < self.quasimetric_cfg.min_buffer_size:
             return {}, {}
 
@@ -233,7 +257,9 @@ class ContinualQuasimetricSACAgent(SACAgent):
         if step % self.continual_cfg.structure_update_frequency == 0:
             structure_metrics = {}
             for _ in range(self.continual_cfg.structure_updates_per_step):
-                structure_metrics = self.update_structure(replay_buffer, current_batch=shared_batch)
+                structure_metrics = self.update_structure(
+                    replay_buffer, current_batch=shared_batch
+                )
             metrics.update(
                 {
                     f"quasimetric/{key}": value

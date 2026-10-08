@@ -188,10 +188,18 @@ class ContinualQuasimetricAWRAgent:
             ]
         )
         return (
-            torch.as_tensor(replay_buffer.obses[transition_batch], device=self.device).float(),
-            torch.as_tensor(replay_buffer.actions[transition_batch], device=self.device).float(),
-            torch.as_tensor(replay_buffer.next_obses[transition_batch], device=self.device).float(),
-            torch.as_tensor(replay_buffer.next_obses[goal_batch], device=self.device).float(),
+            torch.as_tensor(
+                replay_buffer.obses[transition_batch], device=self.device
+            ).float(),
+            torch.as_tensor(
+                replay_buffer.actions[transition_batch], device=self.device
+            ).float(),
+            torch.as_tensor(
+                replay_buffer.next_obses[transition_batch], device=self.device
+            ).float(),
+            torch.as_tensor(
+                replay_buffer.next_obses[goal_batch], device=self.device
+            ).float(),
             sampled_task_ids,
             len(task_index_sets),
             int(eligible_task_ids.size),
@@ -283,7 +291,9 @@ class ContinualQuasimetricAWRAgent:
 
     def save(self, model_dir, model_name):
         os.makedirs(model_dir, exist_ok=True)
-        torch.save(self.actor.state_dict(), os.path.join(model_dir, f"{model_name}_actor.pt"))
+        torch.save(
+            self.actor.state_dict(), os.path.join(model_dir, f"{model_name}_actor.pt")
+        )
         torch.save(
             {
                 "actor_optimizer": self.actor_optimizer.state_dict(),
@@ -303,7 +313,10 @@ class ContinualQuasimetricAWRAgent:
 
     def load(self, model_dir, model_name):
         self.actor.load_state_dict(
-            torch.load(os.path.join(model_dir, f"{model_name}_actor.pt"), map_location=self.device)
+            torch.load(
+                os.path.join(model_dir, f"{model_name}_actor.pt"),
+                map_location=self.device,
+            )
         )
         awr_payload = torch.load(
             os.path.join(model_dir, f"{model_name}_awr.pt"),

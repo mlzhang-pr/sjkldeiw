@@ -1,20 +1,27 @@
-
-
-
-
-
-
-
 import metaworld
-from metaworld import ALL_V3_ENVIRONMENTS_GOAL_OBSERVABLE, ALL_V3_ENVIRONMENTS_GOAL_HIDDEN
+from metaworld import (
+    ALL_V3_ENVIRONMENTS_GOAL_OBSERVABLE,
+    ALL_V3_ENVIRONMENTS_GOAL_HIDDEN,
+)
 
 
 import inspect
 from typing import Callable, Dict, List
 import gymnasium as gym
-from gymnasium.wrappers import DtypeObservation, TimeLimit, RecordEpisodeStatistics, RecordVideo, ClipAction
+from gymnasium.wrappers import (
+    DtypeObservation,
+    TimeLimit,
+    RecordEpisodeStatistics,
+    RecordVideo,
+    ClipAction,
+)
 import numpy as np
-from envs.metaworld_env_sequences import GOOD_RPO_SEQS, RPO20_SEQ, RPO10_SEQ, RPO10_SHORT
+from envs.metaworld_env_sequences import (
+    GOOD_RPO_SEQS,
+    RPO20_SEQ,
+    RPO10_SEQ,
+    RPO10_SHORT,
+)
 
 
 version = 3
@@ -29,7 +36,14 @@ def v3_task_name(task_name):
 
 
 class MetaWorldGoalConditionedWrapper(gym.Wrapper):
-    def __init__(self, env, task_name=None, reward_type="sparse", success_threshold=0.05, achieved_goal="auto"):
+    def __init__(
+        self,
+        env,
+        task_name=None,
+        reward_type="sparse",
+        success_threshold=0.05,
+        achieved_goal="auto",
+    ):
         super().__init__(env)
         self.task_name = task_name or ""
         self.reward_type = reward_type
@@ -43,7 +57,9 @@ class MetaWorldGoalConditionedWrapper(gym.Wrapper):
 
         obs_space = env.observation_space
         if not isinstance(obs_space, gym.spaces.Box) or len(obs_space.shape) != 1:
-            raise TypeError("MetaWorldGoalConditionedWrapper expects a flat Box observation space.")
+            raise TypeError(
+                "MetaWorldGoalConditionedWrapper expects a flat Box observation space."
+            )
 
         observation_low = np.asarray(obs_space.low[:-3], dtype=np.float32)
         observation_high = np.asarray(obs_space.high[:-3], dtype=np.float32)
@@ -51,7 +67,9 @@ class MetaWorldGoalConditionedWrapper(gym.Wrapper):
         goal_high = np.full(3, np.inf, dtype=np.float32)
         self.observation_space = gym.spaces.Dict(
             {
-                "observation": gym.spaces.Box(observation_low, observation_high, dtype=np.float32),
+                "observation": gym.spaces.Box(
+                    observation_low, observation_high, dtype=np.float32
+                ),
                 "achieved_goal": gym.spaces.Box(goal_low, goal_high, dtype=np.float32),
                 "desired_goal": gym.spaces.Box(goal_low, goal_high, dtype=np.float32),
             }
@@ -66,7 +84,9 @@ class MetaWorldGoalConditionedWrapper(gym.Wrapper):
     def step(self, action):
         obs, reward, terminated, truncated, info = self.env.step(action)
         goal_obs = self._goal_observation(obs)
-        reward = self.compute_reward(goal_obs["achieved_goal"], goal_obs["desired_goal"], info)
+        reward = self.compute_reward(
+            goal_obs["achieved_goal"], goal_obs["desired_goal"], info
+        )
         info = self._goal_info(info, goal_obs)
         return goal_obs, float(reward), terminated, truncated, info
 
@@ -98,20 +118,30 @@ class MetaWorldGoalConditionedWrapper(gym.Wrapper):
 
     def _goal_info(self, info, goal_obs):
         info = dict(info)
-        distance = float(np.linalg.norm(goal_obs["achieved_goal"] - goal_obs["desired_goal"]))
+        distance = float(
+            np.linalg.norm(goal_obs["achieved_goal"] - goal_obs["desired_goal"])
+        )
         info["goal_distance"] = distance
         info["is_success"] = np.float32(distance <= self.success_threshold)
-        info["achieved_goal"] = np.array(goal_obs["achieved_goal"], dtype=np.float32, copy=True)
-        info["desired_goal"] = np.array(goal_obs["desired_goal"], dtype=np.float32, copy=True)
+        info["achieved_goal"] = np.array(
+            goal_obs["achieved_goal"], dtype=np.float32, copy=True
+        )
+        info["desired_goal"] = np.array(
+            goal_obs["desired_goal"], dtype=np.float32, copy=True
+        )
         return info
 
     def _get_desired_goal(self):
         env = self.unwrapped
         if hasattr(env, "_get_pos_goal"):
-            return np.asarray(env._get_pos_goal(), dtype=np.float32).reshape(-1)[:3].copy()
+            return (
+                np.asarray(env._get_pos_goal(), dtype=np.float32).reshape(-1)[:3].copy()
+            )
         if hasattr(env, "_target_pos"):
             return np.asarray(env._target_pos, dtype=np.float32).reshape(-1)[:3].copy()
-        raise AttributeError("MetaWorld environment does not expose a desired goal position.")
+        raise AttributeError(
+            "MetaWorld environment does not expose a desired goal position."
+        )
 
     def _get_achieved_goal(self):
         env = self.unwrapped
@@ -121,35 +151,72 @@ class MetaWorldGoalConditionedWrapper(gym.Wrapper):
 
         if source == "object" and hasattr(env, "_get_pos_objects"):
             try:
-                object_pos = np.asarray(env._get_pos_objects(), dtype=np.float32).reshape(-1)
+                object_pos = np.asarray(
+                    env._get_pos_objects(), dtype=np.float32
+                ).reshape(-1)
                 if object_pos.size >= 3 and np.all(np.isfinite(object_pos[:3])):
                     return object_pos[:3].copy()
             except NotImplementedError:
                 pass
 
         if hasattr(env, "get_endeff_pos"):
-            return np.asarray(env.get_endeff_pos(), dtype=np.float32).reshape(-1)[:3].copy()
+            return (
+                np.asarray(env.get_endeff_pos(), dtype=np.float32)
+                .reshape(-1)[:3]
+                .copy()
+            )
         if hasattr(env, "tcp_center"):
             return np.asarray(env.tcp_center, dtype=np.float32).reshape(-1)[:3].copy()
-        raise AttributeError("MetaWorld environment does not expose an achieved goal position.")
+        raise AttributeError(
+            "MetaWorld environment does not expose an achieved goal position."
+        )
 
 
-GOOD_ENVS = ['handle-press-side-v2', 'faucet-close-v2', 'plate-slide-v2', 'window-open-v2',
-             'reach-wall-v2', 'button-press-v2', 'plate-slide-side-v2', 'handle-press-v2']
+GOOD_ENVS = [
+    "handle-press-side-v2",
+    "faucet-close-v2",
+    "plate-slide-v2",
+    "window-open-v2",
+    "reach-wall-v2",
+    "button-press-v2",
+    "plate-slide-side-v2",
+    "handle-press-v2",
+]
 
 
+SMALL_SEQUENCE_ENVS = [
+    "handle-press-v2",
+    "plate-slide-side-v2",
+    "button-press-v2",
+    "plate-slide-v2",
+    "handle-press-side-v2",
+    "faucet-close-v2",
+]
 
 
-
-SMALL_SEQUENCE_ENVS = ['handle-press-v2', 'plate-slide-side-v2', 'button-press-v2', 'plate-slide-v2', 'handle-press-side-v2', 'faucet-close-v2']
 class MetaWorldSingleEnvSequence:
-    def __init__(self,  change_freq=1e7, base_task_name=None, env_sequence="metaworld_sequence_set1", goal_hidden=True,
-                 goal_conditioned=True, gc_reward_type="sparse", gc_success_threshold=0.05, gc_achieved_goal="auto",
-                 normalize_obs="straight", normalize_avg_coef=0.0001,
-                 normalize_rewards=True, reset_obs_stats=False,
-                 change_when_solved=False, freeze_rand_vec=True,
-                 capture_video=False, seed=None, *args, **kwargs):
-        '''
+    def __init__(
+        self,
+        change_freq=1e7,
+        base_task_name=None,
+        env_sequence="metaworld_sequence_set1",
+        goal_hidden=True,
+        goal_conditioned=True,
+        gc_reward_type="sparse",
+        gc_success_threshold=0.05,
+        gc_achieved_goal="auto",
+        normalize_obs="straight",
+        normalize_avg_coef=0.0001,
+        normalize_rewards=True,
+        reset_obs_stats=False,
+        change_when_solved=False,
+        freeze_rand_vec=True,
+        capture_video=False,
+        seed=None,
+        *args,
+        **kwargs,
+    ):
+        """
         This class is used to generate a stream of tasks in one of the metaworld envs
         Each task is generated with a new random seed. (I think you can go on forever?)
         base_task_name: name of metaworld env e.g. 'reach-v2'
@@ -165,7 +232,7 @@ class MetaWorldSingleEnvSequence:
         gc_achieved_goal: Source for achieved_goal: auto, object, or tcp
         freeze_rand_vec: If True, reuse one task instance across episode resets
         change_when_solved: Change to the next task whenever the agent receives above 90% success 5 times in a row.
-        '''
+        """
 
         self.base_task_name = v3_task_name(base_task_name)
         self.env_sequence = env_sequence
@@ -175,14 +242,20 @@ class MetaWorldSingleEnvSequence:
                 env_set_id = int(self.env_sequence[-2:])
             else:
                 env_set_id = int(self.env_sequence[-1])
-            self.env_list = [v3_task_name(task_name) for task_name in RPO10_SEQ[env_set_id - 1]]
+            self.env_list = [
+                v3_task_name(task_name) for task_name in RPO10_SEQ[env_set_id - 1]
+            ]
 
-        self.goal_str = '-goal-hidden' if goal_hidden else '-goal-observable'
-        self.metaworld_envs = ALL_V3_ENVIRONMENTS_GOAL_HIDDEN if goal_hidden else ALL_V3_ENVIRONMENTS_GOAL_OBSERVABLE
+        self.goal_str = "-goal-hidden" if goal_hidden else "-goal-observable"
+        self.metaworld_envs = (
+            ALL_V3_ENVIRONMENTS_GOAL_HIDDEN
+            if goal_hidden
+            else ALL_V3_ENVIRONMENTS_GOAL_OBSERVABLE
+        )
         if self.base_task_name is not None:
-            self.base_task_class = self.metaworld_envs[self.base_task_name + self.goal_str]
-
-
+            self.base_task_class = self.metaworld_envs[
+                self.base_task_name + self.goal_str
+            ]
 
         self.env = None
         self.base_seed = seed
@@ -211,7 +284,6 @@ class MetaWorldSingleEnvSequence:
 
         self.rng = np.random.RandomState(seed=self.current_seed)
 
-
         self.make_task()
 
     def reset(self):
@@ -219,7 +291,6 @@ class MetaWorldSingleEnvSequence:
 
         if self._uses_obs_normalization():
             obs = self._normalize_obs(obs)
-
 
         return obs, info
 
@@ -233,10 +304,13 @@ class MetaWorldSingleEnvSequence:
             else:
                 env_set_id = int(self.env_sequence[-1])
 
+            self.base_task_name = self.env_list[
+                (self.task_counter - 1) % len(self.env_list)
+            ]
 
-            self.base_task_name = self.env_list[(self.task_counter-1) % len(self.env_list)]
-
-            self.base_task_class = self.metaworld_envs[self.base_task_name + self.goal_str]
+            self.base_task_class = self.metaworld_envs[
+                self.base_task_name + self.goal_str
+            ]
 
         temp_env = self._make_base_env()
 
@@ -254,7 +328,7 @@ class MetaWorldSingleEnvSequence:
                 self.obs_var = np.ones(self._obs_statistics_shape())
             self.obs_count = 1e-4
 
-        print(f'TASK {self.task_counter}  {self.current_seed} {self.base_task_name}')
+        print(f"TASK {self.task_counter}  {self.current_seed} {self.base_task_name}")
         return
 
     def set_task(self, task_name):
@@ -277,16 +351,12 @@ class MetaWorldSingleEnvSequence:
                 self.obs_var = np.ones(self._obs_statistics_shape())
             self.obs_count = 1e-4
 
-
-
     def _make_base_env(self):
         env = self.base_task_class(seed=self.current_seed)
         env._freeze_rand_vec = self.freeze_rand_vec
         return env
 
     def _wrap_env(self, env, eval_mode=False):
-
-
 
         env = DtypeObservation(env, dtype=np.float32)
         if self.goal_conditioned:
@@ -304,8 +374,6 @@ class MetaWorldSingleEnvSequence:
         env = RecordEpisodeStatistics(env)
         env = SuccessCounter(env)
 
-
-
         return env
 
     def step(self, action):
@@ -314,14 +382,8 @@ class MetaWorldSingleEnvSequence:
         obs, reward, terminated, truncated, info = self.env.step(action)
 
         if self._uses_obs_normalization():
-
             self._update_obs_statistics(obs)
             obs = self._normalize_obs(obs)
-
-
-
-
-
 
         if self.change_when_solved:
             if self._change_task_next_step:
@@ -329,11 +391,9 @@ class MetaWorldSingleEnvSequence:
                 self.make_task()
                 truncated = True
 
-
         elif self.timestep_counter % self.change_freq == 0:
-                self.make_task()
-                truncated = True
-
+            self.make_task()
+            truncated = True
 
         return obs, reward, terminated, truncated, info
 
@@ -346,13 +406,14 @@ class MetaWorldSingleEnvSequence:
 
         return obs, reward, terminated, truncated, info
 
-
     def evaluate_agent(self, agent, num_eval_episodes=10, reseed_each_episode=True):
-        ''' Runs and evaluation of the agent
-        It runs on the current seed i.e. the current task '''
+        """Runs and evaluation of the agent
+        It runs on the current seed i.e. the current task"""
 
         test_env = self._wrap_env(self._make_base_env(), eval_mode=True)
-        reset_kwargs = {"seed": self.current_seed} if self.current_seed is not None else {}
+        reset_kwargs = (
+            {"seed": self.current_seed} if self.current_seed is not None else {}
+        )
         subsequent_reset_kwargs = reset_kwargs if reseed_each_episode else {}
         obs, _ = test_env.reset(**reset_kwargs)
 
@@ -372,7 +433,6 @@ class MetaWorldSingleEnvSequence:
         while len(episodic_returns) < num_eval_episodes:
             action = self._evaluate_action(agent, obs)
 
-
             next_obs, _, terminated, truncated, info = test_env.step(action)
 
             if "is_success" in info:
@@ -384,7 +444,7 @@ class MetaWorldSingleEnvSequence:
                 next_obs = self._normalize_obs(next_obs)
 
             if "episode" in info:
-                episodic_returns.append(info['episode']['r'])
+                episodic_returns.append(info["episode"]["r"])
                 if current_goal_distances:
                     goal_successes.append(current_goal_success)
                     final_goal_distances.append(current_goal_distances[-1])
@@ -393,27 +453,21 @@ class MetaWorldSingleEnvSequence:
                 current_goal_success = False
                 current_goal_distances = []
 
-
-
-
-
-
-
             obs = next_obs
 
             if terminated or truncated:
                 obs, _ = test_env.reset(**subsequent_reset_kwargs)
 
         agent.train()
-        eval_results['episodic_returns'] = episodic_returns
-        eval_results['successes'] = test_env.pop_successes()
-        eval_results['goal_successes'] = goal_successes
-        eval_results['final_goal_distances'] = final_goal_distances
-        eval_results['min_goal_distances'] = min_goal_distances
-        eval_results['mean_goal_distances'] = mean_goal_distances
+        eval_results["episodic_returns"] = episodic_returns
+        eval_results["successes"] = test_env.pop_successes()
+        eval_results["goal_successes"] = goal_successes
+        eval_results["final_goal_distances"] = final_goal_distances
+        eval_results["min_goal_distances"] = min_goal_distances
+        eval_results["mean_goal_distances"] = mean_goal_distances
 
         if self.change_when_solved:
-            self.eval_success_history.append(np.mean(eval_results['successes']))
+            self.eval_success_history.append(np.mean(eval_results["successes"]))
             self._change_task_next_step = True
         return eval_results
 
@@ -458,26 +512,24 @@ class MetaWorldSingleEnvSequence:
             if compute_reward is not None:
                 return compute_reward(achieved_goal, desired_goal, info)
             env = getattr(env, "env", None)
-        raise AttributeError("compute_reward is only available when goal_conditioned=True.")
+        raise AttributeError(
+            "compute_reward is only available when goal_conditioned=True."
+        )
 
     def _update_obs_statistics(self, obs):
-        ''' Update mean and variance statistics '''
+        """Update mean and variance statistics"""
         obs = np.asarray(self._normalizable_obs(obs), dtype=np.float32)
 
-        if self.normalize_obs.lower() == 'ema':
+        if self.normalize_obs.lower() == "ema":
+            self.obs_mean = (
+                1 - self.normalize_avg_coef
+            ) * self.obs_mean + self.normalize_avg_coef * obs
 
+            self.obs_var = (
+                1 - self.normalize_avg_coef
+            ) * self.obs_var + self.normalize_avg_coef * (obs - self.obs_mean) ** 2
 
-
-
-            self.obs_mean = (1-self.normalize_avg_coef) * self.obs_mean + self.normalize_avg_coef * obs
-
-            self.obs_var = (1-self.normalize_avg_coef) * self.obs_var + self.normalize_avg_coef * (obs - self.obs_mean)**2
-
-
-
-
-
-        elif self.normalize_obs.lower() == 'straight':
+        elif self.normalize_obs.lower() == "straight":
             mean = self.obs_mean
             var = self.obs_var
             count = self.obs_count
@@ -486,7 +538,7 @@ class MetaWorldSingleEnvSequence:
             tot_count = count + 1
 
             new_mean = mean + delta / tot_count
-            new_var = var * count / tot_count + delta ** 2 * count / tot_count ** 2
+            new_var = var * count / tot_count + delta**2 * count / tot_count**2
             new_count = tot_count
 
             self.obs_mean = new_mean
@@ -519,6 +571,7 @@ class MetaWorldSingleEnvSequence:
 
 class SuccessCounter(gym.Wrapper):
     """From Continual World's Codebase"""
+
     def __init__(self, env):
         super().__init__(env)
         self.successes = []
@@ -542,19 +595,20 @@ class SuccessCounter(gym.Wrapper):
         return self.env.reset(**kwargs)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     ...
 
     np.set_printoptions(suppress=True)
-    env = MetaWorldSingleEnvSequence(1000,'reach-v2', seed=123,
-                                     obs_drift_std=0.0, obs_noise_std=0.01, normalize_obs=False)
+    env = MetaWorldSingleEnvSequence(
+        1000,
+        "reach-v2",
+        seed=123,
+        obs_drift_std=0.0,
+        obs_noise_std=0.01,
+        normalize_obs=False,
+    )
     obs, _ = env.reset()
 
     print(obs)
-
-
-
-
-
 
     ...

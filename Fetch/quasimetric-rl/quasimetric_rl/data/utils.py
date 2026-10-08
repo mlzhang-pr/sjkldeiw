@@ -9,26 +9,24 @@ import torch
 import torch.utils.data
 
 
-vT = TypeVar('vT', covariant=True)
-class NestedMapping(Mapping[str, Union['NestedMapping[vT]', vT]]):
+vT = TypeVar("vT", covariant=True)
+
+
+class NestedMapping(Mapping[str, Union["NestedMapping[vT]", vT]]):
     def __getitem__(self, __key: str) -> Union[Self, vT]:
         return super().__getitem__(__key)
 
 
 FieldT = TypeVar(
-    'FieldT',
-    torch.Tensor, NestedMapping[torch.Tensor],
-    'TensorCollectionAttrsMixin', NestedMapping['TensorCollectionAttrsMixin'],
+    "FieldT",
+    torch.Tensor,
+    NestedMapping[torch.Tensor],
+    "TensorCollectionAttrsMixin",
+    NestedMapping["TensorCollectionAttrsMixin"],
 )
 
 
 class TensorCollectionAttrsMixin(abc.ABC):
-
-
-
-
-
-
     @classmethod
     def types_dict(cls):
         fields = attrs.fields_dict(cls)
@@ -47,9 +45,12 @@ class TensorCollectionAttrsMixin(abc.ABC):
             orig = get_origin(ty)
             args = get_args(ty)
             return (
-                (issubclass(orig, NestedMapping) and issubclass(args)[0], torch.Tensor)
-                or
-                (issubclass(orig, Mapping) and args[0] == str and issubclass(args, torch.Tensor))
+                issubclass(orig, NestedMapping) and issubclass(args)[0],
+                torch.Tensor,
+            ) or (
+                issubclass(orig, Mapping)
+                and args[0] == str
+                and issubclass(args, torch.Tensor)
             )
         except TypeError:
             return False
@@ -74,48 +75,61 @@ class TensorCollectionAttrsMixin(abc.ABC):
             ty = types[k]
             field_values = [getattr(c, k) for c in collections]
             if cls.is_tensor_type(ty):
-
                 return torch.cat(field_values, dim=dim)
             elif cls.is_nested_tensor_mapping_type(ty):
 
-
-                def cat_map(maps: List[NestedMapping[torch.Tensor]]) -> NestedMapping[torch.Tensor]:
+                def cat_map(
+                    maps: List[NestedMapping[torch.Tensor]],
+                ) -> NestedMapping[torch.Tensor]:
                     if len(maps) == 0:
                         return {}
 
                     def get_tensor_flags(map: NestedMapping[torch.Tensor]):
-                        return {map_k: isinstance(map_v, torch.Tensor) for map_k, map_v in map.items()}
+                        return {
+                            map_k: isinstance(map_v, torch.Tensor)
+                            for map_k, map_v in map.items()
+                        }
 
                     tensor_flags = get_tensor_flags(maps[0])
 
                     return {
                         map_k: (
-                            torch.cat([m[map_k] for m in maps], dim=dim) if is_tensor else cat_map([m[map_k] for m in maps])
-                        ) for map_k, is_tensor in tensor_flags.items()
+                            torch.cat([m[map_k] for m in maps], dim=dim)
+                            if is_tensor
+                            else cat_map([m[map_k] for m in maps])
+                        )
+                        for map_k, is_tensor in tensor_flags.items()
                     }
 
                 return cat_map(field_values)
             elif cls.is_tensor_collection_attrs_type(ty):
-
-                return cast(Type[TensorCollectionAttrsMixin], ty).cat(field_values, dim=dim)
+                return cast(Type[TensorCollectionAttrsMixin], ty).cat(
+                    field_values, dim=dim
+                )
             else:
-
-
                 coll_ty: Type[TensorCollectionAttrsMixin] = get_args(ty)[0]
 
-                def cat_map(maps: List[NestedMapping[TensorCollectionAttrsMixin]]) -> NestedMapping[TensorCollectionAttrsMixin]:
+                def cat_map(
+                    maps: List[NestedMapping[TensorCollectionAttrsMixin]],
+                ) -> NestedMapping[TensorCollectionAttrsMixin]:
                     if len(maps) == 0:
                         return {}
 
                     def get_coll_flags(map: NestedMapping[TensorCollectionAttrsMixin]):
-                        return {map_k: isinstance(map_v, TensorCollectionAttrsMixin) for map_k, map_v in map.items()}
+                        return {
+                            map_k: isinstance(map_v, TensorCollectionAttrsMixin)
+                            for map_k, map_v in map.items()
+                        }
 
                     coll_flags = get_coll_flags(maps[0])
 
                     return {
                         map_k: (
-                            coll_ty.cat([m[map_k] for m in maps], dim=dim) if is_coll else cat_map([m[map_k] for m in maps])
-                        ) for map_k, is_coll in coll_flags.items()
+                            coll_ty.cat([m[map_k] for m in maps], dim=dim)
+                            if is_coll
+                            else cat_map([m[map_k] for m in maps])
+                        )
+                        for map_k, is_coll in coll_flags.items()
                     }
 
                 return cat_map(field_values)
@@ -123,12 +137,18 @@ class TensorCollectionAttrsMixin(abc.ABC):
         return cls(**{k: cat_key(k) for k in types.keys()})
 
     @staticmethod
-    def _make_cvt_fn(elem_cvt_fn: Callable[[Union[torch.Tensor, TensorCollectionAttrsMixin]], Union[torch.Tensor, TensorCollectionAttrsMixin]]):
+    def _make_cvt_fn(
+        elem_cvt_fn: Callable[
+            [Union[torch.Tensor, TensorCollectionAttrsMixin]],
+            Union[torch.Tensor, TensorCollectionAttrsMixin],
+        ],
+    ):
         def cvt_fn(x: FieldT) -> FieldT:
             if isinstance(x, (torch.Tensor, TensorCollectionAttrsMixin)):
                 return elem_cvt_fn(x)
             else:
                 return {k: cvt_fn(v) for k, v in x.items()}
+
         return cvt_fn
 
     def to(self, *args, **kwargs) -> Self:

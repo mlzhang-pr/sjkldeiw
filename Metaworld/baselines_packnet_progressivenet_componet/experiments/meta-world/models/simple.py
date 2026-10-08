@@ -12,7 +12,6 @@ class SimpleAgent(nn.Module):
 
         self.fc = shared(input_dim=obs_dim)
 
-
         self.fc_mean = None
         self.fc_logstd = None
         self.reset_heads()

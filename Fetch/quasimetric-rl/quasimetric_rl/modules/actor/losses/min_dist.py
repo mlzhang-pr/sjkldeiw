@@ -14,7 +14,6 @@ from ...quasimetric_critic import QuasimetricCritic, CriticBatchInfo
 from . import ActorLossBase
 
 
-
 @attrs.define(kw_only=True)
 class ActorObsGoalCriticInfo:
     r"""
@@ -23,6 +22,7 @@ class ActorObsGoalCriticInfo:
     Instead, for the batch of observation and goal pairs which the actor is activated with,
     this stores the latents for them.
     """
+
     critic: QuasimetricCritic
     zo: LatentTensor
     zg: LatentTensor
@@ -31,15 +31,11 @@ class ActorObsGoalCriticInfo:
 class MinDistLoss(ActorLossBase):
     @attrs.define(kw_only=True)
     class Conf:
-
-
         adaptive_entropy_regularizer: bool = True
-
-
 
         add_goal_as_future_state: bool = True
 
-        def make(self, env_spec: EnvSpec) -> 'MinDistLoss':
+        def make(self, env_spec: EnvSpec) -> "MinDistLoss":
             return MinDistLoss(
                 env_spec=env_spec,
                 adaptive_entropy_regularizer=self.adaptive_entropy_regularizer,
@@ -50,26 +46,33 @@ class MinDistLoss(ActorLossBase):
     raw_entropy_weight: Optional[nn.Parameter]
     target_entropy: Optional[float] = None
 
-    def __init__(self, *, env_spec: EnvSpec,
-                 adaptive_entropy_regularizer: bool,
-                 add_goal_as_future_state: bool):
+    def __init__(
+        self,
+        *,
+        env_spec: EnvSpec,
+        adaptive_entropy_regularizer: bool,
+        add_goal_as_future_state: bool,
+    ):
         super().__init__()
         if not env_spec.action_dtype.is_floating_point:
             raise RuntimeError(
-                'Discrete action spaces do not support optimizing actor by backpropagation through the critic. '
-                'Set agent.actor=null to turn of actor optimization.'
+                "Discrete action spaces do not support optimizing actor by backpropagation through the critic. "
+                "Set agent.actor=null to turn of actor optimization."
             )
 
         self.add_goal_as_future_state = add_goal_as_future_state
         if adaptive_entropy_regularizer:
-            self.raw_entropy_weight = nn.Parameter(torch.tensor(0.0, dtype=torch.float32))
+            self.raw_entropy_weight = nn.Parameter(
+                torch.tensor(0.0, dtype=torch.float32)
+            )
             self.target_entropy = env_spec.get_action_entropy_reg_target()
         else:
-            self.register_parameter('raw_entropy_weight', None)
+            self.register_parameter("raw_entropy_weight", None)
             self.target_entropy = None
 
-    def gather_obs_goal_pairs(self, critic_batch_infos: Collection[CriticBatchInfo],
-                                data: BatchData) -> Tuple[torch.Tensor, torch.Tensor, Collection[ActorObsGoalCriticInfo]]:
+    def gather_obs_goal_pairs(
+        self, critic_batch_infos: Collection[CriticBatchInfo], data: BatchData
+    ) -> Tuple[torch.Tensor, torch.Tensor, Collection[ActorObsGoalCriticInfo]]:
         r"""
         Returns (
             obs,
@@ -81,7 +84,6 @@ class MinDistLoss(ActorLossBase):
         obs = data.observations
         goal = torch.roll(data.next_observations, 1, dims=0)
         if self.add_goal_as_future_state:
-
             goal = torch.stack([goal, data.future_observations], 0)
             obs = obs.expand_as(goal)
 
@@ -92,24 +94,35 @@ class MinDistLoss(ActorLossBase):
             zg = torch.roll(critic_batch_info.zy, 1, dims=0)
 
             if self.add_goal_as_future_state:
-
-                zg = torch.stack([
-                    zg,
-                    critic_batch_info.critic.encoder(data.future_observations),
-                ], 0)
+                zg = torch.stack(
+                    [
+                        zg,
+                        critic_batch_info.critic.encoder(data.future_observations),
+                    ],
+                    0,
+                )
                 zo = zo.expand_as(zg)
 
-            actor_obs_goal_critic_infos.append(ActorObsGoalCriticInfo(
-                critic=critic_batch_info.critic,
-                zo=zo,
-                zg=zg,
-            ))
+            actor_obs_goal_critic_infos.append(
+                ActorObsGoalCriticInfo(
+                    critic=critic_batch_info.critic,
+                    zo=zo,
+                    zg=zg,
+                )
+            )
 
         return obs, goal, actor_obs_goal_critic_infos
 
-    def forward(self, actor: Actor, critic_batch_infos: Collection[CriticBatchInfo], data: BatchData) -> LossResult:
+    def forward(
+        self,
+        actor: Actor,
+        critic_batch_infos: Collection[CriticBatchInfo],
+        data: BatchData,
+    ) -> LossResult:
         with torch.no_grad():
-            obs, goal, actor_obs_goal_critic_infos = self.gather_obs_goal_pairs(critic_batch_infos, data)
+            obs, goal, actor_obs_goal_critic_infos = self.gather_obs_goal_pairs(
+                critic_batch_infos, data
+            )
 
         actor_distn = actor(obs, goal)
         action = actor_distn.rsample()
@@ -121,21 +134,23 @@ class MinDistLoss(ActorLossBase):
         for idx, actor_obs_goal_critic_info in enumerate(actor_obs_goal_critic_infos):
             critic = actor_obs_goal_critic_info.critic
             with critic.requiring_grad(False):
-                zp = critic.latent_dynamics(actor_obs_goal_critic_info.zo.detach(), action)
-                dist = critic.quasimetric_model(zp, actor_obs_goal_critic_info.zg.detach())
-            info[f'dist_{idx:02d}'] = dist.mean()
+                zp = critic.latent_dynamics(
+                    actor_obs_goal_critic_info.zo.detach(), action
+                )
+                dist = critic.quasimetric_model(
+                    zp, actor_obs_goal_critic_info.zg.detach()
+                )
+            info[f"dist_{idx:02d}"] = dist.mean()
             dists.append(dist)
 
-        max_dist = info['dist_max'] = torch.stack(dists, -1).max(-1).values.mean()
+        max_dist = info["dist_max"] = torch.stack(dists, -1).max(-1).values.mean()
         loss = max_dist
 
         if self.target_entropy is not None:
+            info["target_entropy"] = self.target_entropy
+            entropy = info["entropy"] = actor_distn.entropy().mean()
 
-
-            info['target_entropy'] = self.target_entropy
-            entropy = info['entropy'] = actor_distn.entropy().mean()
-
-            alpha = info['entropy_alpha'] = grad_mul(self.raw_entropy_weight.exp(), -1)
+            alpha = info["entropy_alpha"] = grad_mul(self.raw_entropy_weight.exp(), -1)
             loss += alpha * (self.target_entropy - entropy)
 
         return LossResult(loss=loss, info=info)

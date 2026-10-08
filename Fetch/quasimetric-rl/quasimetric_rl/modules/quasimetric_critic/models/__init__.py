@@ -17,13 +17,11 @@ from ....data import EnvSpec
 class QuasimetricCritic(Module):
     @attrs.define(kw_only=True)
     class Conf:
-
-
         encoder: Encoder.Conf = Encoder.Conf()
         quasimetric_model: QuasimetricModel.Conf = QuasimetricModel.Conf()
         latent_dynamics: LatentDynamics.Conf = LatentDynamics.Conf()
 
-        def make(self, *, env_spec: EnvSpec) -> 'QuasimetricCritic':
+        def make(self, *, env_spec: EnvSpec) -> "QuasimetricCritic":
             encoder = self.encoder.make(
                 env_spec=env_spec,
             )
@@ -42,14 +40,20 @@ class QuasimetricCritic(Module):
 
     raw_lagrange_multiplier: nn.Parameter
 
-
-    def __init__(self, encoder: Encoder, quasimetric_model: QuasimetricModel, latent_dynamics: LatentDynamics):
+    def __init__(
+        self,
+        encoder: Encoder,
+        quasimetric_model: QuasimetricModel,
+        latent_dynamics: LatentDynamics,
+    ):
         super().__init__()
         self.encoder = encoder
         self.quasimetric_model = quasimetric_model
         self.latent_dynamics = latent_dynamics
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor, *, action: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, y: torch.Tensor, *, action: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
 
         zx = self.encoder(x)
         zy = self.encoder(y)
@@ -57,6 +61,7 @@ class QuasimetricCritic(Module):
             zx = self.latent_dynamics(zx, action)
         return self.quasimetric_model(zx, zy)
 
-
-    def __call__(self, x: torch.Tensor, y: torch.Tensor, *, action: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def __call__(
+        self, x: torch.Tensor, y: torch.Tensor, *, action: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         return super().__call__(x, y, action=action)

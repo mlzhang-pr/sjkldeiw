@@ -12,14 +12,12 @@ import random
 def parse_args():
     parser = argparse.ArgumentParser()
 
-
     parser.add_argument("--load", type=str, required=True)
     parser.add_argument("--task-id", type=int, required=False, default=None)
     parser.add_argument("--seed", type=int, required=False, default=None)
     parser.add_argument("--num-episodes", type=int, default=10)
-    parser.add_argument('--render', default=False, action='store_true')
-    parser.add_argument('--csv', default=None, type=str)
-
+    parser.add_argument("--render", default=False, action="store_true")
+    parser.add_argument("--csv", default=None, type=str)
 
     return parser.parse_args()
 
@@ -86,7 +84,6 @@ if __name__ == "__main__":
 
     envs = gym.vector.SyncVectorEnv([make_env(task_id, render_human=args.render)])
     env = envs.envs[0]
-
 
     random.seed(seed)
     np.random.seed(seed)

@@ -13,41 +13,13 @@ from quasimetric_rl.data.env_spec import EnvSpec
 
 from .. import EnvSpec
 from ..base import (
-    EpisodeData, MultiEpisodeData, Dataset, BatchData,
+    EpisodeData,
+    MultiEpisodeData,
+    Dataset,
+    BatchData,
     register_offline_env,
 )
 from .utils import get_empty_episode, get_empty_episodes
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 class FixedLengthEnvWrapper(gym.Wrapper):
@@ -74,18 +46,25 @@ def load_episode_error():
     raise NotImplementedError()
 
 
-def register_online_env(kind: str, spec: str, *,
-                 load_episodes_fn=load_episode_error,
-                 create_env_fn, episode_length: int):
+def register_online_env(
+    kind: str,
+    spec: str,
+    *,
+    load_episodes_fn=load_episode_error,
+    create_env_fn,
+    episode_length: int,
+):
     r"""
     Similar to `register_offline_env`, but
       1. has a default `load_episodes_fn` that errors out.
       2. requires each episode to have a fixed length specified by `episode_length`.
     """
     register_offline_env(
-        kind, spec,
+        kind,
+        spec,
         load_episodes_fn=load_episodes_fn,
-        create_env_fn=lambda: FixedLengthEnvWrapper(create_env_fn(), episode_length))
+        create_env_fn=lambda: FixedLengthEnvWrapper(create_env_fn(), episode_length),
+    )
 
 
 class ReplayBuffer(Dataset):
@@ -96,21 +75,19 @@ class ReplayBuffer(Dataset):
         be changed. See below for details.
         """
 
-
-
-
-
         load_offline_data: bool = False
 
+        init_num_transitions: int = attrs.field(
+            default=int(1e6), validator=attrs.validators.gt(0)
+        )
+        increment_num_transitions: int = attrs.field(
+            default=int(0.5e6), validator=attrs.validators.gt(0)
+        )
 
-
-
-        init_num_transitions: int = attrs.field(default=int(1e6), validator=attrs.validators.gt(0))
-        increment_num_transitions: int = attrs.field(default=int(0.5e6), validator=attrs.validators.gt(0))
-
-        def make(self) -> 'ReplayBuffer':
+        def make(self) -> "ReplayBuffer":
             return ReplayBuffer(
-                self.kind, self.name,
+                self.kind,
+                self.name,
                 future_observation_discount=self.future_observation_discount,
                 load_offline_data=self.load_offline_data,
                 init_num_transitions=self.init_num_transitions,
@@ -144,17 +121,26 @@ class ReplayBuffer(Dataset):
         return env
 
     def load_episodes(self) -> Iterator[EpisodeData]:
-        r'''
+        r"""
         Used to initialize `ReplayBuffer`
-        '''
-        init_num_episodes = int(np.ceil(self.init_num_transitions / self.episode_length))
+        """
+        init_num_episodes = int(
+            np.ceil(self.init_num_transitions / self.episode_length)
+        )
         for _ in range(init_num_episodes):
             yield get_empty_episode(self.env_spec, self.episode_length)
 
-    def __init__(self, kind: str, name: str, *, future_observation_discount: float,
-                 load_offline_data: bool, init_num_transitions: int, increment_num_transitions: int,
-                 dummy: bool = False,
-                 ):
+    def __init__(
+        self,
+        kind: str,
+        name: str,
+        *,
+        future_observation_discount: float,
+        load_offline_data: bool,
+        init_num_transitions: int,
+        increment_num_transitions: int,
+        dummy: bool = False,
+    ):
         self.kind = kind
         self.name = name
         self.load_offline_data = load_offline_data
@@ -162,75 +148,108 @@ class ReplayBuffer(Dataset):
         self.increment_num_transitions = increment_num_transitions
         self.env = self.create_env()
         super().__init__(
-            kind, name, future_observation_discount=future_observation_discount,
-            dummy=dummy)
+            kind,
+            name,
+            future_observation_discount=future_observation_discount,
+            dummy=dummy,
+        )
         self.num_episodes_realized = 0
         if load_offline_data and not dummy:
             for episode in super().load_episodes():
                 self.add_rollout(episode)
                 self.num_episodes_realized += 1
-        self.num_successful_episodes = self.raw_data.transition_infos['is_success'].unflatten(
-            0, [self.episodes_capacity, self.episode_length],
-        )[:self.num_episodes_realized].any(-1).sum(dtype=torch.int64).item()
-        self.num_successful_transitions = self.raw_data.transition_infos['is_success'].unflatten(
-            0, [self.episodes_capacity, self.episode_length],
-        )[:self.num_episodes_realized].sum(dtype=torch.int64).item()
+        self.num_successful_episodes = (
+            self.raw_data.transition_infos["is_success"]
+            .unflatten(
+                0,
+                [self.episodes_capacity, self.episode_length],
+            )[: self.num_episodes_realized]
+            .any(-1)
+            .sum(dtype=torch.int64)
+            .item()
+        )
+        self.num_successful_transitions = (
+            self.raw_data.transition_infos["is_success"]
+            .unflatten(
+                0,
+                [self.episodes_capacity, self.episode_length],
+            )[: self.num_episodes_realized]
+            .sum(dtype=torch.int64)
+            .item()
+        )
 
     def _expand(self):
         original_capacity: int = self.episodes_capacity
 
-
-
-
-
         self.raw_data = MultiEpisodeData.cat(
-            [self.raw_data, get_empty_episodes(self.env_spec, self.episode_length, self.increment_num_episodes)],
+            [
+                self.raw_data,
+                get_empty_episodes(
+                    self.env_spec, self.episode_length, self.increment_num_episodes
+                ),
+            ],
             dim=0,
         )
         new_capacity = self.episodes_capacity
 
+        self.indices_to_episode_indices = torch.cat(
+            [
+                self.indices_to_episode_indices,
+                torch.repeat_interleave(
+                    torch.arange(original_capacity, new_capacity), self.episode_length
+                ),
+            ],
+            dim=0,
+        )
+        self.indices_to_episode_timesteps = torch.cat(
+            [
+                self.indices_to_episode_timesteps,
+                torch.arange(self.episode_length).repeat(
+                    new_capacity - original_capacity
+                ),
+            ],
+            dim=0,
+        )
 
+        logging.info(
+            f"ReplayBuffer: Expanded from capacity={original_capacity} to {new_capacity} episodes"
+        )
 
-
-        self.indices_to_episode_indices = torch.cat([
-            self.indices_to_episode_indices,
-            torch.repeat_interleave(torch.arange(original_capacity, new_capacity), self.episode_length),
-        ], dim=0)
-        self.indices_to_episode_timesteps = torch.cat([
-            self.indices_to_episode_timesteps,
-            torch.arange(self.episode_length).repeat(new_capacity - original_capacity),
-        ], dim=0)
-
-        logging.info(f'ReplayBuffer: Expanded from capacity={original_capacity} to {new_capacity} episodes')
-
-    def collect_rollout(self, actor: Callable[[torch.Tensor, torch.Tensor, gym.Space], np.ndarray], *,
-                        env: Optional[FixedLengthEnvWrapper] = None) -> EpisodeData:
+    def collect_rollout(
+        self,
+        actor: Callable[[torch.Tensor, torch.Tensor, gym.Space], np.ndarray],
+        *,
+        env: Optional[FixedLengthEnvWrapper] = None,
+    ) -> EpisodeData:
         if env is None:
             env = self.env
 
         epi = get_empty_episode(self.env_spec, self.episode_length)
 
-
-        obs_dict_keys = {'observation', 'achieved_goal', 'desired_goal'}
+        obs_dict_keys = {"observation", "achieved_goal", "desired_goal"}
         WRONG_OBS_ERR_MESSAGE = (
             f"{self.__class__.__name__} collect_rollout only supports Dict "
             f"observation space with keys {obs_dict_keys}, but got {env.observation_space}"
         )
         assert isinstance(env.observation_space, gym.spaces.Dict), WRONG_OBS_ERR_MESSAGE
-        assert set(env.observation_space.spaces.keys()) == {'observation', 'achieved_goal', 'desired_goal'}, WRONG_OBS_ERR_MESSAGE
+        assert set(env.observation_space.spaces.keys()) == {
+            "observation",
+            "achieved_goal",
+            "desired_goal",
+        }, WRONG_OBS_ERR_MESSAGE
 
-        reset_result = env.reset() 
+        reset_result = env.reset()
         if isinstance(reset_result, tuple):
             observation_dict, _ = reset_result
         else:
             observation_dict = reset_result
-        observation: torch.Tensor = torch.as_tensor(observation_dict['observation'])
+        observation: torch.Tensor = torch.as_tensor(observation_dict["observation"])
 
-        goal: torch.Tensor = torch.as_tensor(observation_dict['desired_goal'])
-        agoal: torch.Tensor = torch.as_tensor(observation_dict['achieved_goal'])
+        goal: torch.Tensor = torch.as_tensor(observation_dict["desired_goal"])
+        agoal: torch.Tensor = torch.as_tensor(observation_dict["achieved_goal"])
         epi.all_observations[0] = observation
-        epi.observation_infos['desired_goals'][0] = goal
-        epi.observation_infos['achieved_goals'][0] = agoal
+        epi.observation_infos["desired_goals"][0] = goal
+        epi.observation_infos["achieved_goals"][0] = agoal
 
         t = 0
         timeout = False
@@ -245,21 +264,21 @@ class ReplayBuffer(Dataset):
                 observation_dict, reward, terminal, timeout, info = step_result
             else:
                 observation_dict, reward, terminal, info = step_result
-                timeout = info.get('TimeLimit.truncated', False)
+                timeout = info.get("TimeLimit.truncated", False)
 
-            observation = torch.tensor(observation_dict['observation'])
+            observation = torch.tensor(observation_dict["observation"])
 
-            goal: torch.Tensor = torch.as_tensor(observation_dict['desired_goal'])
-            agoal: torch.Tensor = torch.as_tensor(observation_dict['achieved_goal'])
+            goal: torch.Tensor = torch.as_tensor(observation_dict["desired_goal"])
+            agoal: torch.Tensor = torch.as_tensor(observation_dict["achieved_goal"])
 
-            is_success: bool = info['is_success']
+            is_success: bool = info["is_success"]
 
             epi.all_observations[t + 1] = observation
             epi.actions[t] = torch.as_tensor(action)
             epi.rewards[t] = reward
-            epi.transition_infos['is_success'][t] = is_success
-            epi.observation_infos['desired_goals'][t + 1] = goal
-            epi.observation_infos['achieved_goals'][t + 1] = agoal
+            epi.transition_infos["is_success"][t] = is_success
+            epi.observation_infos["desired_goals"][t + 1] = goal
+            epi.observation_infos["achieved_goals"][t + 1] = agoal
 
             t += 1
             assert (timeout or terminal) == (t == self.episode_length)
@@ -270,30 +289,38 @@ class ReplayBuffer(Dataset):
             self._expand()
 
         self.raw_data.all_observations.unflatten(
-            0, [self.episodes_capacity, self.episode_length + 1],
+            0,
+            [self.episodes_capacity, self.episode_length + 1],
         )[self.num_episodes_realized] = episode.all_observations
 
         self.raw_data.actions.unflatten(
-            0, [self.episodes_capacity, self.episode_length],
+            0,
+            [self.episodes_capacity, self.episode_length],
         )[self.num_episodes_realized] = episode.actions
 
         self.raw_data.rewards.unflatten(
-            0, [self.episodes_capacity, self.episode_length],
+            0,
+            [self.episodes_capacity, self.episode_length],
         )[self.num_episodes_realized] = episode.rewards
 
-        self.raw_data.observation_infos['achieved_goals'].unflatten(
-            0, [self.episodes_capacity, self.episode_length + 1],
-        )[self.num_episodes_realized] = episode.observation_infos['achieved_goals']
+        self.raw_data.observation_infos["achieved_goals"].unflatten(
+            0,
+            [self.episodes_capacity, self.episode_length + 1],
+        )[self.num_episodes_realized] = episode.observation_infos["achieved_goals"]
 
-        self.raw_data.observation_infos['desired_goals'].unflatten(
-            0, [self.episodes_capacity, self.episode_length + 1],
-        )[self.num_episodes_realized] = episode.observation_infos['desired_goals']
+        self.raw_data.observation_infos["desired_goals"].unflatten(
+            0,
+            [self.episodes_capacity, self.episode_length + 1],
+        )[self.num_episodes_realized] = episode.observation_infos["desired_goals"]
 
-        self.raw_data.transition_infos['is_success'].unflatten(
-            0, [self.episodes_capacity, self.episode_length],
-        )[self.num_episodes_realized] = episode.transition_infos['is_success']
+        self.raw_data.transition_infos["is_success"].unflatten(
+            0,
+            [self.episodes_capacity, self.episode_length],
+        )[self.num_episodes_realized] = episode.transition_infos["is_success"]
 
-        num_successful_transitions = episode.transition_infos['is_success'].sum(dtype=torch.int64).item()
+        num_successful_transitions = (
+            episode.transition_infos["is_success"].sum(dtype=torch.int64).item()
+        )
         self.num_successful_transitions += num_successful_transitions
         self.num_successful_episodes += int(num_successful_transitions > 0)
 
@@ -306,21 +333,25 @@ class ReplayBuffer(Dataset):
         return self[indices]
 
     def get_dataloader(self, *args, **kwargs):
-        raise RuntimeError('Online data cannot be loaded as a dataloader')
+        raise RuntimeError("Online data cannot be loaded as a dataloader")
 
     def __repr__(self):
-        lines = super().__repr__().split('\n')
-        assert lines[-1] == ')'
-        lines = lines[:-1] + [
-            rf"""
+        lines = super().__repr__().split("\n")
+        assert lines[-1] == ")"
+        lines = (
+            lines[:-1]
+            + [
+                rf"""
     episode_length={self.episode_length!r},
     load_offline_data={self.load_offline_data!r},
     num_episodes_realized={self.num_episodes_realized!r},
     num_successful_episodes={self.num_successful_episodes!r},
     num_successful_transitions={self.num_successful_transitions!r},
-""".strip('\n'),
-        ] + lines[-1:]
-        return '\n'.join(lines)
+""".strip("\n"),
+            ]
+            + lines[-1:]
+        )
+        return "\n".join(lines)
 
 
 from . import gcrl

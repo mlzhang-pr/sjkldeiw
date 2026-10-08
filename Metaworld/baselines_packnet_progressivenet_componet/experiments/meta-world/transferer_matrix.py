@@ -19,13 +19,25 @@ from process_results import (
 def parse_args():
 
     parser = ArgumentParser()
-    parser.add_argument("--runs-dir", type=str, default="runs",
-        help="directory where the TensorBoard logs are stored")
-    parser.add_argument("--save-csv", type=str, default="data/data_transfer_matrix_raw.csv",
-        help="directory where the TensorBoard logs are stored")
-    parser.add_argument("--smoothing-window", type=int, default=100,
+    parser.add_argument(
+        "--runs-dir",
+        type=str,
+        default="runs",
+        help="directory where the TensorBoard logs are stored",
+    )
+    parser.add_argument(
+        "--save-csv",
+        type=str,
+        default="data/data_transfer_matrix_raw.csv",
+        help="directory where the TensorBoard logs are stored",
+    )
+    parser.add_argument(
+        "--smoothing-window",
+        type=int,
+        default=100,
         help="smoothing window for the success rate curves. \
-        Defaults to the value used in processing meta-world runs.")
+        Defaults to the value used in processing meta-world runs.",
+    )
 
     return parser.parse_args()
 
@@ -49,8 +61,6 @@ if __name__ == "__main__":
     if not os.path.exists(args.save_csv):
         dfs = []
         for path in tqdm(list(pathlib.Path(args.runs_dir).rglob("*events.out*"))):
-
-
             res = parse_tensorboard(str(path), [scalar])
             if res is not None:
                 dic, md = res
@@ -80,10 +90,6 @@ if __name__ == "__main__":
         print(f"Using cache CSV at: {args.save_csv}")
         df = pd.read_csv(args.save_csv)
 
-
-
-
-
     F = np.zeros((10, 10))
     for first_task in range(10):
         for second_task in range(10):
@@ -94,7 +100,6 @@ if __name__ == "__main__":
                 & (df["first task"] == first_task)
                 & (df["second task"] == second_task)
             ]
-
 
             x_baseline, y_baseline, _ = smooth_avg(
                 baseline, xkey="step", ykey="value", w=args.smoothing_window
@@ -108,7 +113,6 @@ if __name__ == "__main__":
                 method, xkey="step", ykey="value", w=args.smoothing_window
             )
             x_method, y_method = remove_nan(x_method, y_method)
-
 
             if len(x_baseline) > len(x_method):
                 print(f"Skipping first_task={first_task}, second_task={second_task}")
